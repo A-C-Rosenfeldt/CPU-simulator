@@ -114,6 +114,9 @@ function drawScene(gl, programInfo, buffers) {
                    modelViewMatrix,     // matrix to translate
                    [-0.0, 0.0, -6.0]);  // amount to translate
   
+    const checkMatrix = mat4.create();
+    mat4.multiply(checkMatrix,projectionMatrix , modelViewMatrix)
+
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
     {
@@ -208,31 +211,6 @@ function initBuffers(gl) {
                     1.0,  1.0,
                     0.0,  0.0,
                     1.0,  0.0,
-                    // Back
-                    0.0,  0.0,
-                    1.0,  0.0,
-                    1.0,  1.0,
-                    0.0,  1.0,
-                    // Top
-                    0.0,  0.0,
-                    1.0,  0.0,
-                    1.0,  1.0,
-                    0.0,  1.0,
-                    // Bottom
-                    0.0,  0.0,
-                    1.0,  0.0,
-                    1.0,  1.0,
-                    0.0,  1.0,
-                    // Right
-                    0.0,  0.0,
-                    1.0,  0.0,
-                    1.0,  1.0,
-                    0.0,  1.0,
-                    // Left
-                    0.0,  0.0,
-                    1.0,  0.0,
-                    1.0,  1.0,
-                    0.0,  1.0,
                   ];
                 
                   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
