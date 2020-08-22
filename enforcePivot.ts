@@ -19,17 +19,14 @@
 class Row{
     starts:number[] = [0,0,0,0,0,0]; // vs GC, number of test cases
     ranges=[[0,1],[2,3],[4,5]]
-    sides=[[0,1,2,3,4,5]]
-    
-    //ranges: better alternative.   print  vs  sub
     data:number[][] = [[],[],[]] 
 
+    // Mirror and generally metal leads to values > 1 on the diagonal
     constructor(pos:number, pitch:number, data:number[][]){
-        this.data[0]=data[0];
-        this.data[1]=data[1].concat([1]).concat(data[2]);
-        this.data[2]=data[3];
-
-        this.sides.push(this.sides[0].reverse())
+        this.data=data
+        this.starts=this.data.map(d=>Math.floor(d.length/2)+pos)
+        this.starts[0]-=pitch
+        this.starts[2]+=pitch
     }
 
     private find(at:number):number{
@@ -37,13 +34,10 @@ class Row{
         while(this.starts[--segment]<at){
             if (segment<0) return null;
         };
-
         if (segment in [1,3,5]){
             return null
         }
-
         return [segment][at-this.starts[segment]]
-
     }
 
     get(at:number):number{
@@ -56,6 +50,13 @@ class Row{
         return this.data[tupel[0]][tupel[1]]
     }
 
+    is1():boolean{
+        return 1e-6>(
+            Math.max.apply(this.data.map(d=>Math.max.apply(d)))-
+            Math.min.apply(this.data.map(d=>Math.min.apply(d))) // If no arguments are given, the result is +∞.
+        )
+    }
+
     // GC friendly  inplace code  looks ugly :-(
     scale(factor:number){
         if (factor !== 1){ // factor 1 should be default. Lets plot how it detoriates over the process
@@ -64,65 +65,70 @@ class Row{
     }
 
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
-    sub(that:Row){
-        {
+    sub(that:Row, factor:number){
         const clone=this.starts.slice() // copy all elements
         that.starts
         let combinedStarts=[]
 
-        // expand outer limits. ToDo: TestHook
-        {
-            let side=-3
-            if (this.starts[3-side]>that.starts[3-side]){
-                combinedStarts[3-side]=Math.min(
-                this.starts[3-side],that.starts[3-side])
-            }
-            side+=6
-            if (this.starts[3-side]>that.starts[3-side]){
-                this.starts[3-side]=that.starts[3-side]
-            }            
-        }
-
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
-        let won: number
+        let n: number /// for pass=2
+        let ts:number[][]
         for (let pass = 0; pass < 2; pass++) {
             let gaps: number[][] = [[], []]
 
             //let acc = 0
-            let i = 0
+            let i = 0 // Mybe use .values instead?
             let a = 0
             let story=[]
             let gap=0
             do {
+                const pass1gap=gap;
                 let I = clone[i]
                 let A = that.starts[a]
-
-                // if (pass === 1 && gap === 0) {
-                //     this.starts[i]=t
-                // }
-
-                //let t: number
-                if (I < A) {
+                if (I <= A) {
                     i++; gap ^= 1; story[0] = A
-                } else {
+                }
+                if (I >= A) {
                     a++; gap ^= 2; story[0] = I
                 }
 
-                if (gap !== 0) {
-                    story[1] = story[0]
+                if (pass === 1) { // polymorphism?
+                    let cut0:number[],cut1:number[];
+                    if (pass1gap & 1){
+                        cut0= this.data[i>>1].slice(story[0]-clone[i-1],story[1]-clone[i])
+                        if (pass1gap & 2){
+                            for(let b=0;b<cut0.length;b++){
+                                cut0[b]-=factor*that.data[a>>1][b+(story[0]-that.starts[a-1])]
+                            }
+                        }
+                        ts.push(cut0);    
+                    }else{
+                        if (pass1gap & 2){
+                            ts.push(that.data[a>>1].slice(story[0]-that.starts[a-1],story[1]-that.starts[a]))
+                        }else{
+                            ts.push(Array(story[0]-story[1]).fill(0))
+                        }
+                    }
+
+                    if (this.starts[n] === story[0]) {
+                        n++
+                        if ((n & 1) !== 0) {
+                            this.data[n>>1]=Array.prototype.concat.apply([],ts)
+                        }
+                    }
                 } else {
-                    if (pass === 1) { // polymorphism?
-                    //    this.starts[i]=gaps[i < 3 ? 0 : 1]
+                    if (gap !== 0) {
+                        story[1] = story[0]
                     } else {
-                        const pointer=gaps[i < 3 ? 0 : 1].slice(1,2)
-                        if (  pointer[0]-pointer[1] > story[0]-story[1] ){
-                            gaps[i < 3 ? 0 : 1]=[i].concat(story)
+                        const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
+                        if (pointer[0] - pointer[1] > story[0] - story[1]) {
+                            gaps[i < 3 ? 0 : 1] = [i].concat(story)
                         }
                     }
                 }
 
-            } while (i < this.starts.length && a < this.starts.length);
+            } while (i < this.starts.length && a < that.starts.length);
 
             this.starts=[
                 Math.min(this.starts[0],that.starts[0]),
@@ -133,18 +139,6 @@ class Row{
                 Math.max(this.starts[5],that.starts[5])
             ]
         }
-
-        for(let cashier=0;cashier<6;cashier++){
-            
-        }
-        //}
-
-        // decide which gap to keep
-        {
-            let side=-2
-            this.starts[3-side]>that.starts[3-side]
-        }
-        this.data.forEach(segment=>segment.forEach((value,i)=>segment[i]*=factor))
     }
 
 
@@ -159,10 +153,46 @@ class Row{
        this.data.push([1])
     }
 
+    static printScale=20;
+
     // parent has to initialize buffer because we fill only defined values
-    print(targetRough:ImageData, targetFine:Number ){
-        
+    print(targetRough:ImageData, targetFine:number ){
+        this.ranges.forEach((r,i)=>this.data[i].forEach((cell,j)=>{
+            targetRough.data.set([
+                cell<0?cell*Row.printScale:0,
+                0,
+                cell>0?cell*Row.printScale:0,255], // cannot do black numbers on black screen
+                targetFine+(this.starts[r[0]]+j)<<2)
+        }))
     }
+
+    innerProduct(column:number[] ):number{
+        let acc=0
+        this.ranges.forEach((r,i)=>{this.data[i].forEach((cell,j)=>{
+            acc+=cell*column[j+this.starts[r[0]]]
+        })})
+        return acc
+    }    
+
+    // only used for test. The other matrix will be an inverted Matrix, which is no sparse
+    innerProduct_Matrix(M: Tridiagonal):Row {
+        const accs=new Array(M.length())
+        for (let acc_i = 0; acc_i < M.length(); acc_i++) {
+            let acc = 0
+            this.ranges.forEach((r, i) => {
+                this.data[i].forEach((cell, j) => {
+                    acc += cell * M.getAt(j+this.starts[r[0]], acc_i)
+                })
+            })
+            accs[acc_i]=acc
+        }
+        {
+            const row=new Row(0,0,[[],[],[]])
+            row.data[1]=accs
+            return row
+        }
+    }    
+
 }
 
 class RowTest{
@@ -171,17 +201,78 @@ class RowTest{
     }
 }
 
-class Tridiagonal{
-    rows:Row[]
+export class Tridiagonal{
+    row:Row[]
     constructor(length:number){
-        this.rows=new Array(length)
-        this.rows
+        this.row=new Array(length)
+        this.row
+    }
+
+    is1():boolean{
+        for(let i=0;i<this.row.length;i++){
+            if (this.row[i].is1()) return true
+        }
+        return false
+    }
+
+    setTo1(){
+        this.row.forEach((row,i)=>{
+            this.row[i]=new Row(i,0,[[],[1],[]])
+        })
     }
 
     length():number{
-        return this.rows.length
+        return this.row.length
     }
     getAt(row:number, column:number){
-        return this.rows[row].get(column);
+        return this.row[row].get(column);
     }
+
+    print():ImageData{
+        const s=this.row.length
+        const iD=new ImageData(s,s)
+        // RGBA. This flat data structure resists all functional code
+        for(let pointer=0;pointer<iD.data.length;pointer+=4){
+            iD.data.set([0,255,0,255],pointer) // greenscreen
+        }
+        
+        for(let r=0, pointer=0;r<this.row.length;r++, pointer+=4){
+            this.row[r].print(iD, pointer)
+        }
+        return iD;
+    }
+
+    // due to pitch I expect the other 
+    inverse(): Tridiagonal{
+        const inve=new Tridiagonal(this.row.length) // I may want to merge the runlength encoders?
+
+        for(let i=0;i<this.row.length;i++){
+            [this.row[i],inve.row[i]].forEach(side=>side.scale(1/this.row[i].get(i)))
+            for(let k=0;k<this.row.length;k++)if (k!==i){
+               const f=this.row[k].get(i)
+               if (f!==0){
+                this.row[k].sub(this.row[i],f)
+                inve.row[k].sub(this.row[i],f)
+               }
+            }
+        }
+        return inve
+    }
+
+    MatrixProduct(that:number[]|Tridiagonal) {
+        if (Array.isArray( that ) ) { // Poisson simulation uses columns
+            return this.row.map(r=>{
+                return r.innerProduct(that)
+            })
+        } else{ // mostly to test inverse
+            const degen=new Tridiagonal(this.length())
+            degen.row=this.row.map(r=>{
+                return  r.innerProduct_Matrix(that)
+            })
+            return degen
+        }            
+    }
+
+    //product
+    //Tridiagonal|
 }

@@ -97,6 +97,8 @@ function drawScene(gl, programInfo, buffers) {
   
     // note: glmatrix.js always has the first argument
     // as the destination to receive the result.
+    // OpenGl switches from the correct aspect ratio to 1:1 and back.
+    // I do not want to have this nonsense in my code, so I stick with the library
     mat4.perspective(projectionMatrix,
                      fieldOfView,
                      aspect,

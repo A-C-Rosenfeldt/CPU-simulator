@@ -1,6 +1,181 @@
+/**
+
+So my newest concept is:
+I cache the field of a dipole. Dipole because all my transistors are globally not charged?
+Scrap that. So I just evaluate the field of a charged wire ( E = 1/r ) as an array.
+I place my metal shape with opposite charge into this field, or ah who cares, so I use a square boundray,
+and set the potential on it according to the wire potential.
+So I place this U=homogenous metal object in there and calculate charge distribution.
+These are the linear Poisson equations  collapsed over U => so it cannot be inverted for the time being.
+Charge is on the other side of the equation. Or is it? No Charge is on the right side,
+and only the sum (1) is on the left side ( and all the 0 for the dielectric space around the metal)
+Now the matrix can be inverted again.
+Collapsing n U -> 1 U
+Shifting n Q -> to the right   and   add one row
+Check!
+
+How did I come to this? Ah right I have multiple objects. I have point charge carrier (wire) or an electrode.
+The carrier moves or the electrode gets charged ( sum of all charges in transistor leads to stray field in the wires, yeah should be so, Lets look at the rails. Rails are supposed to have zero impedance! So of course there is input charge in a CMOS gate!)
+Then there is a second electode nearby ( for the gating of the carriers).
+The equation is like the one above, just on dielectric pixel has a Q=1
+  recalc for moving Q .. or move metal (along surface)
+  LU does not reuse results for pivot. Pivot is dominated by the dielectric. Real pivot is only needed in the range of collaped U and .. Q takes the place of the diagonal there.
+
+  So Housten we are back at premature optimization. Out matrix does not need pivot.
+  I do not need scary permutation matrices, I could also just do rows and columns in my order,
+  by first only doing the dielectric and canceling any row that would touch metal (by clearing).
+  So for the next inversion, I do reuse, reuse , ah I better check beforehand up to what point I want to reuse. 
+
+How do I center? For carrier on metal: center on carrier.
+For that I would calculate the halo around each carrier. On the border will be a discrepancy which iteratively will be solved ..
+but wouldn't it be more sensible to collect all carrier fields on borders and the jump to the next border?
+Yeah, her it comes:
+
+If I do Direchlet boundary anyway, I can do blocks. I clear out complete blocks an recreate them using matrix multiplication.
+So I use boundary of other blocks (closed interval) from last frame / last stepping?
+If you think about it, doing Poisson single cell just applies this to a single cell.
+
+So the boundary puts lots of U on the left side, on straight lines the outside potential just add up to the charge just inside.
+So the boundary acts like a line of charge. I mean I estimate 50% duty area, so most cells will be charged.
+
+Do I need electrode - electrode simulations? Probably not, though specs talk about C_{GS} and such.
+But I can reuse the result quite efficiently.
+While for carrier I need to recalc for every carrier position * electrode config,
+here I only have elctrode config.
+I have some more U callapsing ( and replacement by variable Q).
+
+The funny thing is that I can cut my simulation result to a small block and it still makes sense.
+Instead of the default simulation far of, I have the real boundary values in that state.
+
+These "Green Function" ( not retarded, Maxwell and time is not in play yet )
+
+ */
+
+
+
+// Converts Maps to matrix
+
+import 'field/semiconductor.ts'
+import 'field/metal.ts'
+
+// Right now I am in 2d, and I use a grid (like minecraft). I have seen coils without anisotropie and that looked ugly.
+class Position{
+  [key:Number]:Number ;
+}
+
+const stride=6
+function Map( pos:Position){
+  let cell=pos[0]*stride
+}
+
+class Mirror{
+  // modify matrix to simulate a perfect mirror on the left (for FinFET and whenelt)
+}
+
+// there is iterative field caclutation
+// E from last frame and div from this charge distribution
+
+
+// 1) Charge Movement
+// this charge distribution
+// 0) boundary E (U) from last frame ( MVP.  Later maybe alternating: forward, backward )
+// using last frame E: Residuum and the calculate Halo
+
+// 0) On Metal: All U is the same -> put that into div calculation.  Also sum of div is given by number of charge carriers
+// 1) charge movement ( into waveguide)
+
+// I  would also like to get stuff squishy and add momentum like in navier stokes, but this doubles the state and thus comes after the MinimalViableProduct
+// while kinematic is important for  hot electron  simulation ,  viscosity is somwhat meaningless. I don not even have the colors to visualize.
+
+// So I do not undertand most of the matrix inversion stuff. I DO understand that I cannot fully invert a matrix, though my application is on the border of it.
+// To be able to use out of the Box LU decomposition. Someone said a 10 000 matrix is okay. So in finite element space I can use tiles of 100x100
+// Still I think I would go 16x32. With the 32 overlapping.
+// If I do blocks I would need to define boundary conditions. Okay that is easy I just skip that one summand.
+
+// Charge alone lets carriers occupy a 2d plane on both sides of a capacitor. From the side this looks ugly, thus I need pressure.
+
+
+//                 n
+// d2    P = delta E      //    =  poisson
+// delta P =        E     // force
+// P       =        U
+// n                       // ideal gas equation
+
+
+// If I do band diagonal
+
+// In numerical recipies some vectors are multiplied with the inverse in one go
+// The inverse is still calculated and returned. Vector on the go is not used for pivot but may be good on rounding errors
+
+
+// Inverse caching
+// So I have gates, selfgates, cathode, collector (see line 138: ex)
+// So in 1d (totem pole) I have like 6 transition elements
+// What about 2d ( wired or) ? I insert Y piece and keep all conections sufficiently separated?
+//  Yeah that creates a cross with jaggy diagonals. <- not in MVP because I can use metal instead
+var globalTime:number;
+
+
+class /*SemiconductorMetal*/ Contact{
+  /*
+  contacts lead to shielded wires. So the differential equation needs to exhbit the impedance: 
+    Current flows => voltage appears  .. 
+  // .. relative to the voltage in the cable. This voltage is the sum of the forward and backwards signal 
+     (I will use voltage for it => no sign change on the end).
+  // When the differential equation is solved, this will be the case. 
+     Shielded wires act as resistors to the voltage comming in (both sides). Current comes in from both sides.
+  // This would have to be modelled like 2 times the voltage as a source and then a resistor connected 
+     to the semiconductor (to get absolute and differential voltage right).
+  // termination at the end is made by means of transistors. 
+  */
+  Flow(voltageInSemi : number){ // flow into the node
+
+    var voltages=this.wire.getVoltage(this.wirePos);
+
+    // ODE
+    var currentIntoSemi=voltages.map(v => v-voltageInSemi /* /R */ );
+
+    // After solution of local voltage and current: Set outgoing signals on each side.
+    // Since the wire uses a rotating pointer into a fixed array, we need to update the values
+    // Otherwise the signal would just pass through us.
+    this.wire.setVoltage(this.wirePos); // 
+
+    // equation from above as matrix. Square to be invertable
+    const R=[
+      //,[,]
+      ,[-1*R /* new col only */ */,+1 /*new col and row*/] // we only add I to the homognous side.
+    ];
+    matrix.appendOnDiagonal(R); //V
+    //matrix.appendOnDiagonal(R); //I
+    vector.Append([VoltageInWire*R, '???']);
+  }
+ // static properties
+
+ // this is added to the matrix (not the map)
+ OdeInhomogenous: number = 3; // Voltage in cable
+ Ode__homogenous: number = 50; // Impedance
+  
+
+ // owned by FinFet
+  wire: Wire; // ref to. Hmm who owns a wire?
+  wirePos: number; // we just store the position on the wire also her
+
+  semiPos: number;
+  //fromVss: number; // length=2
+  
+  // dynamic variables -- these need to be solved by the matrix inverter. All currents are calculated within
+ // voltages: number[]; // Signals coming from both sides
+  //currents: number[]; // The solution is quite simple: A passing current going through the wire and the current coming from the semiconductor split between two equal resistors in parallel.
+
+
+
+}
+
+
 class Tupel{
     // coulomb / m³  or whatever. Same unit for both
-    Carrier : number; // for 6502 nfets: all negative
+    Carrier : number[]; // for 6502 nfets: all negative. But I need double buffer
+    Current: number[]; // for both directions (x,y)
     Doping : number;
     ChargeDensity=() => this.Carrier + this.Doping;
 
@@ -14,109 +189,456 @@ class Tupel{
         const chargeDensity=this.ChargeDensity();
         
         raw[p+(chargeDensity>0?1:2)]=Math.abs(chargeDensity);
-    }    
-}
+    }
+    
+    FromString(fixed: String)
+    {
 
-class FinFet{
+    }
 
+    static field:number=0
+
+    GetCarrier(){
+      return this.Carrier[Tupel.field];
+    }
+
+    AddCarrier(val:number){
+      this.Carrier[1^Tupel.field]=this.Carrier[Tupel.field]+val;
+    }
+
+    SetCarrier(val:number){
+      this.Carrier[1^Tupel.field]=val;
+    }
 }
 
 class Field{
+
+  field: number; // like field in interlaced video. Used to double buffer the carriers
+  tu
+
+  constructor()
+
+  ToMatrix(){
+    // call meander in FinFet
+  }
+}
+
+// this example is later cut and refused as needed
+const ex=[
+  [ // connected m  . Connected to wire with impedance=50
+  ['S',1,'mmmmmmm'], // simple boundary condition
+  [    4,'ssssssm'],], // contact
+  [3,'sssiii'],  // we assume homognous electric field between plates (the side walls of the gates)
+  [4,'sssi-im'], // gate
+  [3,'sssiii'], // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
+  [1,'sssmmmm'], // self gate = Faraday
+  [3,'sssi-im'], // self gate
+  [3,'sssiiii'],
+  [1,'mmmmmmm'], // simple boundary condition
+];
+
+// Some gates are connected to the silicon slab => current flowing
+const gate=new Field( //'ex'
+  ); // So "m" is the inhomogenous part
+
+const instance='CGCFC'; // the ends are implicit
+
+class PDE{
+  public DoDirection(d:number[],reflection=false ){ //}: boolean){
+    return ;
+  }
+
+  public c:number[]
+  public m:number[][];
+
+}
+
+// I want to mimic the compact representation in the original Silicon.
+// the mirror in FIN reduces the area to process in the calculation
+// This, here in code, multiple metal connections to n-dopen Si are modelled
+class FinFet{
+
+  public PoissonGen(){
+    this.DoAll(new PDE())
+    return //Matrix to invert 
+  }
+
+  public CarrierGen(){
+    return // nothing. Sideeffect: create new frame of carriers
+  }
+   
+  // border special
+  // trying to replace  if  with data indirection
+  public DoAllXandThenYOrSo(ode:PDE){
+    const pitch=10;
+    const width=10;
+    var directions=[1,pitch];
+    var x=0;var y=0;
+    ode.DoDirection(directions,true) 
+
+    directions.push(-1)
+    do{
+      ode.DoDirection(directions)
+
+    }while(++y<width);
+
+    directions.shift()
+
+    ode.DoDirection(directions,true)
+  }
+
+
+  //Gate: number[]; // Voltages
+
+  connectedToPowerRail: boolean[]=[false,false]; // VSS, VDD
+
+  contacts: Contact[] // wire
+
+  Field:Tupel[][4]; // looks like I should go with 4x4 matrix and not worry about pivot. Matrix is fixed. I just have to multiply.
+
+  constructor(){
+    var element="g";
+    switch(element){
+
+    }
+
+
+    const crossSection=Tupel[4];
+    var c=crossSection[0];
+    c.BandGap=3
+    var c=crossSection[1];
+    c.BandGap=3
+    c.ChargeDensity=1; // we start in enhancement mode
+    var c=crossSection[2];
+    c.BandGap=3
+    var c=crossSection[3];
+    c.BandGap=1
+
+    this.Field[0]=crossSection;//] as Tupel[][4];
+  }
+
+  
+
+  ToTexture(raw : Uint8Array, p:number )
+  {
+    for(let y=0;y<16;y++)
+      for(var x=0;x<4;x++){
+        this.Field.ToTexture(raw, p+4*x);
+        this.Field.ToTexture(raw, p-4*x);
+      }
+    }
+  //} 
+// }
+
+// class Field{
     field: Tupel[][];
 
-    LaPlace(x:number,y:number){
+    fieldFloat: Tupel[];
+    floatPitch=6;
+
+    // 1x1 block. DGL to solve
+    Poisson(x:number,y:number){
         this.field[x][y].Potential=(
-            this.field[x-1][y-1].Potential
-            +this.field[x-1][y+1].Potential
-            +this.field[x+1][y-1].Potential
-            +this.field[x+1][y+1].Potential
+            this.field[x][y-1].Potential
+            +this.field[x][y+1].Potential
+            +this.field[x-1][y].Potential
+            +this.field[x+1][y].Potential
         )/4 + this.field[x][y].ChargeDensity();
-        //LU
-//         const matrixI = Math.matrix([[0, 1], [2, 3], [4, 5]]);
-// const vectorJ = math.matrix([[2], [1]]);
-// const vectorIJ = math.multiply(matrixI, vectorJ);
     }
 
+    // check: sum(sum()) == 0
+    // metal voltage can be read for Poisson, but writing leads to average over the segment.
+    // On Top and bottom one line refers to the inhomogenous part
+
+   
+
+    PIntern={c:[1,1],m:[
+      ,[ 0,-1, 0]
+      ,[-1, 4,-1]
+      ,[ 0,-1, 0]
+    ]};
+    PMirror={c:[1,0], m:[
+      ,[   -1, 0]
+      ,[    4,-2]
+      ,[   -1, 0]
+    ]};
+
+    // see electrode aggregation
+    PGaps__={c:[1,1],m:[
+      ,[ 0, 1 ]
+      ,[-1,-3 ]
+      ,[ 0, 1 ]
+    ]};
+
+    //PoissonDirection
 
 
 
 
-    Inverse(){
-        // https://github.com/josdejong/mathjs/blob/develop/src/function/matrix/inv.js
+  
 
-    // this is a matrix of 3 x 3 or larger
-      // calculate inverse using gauss-jordan elimination
-      //      https://en.wikipedia.org/wiki/Gaussian_elimination
-      //      http://mathworld.wolfram.com/MatrixInverse.html
-      //      http://math.uww.edu/~mcfarlat/inverse.htm
-/*
-      // make a copy of the matrix (only the arrays, not of the elements)
-      const A = mat.concat()
-      for (r = 0; r < rows; r++) {
-        A[r] = A[r].concat()
+    // And assign to? I dunno the gap between gates/electrodes is already present
+    // So we need a jagged array. Pitch depends on row. Hmm.
+    
+    //current:Number[][]; // Backbuffer for Ohm
+    OhmX(y:number){
+      let x=0
+      potentials[0]=this.field[x][y].Potential
+
+    }
+    // I am continuosly switching between LaPlace and Ohm
+    OhmAll(){
+
+    // ToDo: For a metal electrode sum up all matrices
+    var segments=['ex','am','ple']
+
+    segments.forEach( segment=>{
+      if (source in other segment){
+        var value=segments.getPreviousValue();
+        var homo=value*matrix;
+
+      }      
+    })
+
+
+      {
+        let xSize=10
+        let ySize=10
+
+        //for (
+        let y=0
+        let x=0
+        //)
+
+        let directions:number[]=[0,0,0,0]
+
+        // aggregate over all directions where current can flow off
+        if (x===0){
+          directions[2]=this.OhmDirection(2,this.PMirror); // set current. We need to buffer this for the  the creditor process
+        }
+        else
+        {
+        if (x<xSize-1){
+          this.OhmDirection(2,this.PIntern)
+          if (y===0){
+            this.OhmDirection(2,{c:this.PIntern.c, m:this.PIntern.m } )
+            // how to move homogenous part to the other side? Multiply and negate.
+          }
+        }else{
+
+        }
       }
 
-      // create an identity matrix which in the end will contain the
-      // matrix inverse
-      const B = identity(rows).valueOf()
 
-      // loop over all columns, and perform row reductions
-      for (let c = 0; c < cols; c++) {
-        // Pivoting: Swap row c with row r, where row r contains the largest element A[r][c]
-        let ABig = abs(A[c][c])
-        let rBig = c
-        r = c + 1
-        while (r < rows) {
-          if (abs(A[r][c]) > ABig) {
-            ABig = abs(A[r][c])
-            rBig = r
-          }
-          r++
-        }
-        if (ABig === 0) {
-          throw Error('Cannot calculate inverse, determinant is zero')
-        }
-        r = rBig
-        if (r !== c) {
-          temp = A[c]; A[c] = A[r]; A[r] = temp
-          temp = B[c]; B[c] = B[r]; B[r] = temp
-        }
+    // // Insolvenz: Alle bekommen ihren Anteil (current flows due to field strength until bucket is empty)
+    // // ECL and no HEMPT: I will dope the bulk and may even go differential to avoid this case
+    //Limit(p, currents:number[]){
+      let carrier=this.fieldFloat[p].GetCarrier()
+      //let currents=this.fieldFloat[p].Current.concat([-this.fieldFloat[p+1].Current[0],-this.fieldFloat[p+this.floatPitch].Current[0]])
+      let current=this.fieldFloat[p].Current.filter(out_c => out_c > 0).reduce( (p,c) => p+c  ,0);
+      
+      // [0]-
+      // this.fieldFloat[p+1].Current[0]+
+      // this.fieldFloat[p].Current[1]-
+      // -this.fieldFloat[p+this.floatPitch].Current[1]
 
-        // eliminate non-zero values on the other rows at column c
-        const Ac = A[c]
-        const Bc = B[c]
-        for (r = 0; r < rows; r++) {
-          const Ar = A[r]
-          const Br = B[r]
-          if (r !== c) {
-            // eliminate value at column c and row r
-            if (Ar[c] !== 0) {
-              f = divideScalar(unaryMinus(Ar[c]), Ac[c])
+      if (carrier<current){
+        // limit the time step
+        let q=carrier/current;
+        if (q<this.minLimit) {this.minLimit=q}
+      }
 
-              // add (f * row c) to row r to eliminate the value
-              // at column c
-              for (s = c; s < cols; s++) {
-                Ar[s] = addScalar(Ar[s], multiply(f, Ac[s]))
-              }
-              for (s = 0; s < cols; s++) {
-                Br[s] = addScalar(Br[s], multiply(f, Bc[s]))
-              }
-            }
-          } else {
-            // normalize value at Acc to 1,
-            // divide each value on row r with the value at Acc
-            f = Ac[c]
-            for (s = c; s < cols; s++) {
-              Ar[s] = divideScalar(Ar[s], f)
-            }
-            for (s = 0; s < cols; s++) {
-              Br[s] = divideScalar(Br[s], f)
-            }
-          }
+    //}
+
+        this.OhmDirection([0,3])
+        let E= this.field[x  ][y].Potential-
+               this.field[x+1][y].Potential
+        let C= this.field[x  ][y].GetCarrier()-
+        this.field[x+1  ][y].GetCarrier()
+
+        let d=C*E;
+        this.field[x  ][y].AddCarrier(d);
+        this.field[x+1  ][y].AddCarrier(-d);
+        
+        this.OhmDirection(1)
+        this.OhmDirection(this.floatPitch)
+
+        this.OhmX(y++)
+          do{
+
+          }while(false)
+        }
+    }
+
+    OhmDirection(direction:number, pde:PDE){      
+        let y=0
+        let x=0
+
+        //let currents=directions.map(direction=>{
+        let E= this.field[x  ][y].Potential-
+               this.field[x+pitch[direction]][y].Potential
+        let C=//[
+        this.field[x  ][y].GetCarrier(),
+        //this.fieldFloat[x+direction].GetCarrier()
+        //]
+
+        //let c=C[0]-C[1]
+
+        //let d=
+        return C*E; // Field strength 1  removes all carriers and the material becomes insulating
+        }
+        // if (C[0]+d<0) d=-C[0]
+        // if (C[1]-d<0) d=+C[1]
+        // this.field[x  ][y].SetCarrier(C[0]+d);
+        // this.field[x+1  ][y].SetCarrier(C[1]-d)        
+
+        // this.OhmX(y++)
+        //   do{
+
+        //   }while(false)
+        // }
+    // }
+
+
+
+
+
+
+    // I cannot check may calculations this way, also want Doping within to spread the charge. May later add wavefunctions?: "I only do one dimension: HEMT"
+    Ohm(x:number,y:number){
+
+      // x should be = 3
+      const potentials=[1,0]; // Vss = -5V , Gnd = 0V 
+      //this.Emitter.flow, this.Collector.slice(-1,-1) ]
+
+      // not really forEach: ToDo: convert to join
+      for(let n=0;n<this.contacts.length;n++){
+        const contact=this.contacts[n]
+        var current=contact.Flow(this.field[4-1][ contact.semiPos]);
+
+        const r=this.contacts[n].fromVss;
+        for (var j=r;j<r+3;j++){ // Style: how big should contacts be? In a crystal diode they are quite big
+          const c=this.contacts[n]
+          this.field[4-1][j].Potential[j]=c.wire.flow[0][c.pos-globalTime]+c.wire.flow[1][c.pos+globalTime];
         }
       }
-      return B
+
+      if (y>=0)
+      {
+        potentials[0]=this.field[x][y].Potential
+      }else{
+      const potentials=//[
+        [this.field[x][y],//this.field[x+1][y]],
+      this.field[x][y+1]//,this.field[x+1][y+1]]
+      ]
     }
-*/
+      const p=potentials.map(po=>po.Potential)
+
+      const voltages= p[1]-p[0] 
+      //[  p[1][1]-p[1][0] + p[0][1]-p[0][0] ,
+      // p[1][1]-p[1][0] + p[0][1]-p[0][0]    ];
+
+      const c=potentials.map(pot=>pot.Carrier)
+
+      // does not work beyond 1 dimension
+      const carrier=  c[0]+c[1];//[0] + c[0][1]+c[0][0];
+
+      // We operate in 2d
+      var field=new Tupel[20][20];
+
+      // nonlinear: how to solve?
+      // carrier movement is time-dependent
+      // lastFrame.carrier * current = thisFrame.carrier
+
+      // laplace(potential) = thisFrame.carrier    
+      let rhs=field.getCarrier()  
+      // lastFrame.carrier * grad(potential)*Leitfähigkeit = current
+      // thisFrame.carrier = div(current) + lastFrame.carrier
+
+      // in homogenous medium this becomes
+      // thisFrame.carrier = (LaPlace(potential)+base) * lastFrame.carrier
+
+      // cannot solve carriers in this step
+      c[0]+=carrier*voltages
+      c[1]-=carrier*voltages
+
+      //+this.field[x][y+1].Carrier
+
+      //current[x][y]=
     }
-}
+
+    OhmField(){
+      // to always get carriers from last fram
+      for(let x=4-1;x>=0;--x){
+        for(let y=4-1;y>=0;--y){
+        }
+      }
+    }
+
+    // Meander(x:number, y:number, level:number){
+    //   if (level-->0)
+    //   {
+    //     var check=Number[4][2];
+    //     this.Meander(level);
+    //   }
+    // }
+
+    Interlace(x:number, y:number) // and gray code
+    { 
+      let combined=0;let last=0;
+      let ror=(1<<2*2)
+      for(let d=0;d++;d<2){
+        last^=x&ror
+        combined|=last
+        combined>>=1;x>>=1;
+        last^=y&ror
+        combined|=last
+        combined>>=1;y>>=1;
+      }
+      return combined;
+    }
+
+    mat=Number[4][4];
+    homo=Number[12]
+    LaPlace4x4(tiles:number[][][]){
+      const flat=Number[4*4];
+      for(let y=0;y<4;y++){
+        for(var x=0;x<4;x++){
+          let flatIndex=this.Interlace(x,y)
+          flat[flatIndex]=this.field[x][y];
+
+          this.homo[flatIndex]=this.field[x][y].ChargeDensity();
+          this.mat[flatIndex][flatIndex]=4; // diagnoal entries are all <> 0
+          // homogenous and inhomogenous (the border: 4+4+4+4) parts
+          if (x>0)
+          {
+            this.mat[flatIndex][this.Interlace(x-1,y)]=-1;
+          }else{
+            this.homo[flatIndex] -= this.Gate[0]
+          }
+
+          if (x<4-1)
+          {
+            this.mat[flatIndex][this.Interlace(x+1,y)]=-1;
+          }else{
+            this.homo[flatIndex][this.Interlace(x-1,y)]=-2; // see above
+          }
+
+          if (y>0)
+          {
+            this.mat[flatIndex][this.Interlace(x,y-1)]=-1;
+          }else{
+            this.homo[flatIndex] -= tiles[0][x][4-1];
+          }          
+
+          if (y<4-1)
+          {
+            this.mat[flatIndex][this.Interlace(x,y+1)]=-1;
+          }else{
+            this.homo[flatIndex] -= tiles[1][x][0];
+          }   
+
+        }
+      }
+    }
+
