@@ -24,7 +24,7 @@ export class Row{
     // Mirror and generally metal leads to values > 1 on the diagonal
     constructor(pos:number, pitch:number, data:number[][]){
         this.data=data
-        this.starts=this.data.map(d=>Math.floor(d.length/2)+pos)
+        this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
         this.starts[0]-=pitch
         this.starts[2]+=pitch
     }
@@ -97,23 +97,26 @@ export class Row{
                 }
 
                 if (pass === 1 && story.length===2 /* this needs reversed story */) { // polymorphism?
-                    let cut0:number[],cut1:number[];
-                    if (pass1gap & 1){
-                        cut0= this.data[i>>1].slice(story[1]-clone[i-1],story[0]-clone[i])
-                        if (pass1gap & 2){
-                            for(let b=0;b<cut0.length;b++){
-                                console.log("b "+b)
-                                cut0[b]-=factor*that.data[a>>1][b+(story[1]-that.starts[a-1])]
+                    (function trailing(i:number,a:number){
+                        let cut0:number[],cut1:number[];
+                        if (pass1gap & 1){
+                            console.log('this.data['+i+'>>1].slice('+story[1]+'-'+clone[i-1]+','+story[0]+'-'+clone[i]+')')
+                            cut0= this.data[i>>1].slice(story[1]-clone[i-1],story[0]-clone[i])
+                            if (pass1gap & 2){
+                                for(let b=0;b<cut0.length;b++){
+                                    console.log("b "+b)
+                                    cut0[b]-=factor*that.data[a>>1][b+(story[1]-that.starts[a-1])]
+                                }
+                            }
+                            ts.push(cut0);    
+                        }else{
+                            if (pass1gap & 2){
+                                ts.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a-1]))
+                            }else{
+                                ts.push(Array(story[1]-story[0]).fill(0))
                             }
                         }
-                        ts.push(cut0);    
-                    }else{
-                        if (pass1gap & 2){
-                            ts.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
-                        }else{
-                            ts.push(Array(story[1]-story[0]).fill(0))
-                        }
-                    }
+                    }).bind(this)(i-1,a-1)
 
                     if (this.starts[n] === story[0]) {
                         n++
