@@ -16,7 +16,7 @@
 // explain a CPU
 
 // we could store left and right side of the equation
-class Row{
+export class Row{
     starts:number[] = [0,0,0,0,0,0]; // vs GC, number of test cases
     ranges=[[0,1],[2,3],[4,5]]
     data:number[][] = [[],[],[]] 
@@ -73,7 +73,7 @@ class Row{
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
         let n: number /// for pass=2
-        let ts:number[][]
+        let ts:number[][]=new Array()
         for (let pass = 0; pass < 2; pass++) {
             let gaps: number[][] = [[], []]
 
@@ -83,31 +83,35 @@ class Row{
             let story=[]
             let gap=0
             do {
+                console.log("i "+i+" a "+a)
                 const pass1gap=gap;
                 let I = clone[i]
                 let A = that.starts[a]
-                if (I <= A) {
+                if (I > A) {
+                    a++; gap ^= 2; story[0] = I              
+                }else{
                     i++; gap ^= 1; story[0] = A
-                }
-                if (I >= A) {
-                    a++; gap ^= 2; story[0] = I
+                    if (I === A) {
+                        a++; gap ^= 2
+                    }                          
                 }
 
-                if (pass === 1) { // polymorphism?
+                if (pass === 1 && story.length===2 /* this needs reversed story */) { // polymorphism?
                     let cut0:number[],cut1:number[];
                     if (pass1gap & 1){
-                        cut0= this.data[i>>1].slice(story[0]-clone[i-1],story[1]-clone[i])
+                        cut0= this.data[i>>1].slice(story[1]-clone[i-1],story[0]-clone[i])
                         if (pass1gap & 2){
                             for(let b=0;b<cut0.length;b++){
-                                cut0[b]-=factor*that.data[a>>1][b+(story[0]-that.starts[a-1])]
+                                console.log("b "+b)
+                                cut0[b]-=factor*that.data[a>>1][b+(story[1]-that.starts[a-1])]
                             }
                         }
                         ts.push(cut0);    
                     }else{
                         if (pass1gap & 2){
-                            ts.push(that.data[a>>1].slice(story[0]-that.starts[a-1],story[1]-that.starts[a]))
+                            ts.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
                         }else{
-                            ts.push(Array(story[0]-story[1]).fill(0))
+                            ts.push(Array(story[1]-story[0]).fill(0))
                         }
                     }
 
@@ -117,9 +121,10 @@ class Row{
                             this.data[n>>1]=Array.prototype.concat.apply([],ts)
                         }
                     }
+                    story[1] = story[0] // we care for all seams
                 } else {
-                    if (gap !== 0) {
-                        story[1] = story[0]
+                    if (gap !== 0) { // we record gaps
+                        story[1] = story[0] // we looked back
                     } else {
                         const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
                         if (pointer[0] - pointer[1] > story[0] - story[1]) {
@@ -128,14 +133,14 @@ class Row{
                     }
                 }
 
-            } while (i < this.starts.length && a < that.starts.length);
+            } while (i < clone.length && a < that.starts.length);
 
             this.starts=[
                 Math.min(this.starts[0],that.starts[0]),
                 gaps[0][1],
-                gaps[0][2],
+                gaps[0][0],
                 gaps[1][1],
-                gaps[1][2],
+                gaps[1][0],
                 Math.max(this.starts[5],that.starts[5])
             ]
         }
@@ -205,7 +210,9 @@ export class Tridiagonal{
     row:Row[]
     constructor(length:number){
         this.row=new Array(length)
-        this.row
+        //I cannot create rows
+        //I do not want thousand different constructors
+        //user will have to fill the array
     }
 
     is1():boolean{
