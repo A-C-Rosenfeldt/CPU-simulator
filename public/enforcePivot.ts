@@ -25,8 +25,22 @@ export class Row{
     constructor(pos:number, pitch:number, data:number[][]){
         this.data=data
         this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
+
         this.starts[0]-=pitch
-        this.starts[2]+=pitch
+        this.starts[1]-=pitch        
+        this.starts[4]+=pitch
+        this.starts[5]+=pitch
+        
+        // for diagonal-only construction
+        if (this.starts[1]>this.starts[2]){
+            this.starts[0]-=this.starts[1]-this.starts[2]
+            this.starts[1]=this.starts[2]
+        }
+        
+        if (this.starts[4]<this.starts[3]){
+            this.starts[5]-=this.starts[4]-this.starts[3]
+            this.starts[4]=this.starts[3]
+        }            
     }
 
     private find(at:number):number{
@@ -66,7 +80,7 @@ export class Row{
 
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
     sub(that:Row, factor:number){
-        const clone=this.starts.slice() // copy all elements
+        let clone:number[]        =this.starts.slice() // copy all elements
         that.starts
         let combinedStarts=[]
 
@@ -75,48 +89,63 @@ export class Row{
         let n: number /// for pass=2
         let ts:number[][]=new Array()
         for (let pass = 0; pass < 2; pass++) {
+            console.log('pass '+pass)
             let gaps: number[][] = [[], []]
-
-            //let acc = 0
+   
             let i = 0 // Mybe use .values instead?
             let a = 0
             let story=[]
             let gap=0
             do {
-                console.log("i "+i+" a "+a)
+                // console.log("i "+i+" a "+a)
                 const pass1gap=gap;
-                let I = clone[i]
-                let A = that.starts[a]
-                if (I > A) {
-                    a++; gap ^= 2; story[0] = I              
-                }else{
-                    i++; gap ^= 1; story[0] = A
-                    if (I === A) {
-                        a++; gap ^= 2
-                    }                          
-                }
+
+                do{
+                    // trying to avoid infinity, null and undefined for better readability
+                    let I:number=that.starts[that.starts.length-1]+1
+                    let A:number=clone[clone.length-1]+1
+                    if (i < clone.length){
+                        I = clone[i]
+                    }
+                    
+                    if (a < that.starts.length){                    
+                        A = that.starts[a]
+                    }
+
+                    if (I > A) {
+                        a++; gap ^= 2; story[0] = A              
+                    }else{
+                        i++; gap ^= 1; story[0] = I
+                        if (I === A) {
+                            a++; gap ^= 2
+                        }                          
+                    }
+                }while(false)
 
                 if (pass === 1 && story.length===2 /* this needs reversed story */) { // polymorphism?
+                    console.log( 'story '+story[1]+' '+story[0] +' gap '+pass1gap);
+
                     (function trailing(i:number,a:number){
                         let cut0:number[],cut1:number[];
                         if (pass1gap & 1){
-                            console.log('this.data['+i+'>>1].slice('+story[1]+'-'+clone[i-1]+','+story[0]+'-'+clone[i]+')')
-                            cut0= this.data[i>>1].slice(story[1]-clone[i-1],story[0]-clone[i])
+                            console.log('this.data['+i+'>>1].slice('+story[1]+'-'+clone[i]+','+story[0]+'-'+clone[i]+')')
+                            cut0= this.data[i>>1].slice(story[1]-clone[i],story[0]-clone[i])
                             if (pass1gap & 2){
                                 for(let b=0;b<cut0.length;b++){
                                     console.log("b "+b)
-                                    cut0[b]-=factor*that.data[a>>1][b+(story[1]-that.starts[a-1])]
+                                    cut0[b]-=factor*that.data[a>>1][b+(story[1]-that.starts[a])]
                                 }
                             }
                             ts.push(cut0);    
                         }else{
                             if (pass1gap & 2){
-                                ts.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a-1]))
+                                console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
+                                ts.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
                             }else{
                                 ts.push(Array(story[1]-story[0]).fill(0))
                             }
                         }
-                    }).bind(this)(i-1,a-1)
+                    }).bind(this)(i-2,a-2)
 
                     if (this.starts[n] === story[0]) {
                         n++
@@ -136,16 +165,24 @@ export class Row{
                     }
                 }
 
-            } while (i < clone.length && a < that.starts.length);
+            } while (i < clone.length || a < that.starts.length);
 
-            this.starts=[
-                Math.min(this.starts[0],that.starts[0]),
-                gaps[0][1],
-                gaps[0][0],
-                gaps[1][1],
-                gaps[1][0],
-                Math.max(this.starts[5],that.starts[5])
-            ]
+            if (pass===0){
+                // what to do if there are no gaps?
+                // main diagonal takes it!
+                // similar to constructor, but sadly not the same
+                this.starts= new Array(this.starts.length).
+                fill(Math.min(this.starts[0],that.starts[0]),0).
+                fill(Math.max(this.starts[5],that.starts[5]),3)
+
+                if (gaps){
+                    for(let side=0;side<2;side++){
+                    if (gaps[side] && gaps[side].length>0){
+                        this.starts.splice(1+3*side,0,...gaps[side])
+                    }
+                    }
+                }
+            }
         }
     }
 

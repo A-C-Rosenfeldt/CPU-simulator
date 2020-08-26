@@ -24,8 +24,8 @@ for(var i=0;i<size;i++){
     unit.row[i]=new Row(i,0,[[],[5],[]])
 }
 image=unit.print() // check 2020082401157
-ctx.putImageData( image, 1, y+=4 ); 
+ctx.putImageData( image, 1, y+=6 ); 
      unit.row[0].sub(unit.row[1],1)  // 0,0,0 -> 1,1,1 has no gaps in pass1. That is okay
      image=unit.print() // check 2020082401157
-     ctx.putImageData( image, 1, y+=4 ); 
+     ctx.putImageData( image, 1, y+=6 ); 
 }
