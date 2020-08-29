@@ -86,10 +86,10 @@ export class Row{
 
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
-        let n: number /// for pass=2
+        let n= 0 //: number /// for pass=2
         let ts:number[][]=new Array()
         for (let pass = 0; pass < 2; pass++) {
-            console.log('pass '+pass)
+            console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             let gaps: number[][] = [[], []]
    
             let i = 0 // Mybe use .values instead?
@@ -129,7 +129,7 @@ export class Row{
                         let cut0:number[],cut1:number[];
                         if (pass1gap & 1){
                             console.log('this.data['+i+'>>1].slice('+story[1]+'-'+clone[i]+','+story[0]+'-'+clone[i]+')')
-                            cut0= this.data[i>>1].slice(story[1]-clone[i],story[0]-clone[i])
+                            cut0= this.data[i>>1].slice(story[1]-clone[i],story[0]-clone[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
                             if (pass1gap & 2){
                                 for(let b=0;b<cut0.length;b++){
                                     console.log("b "+b)
@@ -142,16 +142,23 @@ export class Row{
                                 console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
                                 ts.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
                             }else{
-                                ts.push(Array(story[1]-story[0]).fill(0))
+                                ts.push(Array(story[0]-story[1]).fill(0))
                             }
                         }
                     }).bind(this)(i-2,a-2)
 
-                    if (this.starts[n] === story[0]) {
-                        n++
-                        if ((n & 1) !== 0) {
-                            this.data[n>>1]=Array.prototype.concat.apply([],ts)
+                    console.log('this.starts['+n+'] === story['+0+']')
+                    console.log('if'+this.starts[n]+' === '+story[0])
+                    while (this.starts[n] === story[0]) {
+                        console.log('ts.length: '+ts.length)
+                        if ((n & 1) === 1) {
+                            const index=n>>1
+                            const rValue=Array.prototype.concat.apply([],ts)
+                            console.log('pass '+pass+' data '+this.data.map(d=>d.length).join()+'   ['+index+'] = '+rValue)
+                            this.data[index]=Array.prototype.concat.apply([],ts)
+                                ts=[]
                         }
+                        n++                        
                     }
                     story[1] = story[0] // we care for all seams
                 } else {

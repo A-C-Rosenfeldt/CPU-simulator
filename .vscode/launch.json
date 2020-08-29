@@ -9,7 +9,7 @@
             "request": "launch",
             "type": "pwa-msedge",
             "url": "http://localhost:3000",
-            "webRoot": "${workspaceFolder}"
+            "webRoot": "${workspaceFolder}/public"
         },
         {
             "type": "node",
