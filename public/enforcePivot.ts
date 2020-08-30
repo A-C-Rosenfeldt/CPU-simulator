@@ -43,15 +43,15 @@ export class Row{
         }            
     }
 
-    private find(at:number):number{
+    private find(at:number):number[]{
         let segment=this.starts.length
-        while(this.starts[--segment]<at){
+        while(this.starts[--segment]>at){
             if (segment<0) return null;
         };
-        if (segment in [1,3,5]){
+        if (segment & 1){ // it is different for --   compared to ++
             return null
         }
-        return [segment][at-this.starts[segment]]
+        return [segment, at-this.starts[segment]]
     }
 
     get(at:number):number{

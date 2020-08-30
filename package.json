@@ -11,5 +11,8 @@
   "mocha":{
     "mochaExplorer.files": "test/**/*.ts",
     "mochaExplorer.require": "ts-node/register"
+  },
+  "scripts": {
+    "test": "mocha"
   }
 }
