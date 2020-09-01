@@ -1,3 +1,6 @@
 *.js
+!app.js
+!public/enforcePivot.js
+!public/TestenforcePivot.js
 *.js.map
 node_modules/
