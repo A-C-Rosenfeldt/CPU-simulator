@@ -23,7 +23,7 @@
 
 
 // diagnoal entries are all <> 0
-    LU(A:number[][]){
+function LU(A:number[][]){
         let L=A; // L and U are stored inplace. Diagonal belongs to U. L has 1 on diagonal
         let U=A; //clone if A is needed afterwards (not the case here)
     
@@ -47,7 +47,7 @@
       
   
   
-    Gaus(A:number[][]){
+function Gaus(A:number[][]){
   
         // create an identity matrix which in the end will contain the
         // matrix inverse
@@ -138,4 +138,3 @@
         return B
       }
   */
-      } 

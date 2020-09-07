@@ -1,3 +1,4 @@
+import {Tridiagonal, Row} from './public/enforcePivot'
 // So the FET is a slab of silicon of finite width
 var halfWidth=3
 // additionally there is a repetetive structure of gates of finite height
@@ -36,19 +37,21 @@ getBorder(line:number /* 1 is interpreted as "max" */){
 }
 
 composeAndFlood(){
-    var metal_met=null
-
+    var metal_met=0
+    const matrix=new Tridiagonal(1)
+    const cell=this.example[0][0]
+    let ones=0
     if (cell === 'm'){
         if (metal_met){
             // redirect to the other column in the matrix
-            matrix[current_Row][metal_met]=1 // from template
+            ones++ // from template
             return ; // do not add row
         }else{
-            metal_met=*cell
+            metal_met=matrix.row.length-1
         }
     }
 
-    matrix.push("row") // matrix ( like the cell array )  is jagged
+    matrix.row.push(new Row(metal_met,0,[[],(new Array(ones).fill(1)),[]]))
 
-
+}
 }

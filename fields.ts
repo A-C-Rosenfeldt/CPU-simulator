@@ -1,4 +1,14 @@
-/**
+import {Tridiagonal, Row} from './public/enforcePivot'
+import {Wire} from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
+/*
+read from 
+
+larger area to read
+than to write
+
+conservation of charge
+
+/*
 
 So my newest concept is:
 I cache the field of a dipole. Dipole because all my transistors are globally not charged?
@@ -60,7 +70,7 @@ import 'field/metal.ts'
 
 // Right now I am in 2d, and I use a grid (like minecraft). I have seen coils without anisotropie and that looked ugly.
 class Position{
-  [key:Number]:Number ;
+  [key:number]:number ;
 }
 
 const stride=6
@@ -117,6 +127,8 @@ var globalTime:number;
 
 
 class /*SemiconductorMetal*/ Contact{
+  matrix:Tridiagonal; // the matrix is shared by all contacts
+  column:number[];
   /*
   contacts lead to shielded wires. So the differential equation needs to exhbit the impedance: 
     Current flows => voltage appears  .. 
@@ -138,16 +150,17 @@ class /*SemiconductorMetal*/ Contact{
     // After solution of local voltage and current: Set outgoing signals on each side.
     // Since the wire uses a rotating pointer into a fixed array, we need to update the values
     // Otherwise the signal would just pass through us.
-    this.wire.setVoltage(this.wirePos); // 
+    this.wire.setCurrent(this.wirePos,currentIntoSemi); // Todo: Wire is connected via R (parallel R made of both directions). So: set current in Flow step, get voltage in Field step
 
     // equation from above as matrix. Square to be invertable
-    const R=[
-      //,[,]
-      ,[-1*R /* new col only */ */,+1 /*new col and row*/] // we only add I to the homognous side.
-    ];
-    matrix.appendOnDiagonal(R); //V
+    const R=//[
+      //,[,],
+      [-1/* new col only  */,+1 /*new col and row*/] // we only add I to the homognous side.
+    //];
+    this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
     //matrix.appendOnDiagonal(R); //I
-    vector.Append([VoltageInWire*R, '???']);
+    const VoltageInWire=3;
+    this.column.concat(R.map(r=>VoltageInWire*r) /*, 2 ???]*/);
   }
  // static properties
 
@@ -177,7 +190,8 @@ class Tupel{
     Carrier : number[]; // for 6502 nfets: all negative. But I need double buffer
     Current: number[]; // for both directions (x,y)
     Doping : number;
-    ChargeDensity=() => this.Carrier + this.Doping;
+    static bufferId:number=0
+    ChargeDensity=() => this.Carrier[Tupel.bufferId] + this.Doping;
 
     Potential: number;  // Voltage relative to ground
     BandGap: number; // Voltage. 0=metal. 1=Si. 3=SiO2
@@ -196,34 +210,42 @@ class Tupel{
 
     }
 
-    static field:number=0
+    
 
     GetCarrier(){
-      return this.Carrier[Tupel.field];
+      return this.Carrier[Tupel.bufferId];
     }
 
     AddCarrier(val:number){
-      this.Carrier[1^Tupel.field]=this.Carrier[Tupel.field]+val;
+      this.Carrier[1^Tupel.bufferId]=this.Carrier[Tupel.bufferId]+val;
     }
 
     SetCarrier(val:number){
-      this.Carrier[1^Tupel.field]=val;
+      this.Carrier[1^Tupel.bufferId]=val;
     }
 }
 
 class Field{
 
-  field: number; // like field in interlaced video. Used to double buffer the carriers
-  tu
+  bufferId=0; // like field in interlaced video. Used to double buffer the carriers
+  // need to link to the contacts somewhere  tu
+  touchTypedDescription:string
+  constructor(touchTypedDescription:string){
+    if (touchTypedDescription==='do something'){
 
-  constructor()
+    }
+    // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
+  }
 
-  ToMatrix(){
-    // call meander in FinFet
+  ToMatrix(): Tridiagonal{
+    // Tridiagonal instead of:  call meander in FinFet
+    return new Tridiagonal(this.touchTypedDescription.length)
   }
 }
 
-// this example is later cut and refused as needed
+// this example is later cut and refused (as in fuse, to weld) as needed
+// ToDo: The number does not make any sense anymore
+// ToDo: Multiline String by join('') ? To keep indention!
 const ex=[
   [ // connected m  . Connected to wire with impedance=50
   ['S',1,'mmmmmmm'], // simple boundary condition
@@ -237,29 +259,41 @@ const ex=[
   [1,'mmmmmmm'], // simple boundary condition
 ];
 
+var html = `
+  <div>
+    <span>Some HTML here</span>
+  </div>
+`;
+
 // Some gates are connected to the silicon slab => current flowing
-const gate=new Field( //'ex'
+const gate=new Field( 'ex'
   ); // So "m" is the inhomogenous part
 
 const instance='CGCFC'; // the ends are implicit
 
+// Partial differential equation
 class PDE{
+  // I would love it if readonly extends to the block following a constructor .. Maybe I am a total C# fan boy
+  public readonly c:number[]
+  public readonly m:number[][];  
+  // trivial, but needed due to  missing syntax features of  TypeScript 
+  constructor(cc:number[],mm:number[][]){
+    this.c=cc
+    this.m=mm
+  }
+
   public DoDirection(d:number[],reflection=false ){ //}: boolean){
     return ;
   }
-
-  public c:number[]
-  public m:number[][];
-
 }
 
 // I want to mimic the compact representation in the original Silicon.
 // the mirror in FIN reduces the area to process in the calculation
 // This, here in code, multiple metal connections to n-dopen Si are modelled
-class FinFet{
+export class FinFet{
 
   public PoissonGen(){
-    this.DoAll(new PDE())
+    //?this.DoAll(new PDE())
     return //Matrix to invert 
   }
 
@@ -331,9 +365,9 @@ class FinFet{
 // }
 
 // class Field{
-    field: Tupel[][];
+    field: Tupel[][]; // semiconductor
 
-    fieldFloat: Tupel[];
+    fieldFloat: Tupel[]; // metal  -- floating because they are connected via impedance (R) with the coaxial wires. ToDo: extend to two dimensions, think of doped semiconductor: show carriers in surface states
     floatPitch=6;
 
     // 1x1 block. DGL to solve
@@ -349,33 +383,28 @@ class FinFet{
     // check: sum(sum()) == 0
     // metal voltage can be read for Poisson, but writing leads to average over the segment.
     // On Top and bottom one line refers to the inhomogenous part
-
-   
-
-    PIntern={c:[1,1],m:[
+    // ToDo: Is there any way to reference the names of fields directly?
+    PIntern=new PDE([1,1],[
       ,[ 0,-1, 0]
       ,[-1, 4,-1]
       ,[ 0,-1, 0]
-    ]};
-    PMirror={c:[1,0], m:[
+    ]);
+
+    PMirror=new PDE([1,0], [
       ,[   -1, 0]
       ,[    4,-2]
       ,[   -1, 0]
-    ]};
+    ]);
 
     // see electrode aggregation
-    PGaps__={c:[1,1],m:[
+    PGaps__=new PDE([1,1],[
       ,[ 0, 1 ]
       ,[-1,-3 ]
       ,[ 0, 1 ]
-    ]};
+    ]);
 
     //PoissonDirection
-
-
-
-
-  
+    // compact code for 2d
 
     // And assign to? I dunno the gap between gates/electrodes is already present
     // So we need a jagged array. Pitch depends on row. Hmm.
@@ -383,19 +412,20 @@ class FinFet{
     //current:Number[][]; // Backbuffer for Ohm
     OhmX(y:number){
       let x=0
-      potentials[0]=this.field[x][y].Potential
+      this.field
+      let potentials=[this.field[x][y].Potential]
 
     }
-    // I am continuosly switching between LaPlace and Ohm
+    // I alternate between LaPlace (voltage from wire) and Ohm (current into wire)
     OhmAll(){
 
     // ToDo: For a metal electrode sum up all matrices
     var segments=['ex','am','ple']
 
     segments.forEach( segment=>{
-      if (source in other segment){
-        var value=segments.getPreviousValue();
-        var homo=value*matrix;
+      if (true /*source in other segment*/){
+        var value=[3,4,5] //segments.getPreviousValue();
+        var homo=(new Tridiagonal(4)).MatrixProduct( value);
 
       }      
     })
@@ -421,7 +451,7 @@ class FinFet{
         if (x<xSize-1){
           this.OhmDirection(2,this.PIntern)
           if (y===0){
-            this.OhmDirection(2,{c:this.PIntern.c, m:this.PIntern.m } )
+            this.OhmDirection(2,this.PIntern )
             // how to move homogenous part to the other side? Multiply and negate.
           }
         }else{
@@ -433,24 +463,28 @@ class FinFet{
     // // Insolvenz: Alle bekommen ihren Anteil (current flows due to field strength until bucket is empty)
     // // ECL and no HEMPT: I will dope the bulk and may even go differential to avoid this case
     //Limit(p, currents:number[]){
+      for(let p=0;p<10;p++){ // iterate over all elements of the electrode        
       let carrier=this.fieldFloat[p].GetCarrier()
       //let currents=this.fieldFloat[p].Current.concat([-this.fieldFloat[p+1].Current[0],-this.fieldFloat[p+this.floatPitch].Current[0]])
-      let current=this.fieldFloat[p].Current.filter(out_c => out_c > 0).reduce( (p,c) => p+c  ,0);
+      let current=this.fieldFloat[p].Current.filter(out_c => out_c > 0).reduce( (p,c) => p+c  ,0); // ToDo: change to 1 cell per frame flow for semiconductor (MVP.. maybe GPU or WASM can be used to do multiple simulations steps per display frame(60fps)). Metal does one segment per frame ( via GaussJordan ).
       
       // [0]-
       // this.fieldFloat[p+1].Current[0]+
       // this.fieldFloat[p].Current[1]-
       // -this.fieldFloat[p+this.floatPitch].Current[1]
 
+      let minLimit=0
       if (carrier<current){
         // limit the time step
         let q=carrier/current;
-        if (q<this.minLimit) {this.minLimit=q}
+        if (q<minLimit) {
+          minLimit=q // solve the worst negative charge cell per frame per segment
+        }
       }
 
     //}
 
-        this.OhmDirection([0,3])
+        // ?? this.OhmDirection([0,3])
         let E= this.field[x  ][y].Potential-
                this.field[x+1][y].Potential
         let C= this.field[x  ][y].GetCarrier()-
@@ -460,14 +494,15 @@ class FinFet{
         this.field[x  ][y].AddCarrier(d);
         this.field[x+1  ][y].AddCarrier(-d);
         
-        this.OhmDirection(1)
-        this.OhmDirection(this.floatPitch)
+        //this.OhmDirection(1)
+        //this.OhmDirection(this.floatPitch)
 
         this.OhmX(y++)
           do{
 
           }while(false)
         }
+      }
     }
 
     OhmDirection(direction:number, pde:PDE){      
@@ -476,9 +511,9 @@ class FinFet{
 
         //let currents=directions.map(direction=>{
         let E= this.field[x  ][y].Potential-
-               this.field[x+pitch[direction]][y].Potential
+               this.field[x+this.floatPitch[direction]][y].Potential   // why is there any pitch? I thought I store field as jagged array?
         let C=//[
-        this.field[x  ][y].GetCarrier(),
+        this.field[x  ][y].GetCarrier()
         //this.fieldFloat[x+direction].GetCarrier()
         //]
 
@@ -514,12 +549,12 @@ class FinFet{
       // not really forEach: ToDo: convert to join
       for(let n=0;n<this.contacts.length;n++){
         const contact=this.contacts[n]
-        var current=contact.Flow(this.field[4-1][ contact.semiPos]);
+        var current=contact.Flow(this.field[4-1][ contact.semiPos].Potential); // Impedance
 
-        const r=this.contacts[n].fromVss;
+        const r=0 //  Now, segmentation is unified between semiconductor and metal.   this.contacts[n]..fromVss;
         for (var j=r;j<r+3;j++){ // Style: how big should contacts be? In a crystal diode they are quite big
           const c=this.contacts[n]
-          this.field[4-1][j].Potential[j]=c.wire.flow[0][c.pos-globalTime]+c.wire.flow[1][c.pos+globalTime];
+          this.field[4-1][j].Potential[j]=c.wire.flow[0][c.semiPos-globalTime]+c.wire.flow[1][c.semiPos+globalTime];
         }
       }
 
@@ -532,13 +567,13 @@ class FinFet{
       this.field[x][y+1]//,this.field[x+1][y+1]]
       ]
     }
-      const p=potentials.map(po=>po.Potential)
+      const p=potentials //.map(po=>po.Potential)
 
       const voltages= p[1]-p[0] 
       //[  p[1][1]-p[1][0] + p[0][1]-p[0][0] ,
       // p[1][1]-p[1][0] + p[0][1]-p[0][0]    ];
 
-      const c=potentials.map(pot=>pot.Carrier)
+      const c=this.field[x][y].Carrier //.map(pot=>pot.Carrier)
 
       // does not work beyond 1 dimension
       const carrier=  c[0]+c[1];//[0] + c[0][1]+c[0][0];
@@ -614,7 +649,7 @@ class FinFet{
           {
             this.mat[flatIndex][this.Interlace(x-1,y)]=-1;
           }else{
-            this.homo[flatIndex] -= this.Gate[0]
+            this.homo[flatIndex] -= this.contacts[0].wire.getVoltage(0)[0]
           }
 
           if (x<4-1)
@@ -641,4 +676,4 @@ class FinFet{
         }
       }
     }
-
+  }

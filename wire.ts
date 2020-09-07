@@ -1,11 +1,13 @@
 /*
 For the electrodes I average U over all cells. Then impedance => current (in the global current timeStep)
 */
+import {FinFet} from './fields'
+
 class Device{
     ref:FinFet;
     position:number;
 }
-class Wire{
+export class Wire{
     // these have fixed impedance. Carrier=Voltage
     // static
     length:number=100;
@@ -31,7 +33,7 @@ class Wire{
         return [this.flow[for_ward],this.flow[backward]] // We get back 2 currents
     }
 
-    setVoltage(position:number, voltages:number[]) {
+    setCurrent(position:number, voltages:number[]) {
         var for_ward=(this.rotaryPos+position) % (2*length);
         if (for_ward===0 || for_ward==this.length-1){
             return [];
