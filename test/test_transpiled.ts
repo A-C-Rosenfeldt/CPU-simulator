@@ -24,7 +24,7 @@ describe('Accessing my code', () => {
   it('shOuld reTurn 4', () => {
     const scalar=new Tridiagonal(1)
     scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
-    const result = 4//scalar.getAt(0,0) //hello();
+    const result = scalar.getAt(0,0) //hello();
     expect(result).to.equal(4);
   });
 

@@ -51,7 +51,7 @@ export class Row{
         if (segment & 1){ // it is different for --   compared to ++
             return null
         }
-        return [segment, at-this.starts[segment]]
+        return [segment>>1, at-this.starts[segment]]
     }
 
     get(at:number):number{
