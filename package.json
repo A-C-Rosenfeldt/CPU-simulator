@@ -17,9 +17,26 @@
     "ts-node": "^9.0.0",
     "typescript": "^4.0.2"
   },
+  "mochaExplorer.files": "test/**/*.ts",
+  "mochaExplorer.require": "ts-node/register",
   "mocha": {
+    "mochaExplorer.logpanel:": true,
     "mochaExplorer.files": "test/**/*.ts",
-    "mochaExplorer.require": "ts-node/register"
+    "mochaExplorer.require": "ts-node/register",
+    "mochaExplorer": {
+      "files": "test/**/*.ts",
+      "require": "ts-node/register",
+      "env": {
+        "TS_NODE_PROJECT":"tsconfig.test.json"
+      }
+    }
+  },
+  "mochaExplorer": {
+    "files": "test/**/*.ts",
+    "require": "ts-node/register",
+    "env": {
+    	"TS_NODE_PROJECT":"tsconfig.test.json"
+    }
   },
   "scripts": {
     "testtest": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" npm run test:lint",

@@ -1,0 +1,11 @@
+{
+    "mochaExplorer.env": {
+    	"TS_NODE_PROJECT":"tsconfig.test.json"
+    },
+    "mochaExplorer.esmLoader": false,
+    "mochaExplorer.optsFile": "",
+    "mochaExplorer.mochaPath": "node_modules/mocha",
+     "mochaExplorer.files": "test/**/*.ts",
+     "mochaExplorer.require": "ts-node/register",
+    "mochaExplorer.debuggerConfig": "Mocha Tests"
+}
