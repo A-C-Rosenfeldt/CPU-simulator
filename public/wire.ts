@@ -1,7 +1,7 @@
 /*
 For the electrodes I average U over all cells. Then impedance => current (in the global current timeStep)
 */
-import {FinFet} from './public/fields'
+import {FinFet} from './fields.js'
 
 class Device{
     ref:FinFet;

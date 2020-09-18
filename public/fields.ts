@@ -1,5 +1,8 @@
-import {Tridiagonal, Row} from './enforcePivot'
-import {Wire} from '../wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
+import {Tridiagonal, Row} from './enforcePivot.js'
+import {Wire} from './wire.js'  // kind of hoisting. I need to criss cross import for parent-child  relation
+import './field/semiconductor.js'
+import './field/metal.js'
+
 /*
 read from 
 
@@ -65,8 +68,7 @@ These "Green Function" ( not retarded, Maxwell and time is not in play yet )
 
 // Converts Maps to matrix
 
-import 'field/semiconductor.ts'
-import 'field/metal.ts'
+
 
 // Right now I am in 2d, and I use a grid (like minecraft), but I have seen coils without isotropie and that looked ugly.
 class Position{
