@@ -1,5 +1,5 @@
-import {Tridiagonal, Row} from './public/enforcePivot'
-import {Wire} from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
+import {Tridiagonal, Row} from './enforcePivot'
+import {Wire} from '../wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
 /*
 read from 
 
@@ -68,13 +68,13 @@ These "Green Function" ( not retarded, Maxwell and time is not in play yet )
 import 'field/semiconductor.ts'
 import 'field/metal.ts'
 
-// Right now I am in 2d, and I use a grid (like minecraft). I have seen coils without anisotropie and that looked ugly.
+// Right now I am in 2d, and I use a grid (like minecraft), but I have seen coils without isotropie and that looked ugly.
 class Position{
   [key:number]:number ;
 }
 
 const stride=6
-function Map( pos:Position){
+function MyMap( pos:Position){
   let cell=pos[0]*stride
 }
 
@@ -225,17 +225,44 @@ class Tupel{
     }
 }
 
-class Field{
-
-  bufferId=0; // like field in interlaced video. Used to double buffer the carriers
-  // need to link to the contacts somewhere  tu
-  touchTypedDescription:string
-  constructor(touchTypedDescription:string){
-    if (touchTypedDescription==='do something'){
-
-    }
+export class StaticField{
+  touchTypedDescription:string[]
+  maxStringLenght:number
+  // EG exampleField
+  constructor(touchTypedDescription:string[]){
+    this.maxStringLenght=Math.max.apply(null, touchTypedDescription.map(t=>t.length))
+    this.touchTypedDescription=touchTypedDescription
     // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
   }
+
+  Print( ){ //ToPicture   print=text vs picture?
+    const iD=new ImageData(this.maxStringLenght, this.touchTypedDescription.length)
+    // RGBA. This flat data structure resists all functional code
+    // greenscreen
+    for(let pointer=0;pointer<iD.data.length;pointer+=4){
+        iD.data.set([0,255,0,255],pointer) 
+    }
+
+    this.touchTypedDescription.forEach((str,i)=>{
+      // JS is strange still. I need index:      for (let c of str) 
+      for(let k=0;k<str.length;k++)
+      {
+        const c=str[k]
+        const bandgaps=new Map([['i',2],['-',2],['s',1],['m',0]])
+        iD.data.set([
+            bandgaps[c]*50,
+            0,
+            c==='-'?100:0], // charge density
+            ((i*this.maxStringLenght)+k)<<2)
+        }
+    })
+    return iD;
+  }
+}
+
+class Field extends StaticField {
+
+  bufferId=0; // like field in interlaced video. Used to double buffer the carriers
 
   ToMatrix(): Tridiagonal{
     // Tridiagonal instead of:  call meander in FinFet
@@ -246,7 +273,8 @@ class Field{
 // this example is later cut and refused (as in fuse, to weld) as needed
 // ToDo: The number does not make any sense anymore
 // ToDo: Multiline String by join('') ? To keep indention!
-const ex=[
+// What does the number mean?
+export const exampleField:string[]=[
   [ // connected m  . Connected to wire with impedance=50
   ['S',1,'mmmmmmm'], // simple boundary condition
   [    4,'ssssssm'],], // contact
@@ -257,7 +285,7 @@ const ex=[
   [3,'sssi-im'], // self gate
   [3,'sssiiii'],
   [1,'mmmmmmm'], // simple boundary condition
-];
+].map(whatDoesNumberMean=>whatDoesNumberMean.slice(-1,0)[0] as string);
 
 var html = `
   <div>
@@ -266,7 +294,7 @@ var html = `
 `;
 
 // Some gates are connected to the silicon slab => current flowing
-const gate=new Field( 'ex'
+const gate=new Field( ['ex']
   ); // So "m" is the inhomogenous part
 
 const instance='CGCFC'; // the ends are implicit
@@ -274,8 +302,8 @@ const instance='CGCFC'; // the ends are implicit
 // Partial differential equation
 class PDE{
   // I would love it if readonly extends to the block following a constructor .. Maybe I am a total C# fan boy
-  public readonly c:number[]
-  public readonly m:number[][];  
+  public readonly c:number[]    // charge?
+  public readonly m:number[][];  // Metal?
   // trivial, but needed due to  missing syntax features of  TypeScript 
   constructor(cc:number[],mm:number[][]){
     this.c=cc

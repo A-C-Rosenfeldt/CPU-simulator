@@ -39,22 +39,8 @@
     }
   },
   "scripts": {
-    "testtest": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" npm run test:lint",
-    "test:lint": "cross-env-shell \"echo $TS_NODE_PROJECT\"",
-    "test:test": "cross-env-shell \"echo $TS_NODE_PROJECT\"",
-        
-    "cross-env": "cross-env",
-    "cross-env-shell": "cross-env-shell",
-    "test": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" && cross-env-shell \"echo $TS_NODE_PROJECT\" && mocha -r ts-node/register test/*.ts",
-    "test2": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" mocha -r ts-node/register test/*.ts",
-    "test1": "npm run mocha",
-
-    "parentScript": "cross-env GREET=\"Joe\" npm run childScript",
-    "childScript": "cross-env-shell \"echo Hello $GREET\"",
-
-    "parentTest": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" npm run childTest",
+    "test": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" npm run childTest",
     "childTest": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && mocha --require ts-node/register test/*.ts"
-
   },
   "dependencies": {}
 }

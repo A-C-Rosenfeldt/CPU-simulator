@@ -29,3 +29,21 @@ describe('Accessing my code', () => {
   });
 
 });
+
+
+describe('Doing some linAlg', () => {
+    it('shOuld reTurn 5', () => {
+
+      let size = 4
+      const unit = new Tridiagonal(size)
+      for(var i=0;i<size;i++){
+        unit.row[i]=new Row(i,0,[[],[5],[]])
+      }
+
+      unit.row[0].sub(unit.row[1], 1)  // 0,0,0 -> 1,1,1 has no gaps in pass1. That is okay
+      //image=unit.print() // check 2020082401157
+      const result = unit.getAt(0, 0);
+      let warn = true;
+      expect(result).to.equal(5);
+    });
+});
