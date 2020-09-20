@@ -1,3 +1,9 @@
 .bandGap_metal{color:black}
 .bandGap_semiconctor{color: rgb(128, 6, 6)}
 .bandGap_insulator{color: red}
+
+/*I have to admit that I cannot see all colors in single px*/
+.scaled{
+    transform: scale(2);
+    margin: 100px;
+}

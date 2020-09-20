@@ -240,9 +240,9 @@ export class StaticField{
   Print( ){ //ToPicture   print=text vs picture?
     const iD=new ImageData(this.maxStringLenght, this.touchTypedDescription.length)
     // RGBA. This flat data structure resists all functional code
-    // greenscreen
+    // ~screen
     for(let pointer=0;pointer<iD.data.length;pointer+=4){
-        iD.data.set([0,255,0,255],pointer) 
+        iD.data.set([0,25,0,255],pointer) // ~dark green 
     }
 
     this.touchTypedDescription.forEach((str,i)=>{
@@ -252,9 +252,9 @@ export class StaticField{
         const c=str[k]
         const bandgaps=new Map([['i',2],['-',2],['s',1],['m',0]])
         iD.data.set([
-            bandgaps[c]*50,
+            bandgaps.get(c)*30,
             0,
-            c==='-'?100:0], // charge density
+            c==='-'?200:0], // charge density. Blue is so weak on my monitor
             ((i*this.maxStringLenght)+k)<<2)
         }
     })
@@ -277,9 +277,9 @@ class Field extends StaticField {
 // ToDo: Multiline String by join('') ? To keep indention!
 // What does the number mean?
 export const exampleField:string[]=[
-  [ // connected m  . Connected to wire with impedance=50
+   // connected m  . Connected to wire with impedance=50
   ['S',1,'mmmmmmm'], // simple boundary condition
-  [    4,'ssssssm'],], // contact
+  [    4,'ssssssm'], // contact
   [3,'sssiii'],  // we assume homognous electric field between plates (the side walls of the gates)
   [4,'sssi-im'], // gate
   [3,'sssiii'], // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
@@ -287,7 +287,7 @@ export const exampleField:string[]=[
   [3,'sssi-im'], // self gate
   [3,'sssiiii'],
   [1,'mmmmmmm'], // simple boundary condition
-].map(whatDoesNumberMean=>whatDoesNumberMean.slice(-1,0)[0] as string);
+].map(whatDoesNumberMean=>whatDoesNumberMean.slice(-1)[0] as string);
 
 var html = `
   <div>
