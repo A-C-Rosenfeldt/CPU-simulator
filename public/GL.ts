@@ -1,8 +1,10 @@
 declare var mat4: any;
 main();
 
+//the system by which (0, 0) is at the center of the context and each axis extends from -1.0 to 1.0
+
 function main() {
-  const canvas = document.querySelector("#GlCanvas") as HTMLCanvasElement;
+  const canvas = document.getElementById("GlCanvas") as HTMLCanvasElement;
   // Initialisierung des GL Kontexts
   const gl = canvas.getContext("webgl");
 
@@ -19,7 +21,8 @@ function main() {
 
 
     // Vertex shader program
-
+    // Would need gl_Position = vec4(rotatedPosition * uScalingFactor, 0.0, 1.0); for Vec2.
+    // I think I like the constructor
     const vsSource = `
     attribute vec4 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -36,6 +39,7 @@ function main() {
   `;
 
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
+    // linear algebraic multiply. They require the size of the operands match.
     const fsSource = `
     precision mediump float;
 
@@ -52,11 +56,11 @@ function main() {
 
     const programInfo = {
       program: shaderProgram,
-      attribLocations: {
+      attribLocations: { // type = number
         vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
         textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
       },
-      uniformLocations: {
+      uniformLocations: { // type = some binary stuff
         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
         modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
         uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
@@ -129,8 +133,12 @@ function drawScene(gl, programInfo, buffers) {
                                 // 0 = use type and numComponents above
       const offset = 0;         // how many bytes inside the buffer to start from
       gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+
+      /* Similarily, if our vertex shader expects e.g. a 4-component attribute with vec4 but in our gl.vertexAttribPointer() call we set the size to 2, then WebGL will set the first two components based on the array buffer, while the third and fourth components are taken from the default value.
+        The default value is vec4(0.0, 0.0, 0.0, 1.0)  */
+
       gl.vertexAttribPointer(
-          programInfo.attribLocations.vertexPosition,
+          programInfo.attribLocations.vertexPosition,  // is declared as vec4 in the vertex shader
           numComponents,
           type,
           normalize,
@@ -187,7 +195,7 @@ function initBuffers(gl) {
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   
     // Now create an array of positions for the square.
-  
+    // these are the borders of the WebGL canvas (if no transform is applied)
     const positions = [
       -1.0,  1.0,
        1.0,  1.0,
@@ -207,6 +215,8 @@ function initBuffers(gl) {
     const textureCoordBuffer = gl.createBuffer();
                   gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
                 
+                  // texture ordinates go from 0 to 1  ( not -1 to 1 like the screen)
+                  // That is good for us .. ah whatever, we do not need to scale
                   const textureCoordinates = [
                     // Front
                     0.0,  1.0,
