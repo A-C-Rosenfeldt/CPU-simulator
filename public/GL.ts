@@ -3,6 +3,11 @@ main();
 
 //the system by which (0, 0) is at the center of the context and each axis extends from -1.0 to 1.0
 
+class AttribNameRange{
+  attrib:string
+  range:number[]
+}
+
 function main() {
   const canvas = document.getElementById("GlCanvas") as HTMLCanvasElement;
   // Initialisierung des GL Kontexts
@@ -14,39 +19,39 @@ function main() {
     return;
   }
 
-  // Setze clear color auf schwarz, vollständig sichtbar
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  // Setze clear color auf schwarz (scrap that: random and foremost unique color), vollständig sichtbar
+  gl.clearColor(0.1, 0.0, 0.0, 1.0);
   // Lösche den color buffer mit definierter clear color
   gl.clear(gl.COLOR_BUFFER_BIT);
-
 
     // Vertex shader program
     // Would need gl_Position = vec4(rotatedPosition * uScalingFactor, 0.0, 1.0); for Vec2.
     // I think I like the constructor
+
+    // not used right now:     uniform mat4 uProjectionMatrix;
+    // uProjectionMatrix *
     const vsSource = `
     attribute vec4 aVertexPosition;
     attribute vec2 aTextureCoord;
-
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
-
     varying vec2 vTextureCoord;
-
     void main() {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      gl_Position = aVertexPosition;
       vTextureCoord = aTextureCoord;
     }
   `;
 
+  //    |
+  // Information passing here: vTextureCoord
+  //    |
+  //    V
+
+  // fragment shader ( I would call it Pixel Shader )
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
     // linear algebraic multiply. They require the size of the operands match.
     const fsSource = `
     precision mediump float;
-
-    varying vec2 vTextureCoord;
-      
     uniform sampler2D uSampler;
-    
+    varying vec2 vTextureCoord;    
     void main(void) {
       gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
     }
@@ -54,6 +59,7 @@ function main() {
 
     const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
 
+    /*
     const programInfo = {
       program: shaderProgram,
       attribLocations: { // type = number
@@ -62,30 +68,80 @@ function main() {
       },
       uniformLocations: { // type = some binary stuff
         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-        modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
         uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
       },
-    };
+    }; */
 
-      const buffers=initBuffers(gl);
+    const ranges=[
 
-      loadTexture(gl, ""); // I think I will define all tiles in code. Only the circuit is loaded as text
+     {"attrib":gl.getAttribLocation(shaderProgram, 'aVertexPosition'), range:[0,1]} // from source
+    ,[-1,1]
+  
+  ]  // to target
 
+    const boilerplate=initBuffers.bind(gl,shaderProgram) // Readable?
+    //const buffers=
+    ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
+  
 
-      drawScene(gl, programInfo, buffers)
+    // Stupid Top-Down organization of this proc
+      //const buffers=initBuffers(gl);
+      loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text
+      drawScene(gl,shaderProgram) // programInfo) //, buffers)
 }
 
+function gp(gl, range:[]){
 
-function drawScene(gl, programInfo, buffers) {
+}
+
+// Vertex Buffers
+function initBuffers(gl:WebGL2RenderingContext, shaderProgram:any, screenGl:AttribNameRange) {
+  const cross= [].concat.apply(undefined,screenGl.range.map(x=> (screenGl.range.map(y=>[x,y ]))))
+
+  const buffer = gl.createBuffer(); // return value
+  // type and binding in one :-(  ) gl.ARRAY_BUFFER=value, gl.ELEMENT_ARRAY_BUFFER=references 
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); // type? . create and set target for next command
+  // maybe I can enter here to change buffer data
+  gl.bufferData(gl.ARRAY_BUFFER,  // type and target slot
+                new Float32Array(cross),               // source
+                gl.STATIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
+                );
+const bin=gl.getAttribLocation(shaderProgram, screenGl.attrib) // attrib: from buffer
+
+    // as long as I stay in 2d I only and always have 2d vertices
+
+  const numComponents = 2;  // pull out 2 values per iteration
+  const type = gl.FLOAT;    // the data in the buffer is 32bit floats
+  const normalize = false;  // don't normalize
+  const stride = 0;         // how many bytes to get from one set of values to the next   // 0 = use type and numComponents above
+  const offset = 0;         // how many bytes inside the buffer to start from
+
+  /* Similarily, if our vertex shader expects e.g. a 4-component attribute with vec4 but in our gl.vertexAttribPointer() call we set the size to 2, then WebGL will set the first two components based on the array buffer, while the third and fourth components are taken from the default value.
+    The default value is vec4(0.0, 0.0, 0.0, 1.0)  */
+
+  gl.vertexAttribPointer(
+      bin,  // is declared as vec4 in the vertex shader
+      numComponents,
+      type,
+      normalize,
+      stride,
+      offset);
+  gl.enableVertexAttribArray(
+      bin);
+
+  return void // it is all in gl  // was buffer
+}
+
+function drawScene(gl, program) { //, buffers:Array<any>) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
-    gl.clearDepth(1.0);                 // Clear everything
+  /*  gl.clearDepth(1.0);                 // Clear everything
     gl.enable(gl.DEPTH_TEST);           // Enable depth testing
     gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-  
+  */
     // Clear the canvas before we start drawing on it.
   
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  
+    gl.clear(gl.COLOR_BUFFER_BIT )//| gl.DEPTH_BUFFER_BIT);
+ /* 
     // Create a perspective matrix, a special matrix that is
     // used to simulate the distortion of perspective in a camera.
     // Our field of view is 45 degrees, with a width/height
@@ -122,20 +178,21 @@ function drawScene(gl, programInfo, buffers) {
   
     const checkMatrix = mat4.create();
     mat4.multiply(checkMatrix,projectionMatrix , modelViewMatrix)
+*/
 
+/*
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
     {
       const numComponents = 2;  // pull out 2 values per iteration
       const type = gl.FLOAT;    // the data in the buffer is 32bit floats
       const normalize = false;  // don't normalize
-      const stride = 0;         // how many bytes to get from one set of values to the next
-                                // 0 = use type and numComponents above
+      const stride = 0;         // how many bytes to get from one set of values to the next   // 0 = use type and numComponents above
       const offset = 0;         // how many bytes inside the buffer to start from
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffers[1]); // I know this command
 
-      /* Similarily, if our vertex shader expects e.g. a 4-component attribute with vec4 but in our gl.vertexAttribPointer() call we set the size to 2, then WebGL will set the first two components based on the array buffer, while the third and fourth components are taken from the default value.
-        The default value is vec4(0.0, 0.0, 0.0, 1.0)  */
+      // Similarily, if our vertex shader expects e.g. a 4-component attribute with vec4 but in our gl.vertexAttribPointer() call we set the size to 2, then WebGL will set the first two components based on the array buffer, while the third and fourth components are taken from the default value.
+      //  The default value is vec4(0.0, 0.0, 0.0, 1.0)  
 
       gl.vertexAttribPointer(
           programInfo.attribLocations.vertexPosition,  // is declared as vec4 in the vertex shader
@@ -149,24 +206,27 @@ function drawScene(gl, programInfo, buffers) {
     }
   
 
-// tell webgl how to pull out the texture coordinates from buffer
-{
-  const num = 2; // every coordinate composed of 2 values
-  const type = gl.FLOAT; // the data in the buffer is 32 bit float
-  const normalize = false; // don't normalize
-  const stride = 0; // how many bytes to get from one set to the next
-  const offset = 0; // how many bytes inside the buffer to start from
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
-  gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
-  gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-}
+    // tell webgl how to pull out the texture coordinates from buffer
+    {
+      const num = 2; // every coordinate composed of 2 values
+      const type = gl.FLOAT; // the data in the buffer is 32 bit float
+      const normalize = false; // don't normalize
+      const stride = 0; // how many bytes to get from one set to the next
+      const offset = 0; // how many bytes inside the buffer to start from
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffers[0]);
+      gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+
+
+      gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+       */
+    //}
 
     // Tell WebGL to use our program when drawing
   
-    gl.useProgram(programInfo.program);
+    gl.useProgram(program);
   
     // Set the shader uniforms
-  
+  /*
     gl.uniformMatrix4fv(
         programInfo.uniformLocations.projectionMatrix,
         false,
@@ -175,64 +235,13 @@ function drawScene(gl, programInfo, buffers) {
         programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix);
-  
+  */
+
     {
       const offset = 0;
       const vertexCount = 4;
       gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
     }
-  }
-
-function initBuffers(gl) {
-
-    // Create a buffer for the square's positions.
-  
-    const positionBuffer = gl.createBuffer();
-  
-    // Select the positionBuffer as the one to apply buffer
-    // operations to from here out.
-  
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  
-    // Now create an array of positions for the square.
-    // these are the borders of the WebGL canvas (if no transform is applied)
-    const positions = [
-      -1.0,  1.0,
-       1.0,  1.0,
-      -1.0, -1.0,
-       1.0, -1.0,
-    ];
-  
-    // Now pass the list of positions into WebGL to build the
-    // shape. We do this by creating a Float32Array from the
-    // JavaScript array, then use it to fill the current buffer.
-  
-    gl.bufferData(gl.ARRAY_BUFFER,
-                  new Float32Array(positions),
-                  gl.STATIC_DRAW);
-  
-
-    const textureCoordBuffer = gl.createBuffer();
-                  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-                
-                  // texture ordinates go from 0 to 1  ( not -1 to 1 like the screen)
-                  // That is good for us .. ah whatever, we do not need to scale
-                  const textureCoordinates = [
-                    // Front
-                    0.0,  1.0,
-                    1.0,  1.0,
-                    0.0,  0.0,
-                    1.0,  0.0,
-                  ];
-                
-                  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
-                                gl.STATIC_DRAW);
-                
-                
-                  return {
-                    position: positionBuffer,
-                    textureCoord: textureCoordBuffer,
-                  };
   }
 
 //
@@ -242,15 +251,13 @@ function initShaderProgram(gl, vsSource, fsSource) {
     const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
     const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
   
-    // Create the shader program
-  
+    // Create the shader program  
     const shaderProgram = gl.createProgram();
     gl.attachShader(shaderProgram, vertexShader);
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
   
     // If creating the shader program failed, alert
-  
     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
       alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
       return null;
@@ -265,23 +272,15 @@ function initShaderProgram(gl, vsSource, fsSource) {
   //
   function loadShader(gl, type, source) {
     const shader = gl.createShader(type);
-  
-    // Send the source to the shader object
-  
-    gl.shaderSource(shader, source);
-  
-    // Compile the shader program
-  
-    gl.compileShader(shader);
+    gl.shaderSource(shader, source); // Send the source to the shader object
+    gl.compileShader(shader);    // Compile the shader program
   
     // See if it compiled successfully
-  
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
       alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
       gl.deleteShader(shader);
       return null;
     }
-  
     return shader;
   }
 
@@ -294,10 +293,9 @@ function initShaderProgram(gl, vsSource, fsSource) {
 // Initialize a texture and load an image.
 // When the image finished loading copy it into the texture.
 //
-function loadTexture(gl, url) {
-  gl.enable(gl.TEXTURE_2D);
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+// Texture != vertex buffer
+function loadTexture(gl) {
   
     // Because images have to be download over the internet
     // they might take a moment until they are ready.
@@ -323,6 +321,13 @@ function loadTexture(gl, url) {
     pixel[i++]=0;
     pixel[i++]=255;
 
+    const texture = gl.createTexture();
+    gl.enable(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
                   width, height, border, srcFormat, srcType,
                   pixel);
@@ -343,10 +348,6 @@ function loadTexture(gl, url) {
          // No, it's not a power of 2. Turn off mips and set
          // wrapping to clamp to edge
          */
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
          /*
       }
     };
