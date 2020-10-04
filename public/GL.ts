@@ -15,19 +15,26 @@ function main() {
     return;
   }
 
-  gl.clearColor(0.1, 0.0, 0.0, 1.0);   // Set clear color to something unique
+  gl.clearColor(0.6, 0.0, 0.0, 1.0);   // Set clear color to something unique
   gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader?
+
+  const ranges = [
+    { "attrib":  'aTextureCoord', "range": [0, 0.9] }, // from source
+    { "attrib":  'aVertexPosition'  , "range":[-5, 5] }  // to target
+  ]
 
   const shaderProgram = gl.createProgram();
   {
     {
       const vertexShader = loadShader(gl, gl.VERTEX_SHADER, `
-  attribute vec4 aVertexPosition;
-  attribute vec2 aTextureCoord;
+  attribute vec2 ` + ranges[0].attrib + `;
+  attribute vec4 ` + ranges[1].attrib + `;
   varying vec2 vTextureCoord;
   void main() {
-    gl_Position = aVertexPosition;
-    vTextureCoord = aTextureCoord;
+    vTextureCoord = ` + ranges[0].attrib + `;    
+    gl_Position = ` + ranges[1].attrib + `;
   }
 `);
       gl.attachShader(shaderProgram, vertexShader);
@@ -37,7 +44,7 @@ function main() {
   uniform sampler2D uSampler;
   varying vec2 vTextureCoord;    
   void main(void) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    gl_FragColor = vec4(0, 0.5, 0.5, 1); // return reddish-purple texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
   }
   `);
       gl.attachShader(shaderProgram, fragmentShader);
@@ -51,16 +58,11 @@ function main() {
     }
 
   }
-  const ranges = [
-    { "attrib": gl.getAttribLocation(shaderProgram, 'aVertexPosition'), "range": [0, 1] }, // from source
-    { "attrib": gl.getAttribLocation(shaderProgram, 'aTextureCoord'  ), "range":[-1, 1] }  // to target
-  ]
+
   const boilerplate = initVertexBuffers.bind(gl, shaderProgram) // Readable?
   ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
 
-  gl.activeTexture(gl.TEXTURE0); // Tell WebGL we want to affect texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, loadTexture(gl)); // I think I will define all tiles in code. Only the circuit is loaded as text
-  gl.uniform1i(gl.getUniformLocation(shaderProgram, 'uSampler'), 0);    // Tell the shader we bound the texture to texture unit 0
+  loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
 
   gl.useProgram(shaderProgram);
   {
@@ -78,16 +80,16 @@ function initVertexBuffers(shaderProgram: any, screenGl: AttribNameRange) {
     new Float32Array(cross),               // source
     gl.STATIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
   );
-  const bin = gl.getAttribLocation(shaderProgram, screenGl.attrib) // attrib: from buffer
+  const id = gl.getAttribLocation(shaderProgram, screenGl.attrib) // attrib: from buffer
   gl.vertexAttribPointer(
-    bin,  // is declared as vec4 in the vertex shader
+    id,  // is declared as vec4 in the vertex shader
     2, //numComponents, //  Similarily, if our vertex shader expects e.g. a 4-component attribute with vec4 but in our gl.vertexAttribPointer() call we set the size to 2, then WebGL will set the first two components based on the array buffer, while the third and fourth components are taken from the default value. The default value is vec4(0.0, 0.0, 0.0, 1.0)  */
     gl.FLOAT, //type,
     false, //normalize,
     0, //stride,  // 0 = use type and numComponents above
     0 //offset
   );
-  gl.enableVertexAttribArray(bin);
+  gl.enableVertexAttribArray(id);
 }
 
 function initShaderProgram(gl) { }
@@ -144,7 +146,7 @@ function loadTexture(gl) {
   pixel[i++] = 255;
 
   const texture = gl.createTexture();
-  gl.enable(gl.TEXTURE_2D);
+  // does not make any sense and apparently Browser and a Nvidea drivers think so too:  gl.enable(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
