@@ -9,67 +9,194 @@ class AttribNameRange {
 }
 
 function main() {
+
   const gl = (document.getElementById("GlCanvas") as HTMLCanvasElement).getContext("webgl");
   if (!gl) {
     alert("Unable to initialize WebGL. Your browser or machine may not support it.");
     return;
   }
 
-  gl.clearColor(0.6, 0.0, 0.0, 1.0);   // Set clear color to something unique
-  gl.clear(gl.COLOR_BUFFER_BIT);
 
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader?
+  var vertices = [
+    -0.7,-0.1,//0,
+    -0.3,0.6,//0,
+    -0.3,-0.3,//0,
+    0.2,0.6,//0,
+    0.3,-0.3,//0,
+    0.7,0.6//,0 
+ ]
+  
+ // Create an empty buffer object
+ var vertex_buffer = gl.createBuffer();
+
+ // Bind appropriate array buffer to it
+ gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+ // Pass the vertex data to the buffer
+ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+ // Unbind the buffer
+ gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+ /*=================== Shaders ====================*/
+
+ // Vertex shader source code .  Only proven way to expand vec2 to vec4
+ var vertCode =
+    'attribute vec2 aVertexPosition;' +
+    'void main(void) {' +
+       ' gl_Position = vec4(aVertexPosition,0, 1.0);' +
+    '}';
+
+ // Create a vertex shader object
+ var vertShader = gl.createShader(gl.VERTEX_SHADER);
+
+ // Attach vertex shader source code
+ gl.shaderSource(vertShader, vertCode);
+
+ // Compile the vertex shader
+ gl.compileShader(vertShader);
+
+ // Fragment shader source code
+ var fragCode =
+    'void main(void) {' +
+       'gl_FragColor = vec4(0.0, 0.0, 0.0, 0.1);' +
+    '}';
+
+ // Create fragment shader object
+ var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+
+ // Attach fragment shader source code
+ gl.shaderSource(fragShader, fragCode);
+
+ // Compile the fragmentt shader
+ gl.compileShader(fragShader);
+
+ // Create a shader program object to store
+ // the combined shader program
+ var shaderProgram = gl.createProgram();
+
+ // Attach a vertex shader
+ gl.attachShader(shaderProgram, vertShader);
+
+ // Attach a fragment shader
+ gl.attachShader(shaderProgram, fragShader);
+
+ // Link both the programs
+ gl.linkProgram(shaderProgram);
+
+ // Use the combined shader program object
+ gl.useProgram(shaderProgram);
+
+ /*======= Associating shaders to buffer objects ======*/
+
+ // Bind vertex buffer object
+ gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+ // Get the attribute location
+ var coord = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+
+ // Point an attribute to the currently bound VBO
+ gl.vertexAttribPointer(coord, 2 /*3*/, gl.FLOAT, false, 0, 0);
+
+ // Enable the attribute
+ gl.enableVertexAttribArray(coord);
+
+ /*============ Drawing the triangle =============*/
+
+ // Clear the canvas
+ gl.clearColor(0.5, 0.5, 0.5, 0.9);
+
+ // Enable the depth test
+ //gl.enable(gl.DEPTH_TEST);
+
+ // Clear the color and depth buffer
+ gl.clear(gl.COLOR_BUFFER_BIT)// | gl.DEPTH_BUFFER_BIT);
+
+ // Set the view port
+ gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
+
+ // Draw the triangle
+ gl.drawArrays(gl.LINES, 0, 6);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//return
+
+
+  // gl.clearColor(0.6, 0.0, 0.0, 1.0);   // Set clear color to something unique
+  // gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader?
 
   const ranges = [
-    { "attrib":  'aTextureCoord', "range": [0, 0.9] }, // from source
-    { "attrib":  'aVertexPosition'  , "range":[-5, 5] }  // to target
+    //{ "attrib":  'aTextureCoord', "range": [0, 0.9] }, // from source
+      { "attrib":  'aVertexPosition'  , "range":[-5, 5] }  // to target
   ]
 
-  const shaderProgram = gl.createProgram();
+  const shaderProgram2 = gl.createProgram();
   {
     {
-      const vertexShader = loadShader(gl, gl.VERTEX_SHADER, `
-  attribute vec2 ` + ranges[0].attrib + `;
-  attribute vec4 ` + ranges[1].attrib + `;
-  varying vec2 vTextureCoord;
-  void main() {
-    vTextureCoord = ` + ranges[0].attrib + `;    
-    gl_Position = ` + ranges[1].attrib + `;
-  }
-`);
-      gl.attachShader(shaderProgram, vertexShader);
+      const vertexShader = loadShader(gl, gl.VERTEX_SHADER,
+        vertCode);
+//         `
+//   attribute vec2 ` + ranges[0].attrib + `;
+//   attribute vec4 ` + ranges[1].attrib + `;
+//   varying vec2 vTextureCoord;
+//   void main() {
+//     vTextureCoord = ` + ranges[0].attrib + `;    
+//     gl_Position = ` + ranges[1].attrib + `;
+//   }
+// `);
+      gl.attachShader(shaderProgram2, vertexShader);
 
-      const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, `
-  precision mediump float;
-  uniform sampler2D uSampler;
-  varying vec2 vTextureCoord;    
-  void main(void) {
-    gl_FragColor = vec4(0, 0.5, 0.5, 1); // return reddish-purple texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-  }
-  `);
-      gl.attachShader(shaderProgram, fragmentShader);
+      const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER,
+        fragCode
+  //        `
+  // precision mediump float;
+  // uniform sampler2D uSampler;
+  // varying vec2 vTextureCoord;    
+  // void main(void) {
+  //   gl_FragColor = vec4(0, 0.5, 0.5, 1); // return reddish-purple texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+  // }
+  // `
+  );
+      gl.attachShader(shaderProgram2, fragmentShader);
     }
-    gl.linkProgram(shaderProgram);
+    gl.linkProgram(shaderProgram2);
 
     // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    if (!gl.getProgramParameter(shaderProgram2, gl.LINK_STATUS)) {
       alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
       return null;
     }
 
   }
 
-  const boilerplate = initVertexBuffers.bind(gl, shaderProgram) // Readable?
-  ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
+  //gl.useProgram(shaderProgram);
+  //gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
 
-  loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
 
-  gl.useProgram(shaderProgram);
-  {
-    const offset = 0;
-    const vertexCount = 4;
-    gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
-  }
+  const boilerplate = initVertexBuffers.bind(gl, shaderProgram2) // Readable?
+  
+  // this removes all output ToDo
+  //ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
+
+  //loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
+
+  gl.useProgram(shaderProgram2);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
+
 }
 
 function initVertexBuffers(shaderProgram: any, screenGl: AttribNameRange) {
