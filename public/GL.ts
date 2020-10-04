@@ -140,36 +140,36 @@ function main() {
   // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader?
 
   const ranges = [
-    //{ "attrib":  'aTextureCoord', "range": [0, 0.9] }, // from source
-      { "attrib":  'aVertexPosition'  , "range":[-5, 5] }  // to target
+    { "attrib":  'aTextureCoord', "range": [0, 0.9] }, // from source
+      { "attrib":  'aVertexPosition'  , "range":[-0.5, 0.5] }  // to target
   ]
 
   const shaderProgram2 = gl.createProgram();
   {
     {
       const vertexShader = loadShader(gl, gl.VERTEX_SHADER,
-        vertCode);
-//         `
-//   attribute vec2 ` + ranges[0].attrib + `;
-//   attribute vec4 ` + ranges[1].attrib + `;
-//   varying vec2 vTextureCoord;
-//   void main() {
-//     vTextureCoord = ` + ranges[0].attrib + `;    
-//     gl_Position = ` + ranges[1].attrib + `;
-//   }
-// `);
+//        vertCode);
+        `
+  attribute vec2 ` + ranges[0].attrib + `;
+  attribute vec4 ` + ranges[1].attrib + `;
+  varying vec2 vTextureCoord;
+  void main() {
+    vTextureCoord = ` + ranges[0].attrib + `;    
+    gl_Position = ` + ranges[1].attrib + `;
+  }
+`);
       gl.attachShader(shaderProgram2, vertexShader);
 
       const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER,
-        fragCode
-  //        `
-  // precision mediump float;
-  // uniform sampler2D uSampler;
-  // varying vec2 vTextureCoord;    
-  // void main(void) {
-  //   gl_FragColor = vec4(0, 0.5, 0.5, 1); // return reddish-purple texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-  // }
-  // `
+//        fragCode
+         `
+  precision mediump float;
+  uniform sampler2D uSampler;
+  varying vec2 vTextureCoord;    
+  void main(void) {
+    gl_FragColor = vec4(0.5, 0, 0.5, 1); // return reddish-purple texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+  }
+  `
   );
       gl.attachShader(shaderProgram2, fragmentShader);
     }
@@ -190,7 +190,7 @@ function main() {
   const boilerplate = initVertexBuffers.bind(gl, shaderProgram2) // Readable?
   
   // this removes all output ToDo
-  //ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
+  ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
 
   //loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
 
@@ -200,7 +200,21 @@ function main() {
 }
 
 function initVertexBuffers(shaderProgram: any, screenGl: AttribNameRange) {
-  const cross = [].concat.apply([], screenGl.range.map(x => (screenGl.range.map(y => [x, y]))))
+  let cross:any=screenGl.range.map(x => (screenGl.range.map(y => [x, y])))
+  // flat(2) the JS way
+  for(let i=0;i<2;i++){
+    cross= [].concat.apply([], cross)
+  }
+
+//   const dummy= [
+//     -0.7,-0.1,//0,
+//     -0.3,0.6,//0,
+//     -0.3,-0.3,//0,
+//     0.2,0.6,//0,
+//     0.3,-0.3,//0,
+//     0.7,0.6//,0 
+//  ]
+  
   const gl: WebGL2RenderingContext=this
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); // type? . create and set target for next command
   gl.bufferData(gl.ARRAY_BUFFER,  // type and target slot
