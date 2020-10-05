@@ -1,6 +1,6 @@
 *.js
 !app.js
 # needed for github.io, but complicates mocha.js
-!public//*.js
+!public/**/*.js
 *.js.map
 node_modules/
