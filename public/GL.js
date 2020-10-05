@@ -15,7 +15,7 @@ function main() {
         { "attrib": 'aTextureCoord', "range": [0, 1] },
         { "attrib": 'aVertexPosition', "range": [-0.5, 0.5] } // to target
     ];
-    const shaderProgram2 = gl.createProgram();
+    const shaderProgram = gl.createProgram();
     {
         {
             const vertexShader = loadShader(gl, gl.VERTEX_SHADER, 
@@ -29,7 +29,7 @@ function main() {
     gl_Position = ` + ranges[1].attrib + `;
   }
 `);
-            gl.attachShader(shaderProgram2, vertexShader);
+            gl.attachShader(shaderProgram, vertexShader);
             const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, 
             //        fragCode
             `
@@ -40,22 +40,22 @@ function main() {
     gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
   }
   `);
-            gl.attachShader(shaderProgram2, fragmentShader);
+            gl.attachShader(shaderProgram, fragmentShader);
         }
-        gl.linkProgram(shaderProgram2);
+        gl.linkProgram(shaderProgram);
         // If creating the shader program failed, alert
-        if (!gl.getProgramParameter(shaderProgram2, gl.LINK_STATUS)) {
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
             alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
             return null;
         }
     }
     //gl.useProgram(shaderProgram);
     //gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
-    const boilerplate = initVertexBuffers.bind(gl, shaderProgram2); // Readable?
+    const boilerplate = initVertexBuffers.bind(gl, shaderProgram); // Readable?
     // this removes all output ToDo
     ranges.map(boilerplate); // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
     loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
-    gl.useProgram(shaderProgram2);
+    gl.useProgram(shaderProgram);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
 }
 function initVertexBuffers(shaderProgram, screenGl) {
