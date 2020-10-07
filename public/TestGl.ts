@@ -1,3 +1,3 @@
 import { main } from './GL.js'
 
-main();
+main("GlCanvas");

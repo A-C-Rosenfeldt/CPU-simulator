@@ -7,9 +7,10 @@ class AttribNameRange {
   range: number[]
 }
 
-export function main() {
+// CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
+export function main(canvasId:string, data:simpleImage) {
 
-  const gl = (document.getElementById("GlCanvas") as HTMLCanvasElement).getContext("webgl");
+  const gl = (document.getElementById(canvasId) as HTMLCanvasElement).getContext("webgl");
   if (!gl) {
     alert("Unable to initialize WebGL. Your browser or machine may not support it.");
     return;
@@ -75,7 +76,7 @@ export function main() {
   // this removes all output ToDo
   ranges.map(boilerplate)  // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
 
-  loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
+  loadTexture(gl,data); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
 
   gl.useProgram(shaderProgram);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
@@ -133,7 +134,11 @@ function loadShader(gl, type, source) {
 }
 
 
-
+export class simpleImage{
+  width: number
+  height: number
+  pixel: Uint8Array
+}
 
 
 
@@ -143,7 +148,7 @@ function loadShader(gl, type, source) {
 //
 
 // Texture != vertex buffer
-function loadTexture(gl) {
+function loadTexture(gl, data:simpleImage) {
 
   // Because images have to be download over the internet
   // they might take a moment until they are ready.
@@ -185,8 +190,8 @@ function loadTexture(gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-    width, height, border, srcFormat, srcType,
-    pixel);
+    data.width, data.height, border, srcFormat, srcType,
+    data.pixel);
   /*
     const image = new Image();
     image.onload = function() {

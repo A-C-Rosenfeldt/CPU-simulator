@@ -258,6 +258,18 @@ export class Tridiagonal {
     getAt(row, column) {
         return this.row[row].get(column);
     }
+    printGl() {
+        const s = this.row.length;
+        const pixel = new Uint8Array(s * s * 4); // 2+4+4 = 10
+        // RGBA. This flat data structure resists all functional code
+        for (let pointer = 0; pointer < iD.data.length; pointer += 4) {
+            iD.data.set([0, 255, 0, 255], pointer); // greenscreen
+        }
+        for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += 4) {
+            this.row[r].print(iD, pointer);
+        }
+        return iD;
+    }
     print() {
         const s = this.row.length;
         const iD = new ImageData(s, s);

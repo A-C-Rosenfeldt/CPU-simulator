@@ -1,7 +1,8 @@
 //the system by which (0, 0) is at the center of the context and each axis extends from -1.0 to 1.0
 class AttribNameRange {
 }
-export function main() {
+// CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
+export function main(canvasId) {
     const gl = document.getElementById("GlCanvas").getContext("webgl");
     if (!gl) {
         alert("Unable to initialize WebGL. Your browser or machine may not support it.");
