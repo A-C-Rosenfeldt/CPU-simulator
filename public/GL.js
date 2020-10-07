@@ -1,8 +1,7 @@
-main();
 //the system by which (0, 0) is at the center of the context and each axis extends from -1.0 to 1.0
 class AttribNameRange {
 }
-function main() {
+export function main() {
     const gl = document.getElementById("GlCanvas").getContext("webgl");
     if (!gl) {
         alert("Unable to initialize WebGL. Your browser or machine may not support it.");

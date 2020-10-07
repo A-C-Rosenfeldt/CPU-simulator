@@ -1,5 +1,4 @@
-declare var mat4: any;
-main();
+
 
 //the system by which (0, 0) is at the center of the context and each axis extends from -1.0 to 1.0
 
@@ -8,7 +7,7 @@ class AttribNameRange {
   range: number[]
 }
 
-function main() {
+export function main() {
 
   const gl = (document.getElementById("GlCanvas") as HTMLCanvasElement).getContext("webgl");
   if (!gl) {
