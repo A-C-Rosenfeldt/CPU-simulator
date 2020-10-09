@@ -1,5 +1,6 @@
 import {Tridiagonal, Row} from './enforcePivot.js'
 import {Wire} from './wire.js'  // kind of hoisting. I need to criss cross import for parent-child  relation
+import {SimpleImage} from './GL'
 import './field/semiconductor.js'
 import './field/metal.js'
 
@@ -237,7 +238,7 @@ export class StaticField{
     // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
   }
 
-  Print( ){ //ToPicture   print=text vs picture?
+  Print( ):ImageData{ //ToPicture   print=text vs picture?
     const iD=new ImageData(this.maxStringLenght, this.touchTypedDescription.length)
     // RGBA. This flat data structure resists all functional code
     // ~screen
@@ -260,6 +261,39 @@ export class StaticField{
     })
     return iD;
   }
+
+  PrintGl( ):SimpleImage{ //ToPicture   print=text vs picture?
+    const pixel=new Uint8Array(4*this.maxStringLenght * this.touchTypedDescription.length)
+    // RGBA. This flat data structure resists all functional code
+    // ~screen
+    for(let i=0;i<pixel.length;){
+      // greenscreen
+      pixel[i++] = 0
+      pixel[i++] = 255
+      pixel[i++] = 0
+      pixel[i++] = 255
+    }
+
+    this.touchTypedDescription.forEach((str,i)=>{
+      // JS is strange still. I need index:      for (let c of str) 
+      for(let k=0;k<str.length;k++)
+      {
+        const c=str[k]
+        const bandgaps=new Map([['i',2],['-',2],['s',1],['m',0]])
+        let p=((i*this.maxStringLenght)+k)<<2;
+
+        //iD.data.set([
+          pixel[p++]=bandgaps.get(c)*30
+          pixel[p++]=0
+          pixel[p++]=  c==='-'?200:0; // charge density. Blue is so weak on my monitor
+          pixel[p++] = 255
+          //  ((i*this.maxStringLenght)+k)<<2)
+        //}
+    }
+   
+  })
+  return {pixel:pixel,width:this.maxStringLenght, height:this.touchTypedDescription.length}; 
+}
 }
 
 class Field extends StaticField {

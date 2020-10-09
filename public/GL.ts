@@ -8,7 +8,7 @@ class AttribNameRange {
 }
 
 // CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
-export function main(canvasId:string, data:simpleImage) {
+export function main(canvasId:string, data:SimpleImage) {
 
   const gl = (document.getElementById(canvasId) as HTMLCanvasElement).getContext("webgl");
   if (!gl) {
@@ -134,7 +134,7 @@ function loadShader(gl, type, source) {
 }
 
 
-export class simpleImage{
+export class SimpleImage{
   width: number
   height: number
   pixel: Uint8Array
@@ -148,7 +148,7 @@ export class simpleImage{
 //
 
 // Texture != vertex buffer
-function loadTexture(gl, data:simpleImage) {
+function loadTexture(gl, data:SimpleImage) {
 
   // Because images have to be download over the internet
   // they might take a moment until they are ready.
@@ -157,30 +157,12 @@ function loadTexture(gl, data:simpleImage) {
   // we'll update the texture with the contents of the image.
   const level = 0;
   const internalFormat = gl.RGBA;
-  const width = 16;
-  const height = 16;
+  // const width = 16;
+  // const height = 16;
   const border = 0;
   const srcFormat = gl.RGBA;
   const srcType = gl.UNSIGNED_BYTE;
-  const pixel = new Uint8Array(1024); // 2+4+4 = 10
-  pixel[0] = 0; //[0, 0, 255, 255];  // opaque blue
-  pixel[1] = 0;
-  pixel[2] = 255;
-  pixel[3] = 255;
-  var i: number = 4
-  for(;i<32;){
-  pixel[i++] = 255; //[0, 0, 255, 255];  // opaque blue
-  pixel[i++] = 0;
-  pixel[i++] = 0;
-  pixel[i++] = 255;
-  }
- 
-  for(;i<64;){
-    pixel[i++] = 0; //[0, 0, 255, 255];  // opaque blue
-    pixel[i++] = 255;
-    pixel[i++] = 0;
-    pixel[i++] = 255;
-    }
+
   
   const texture = gl.createTexture();
   // does not make any sense and apparently Browser and a Nvidea drivers think so too:  gl.enable(gl.TEXTURE_2D);

@@ -19,25 +19,34 @@ let y=10
     ctx.putImageData( image, 1, y+=6 );
 
     const texture=scala.printGl()
-    main('MatrixCanvasGl')
+    main('MatrixCanvasGl',texture)
 }
 
 {
-let size=4
-const unit=new Tridiagonal(size)
-for(var i=0;i<size;i++){
-    unit.row[i]=new Row(i,0,[[],[5],[]])
-}
-image=unit.print() // check 2020082401157
-ctx.putImageData( image, 10, y+=6 ); 
-     unit.row[0].sub(unit.row[1],1)  // 0,0,0 -> 1,1,1 has no gaps in pass1. That is okay
-     image=unit.print() // check 2020082401157
-     let warn=true;
+    let size=4
+    const unit=new Tridiagonal(size)
+    for(var i=0;i<size;i++){
+        unit.row[i]=new Row(i,0,[[],[5],[]])
+    }
+
+    let image=unit.print() // check 2020082401157
+    ctx.putImageData( image, 10, y+=6 ); 
+
+    let imageGl=unit.printGl()
+    main('MatrixCanvasGl0',imageGl) 
+
+    unit.row[0].sub(unit.row[1],1)  // 0,0,0 -> 1,1,1 has no gaps in pass1. That is okay
+    image=unit.print() // check 2020082401157
+    imageGl=unit.printGl()
+    main('MatrixCanvasGl1',imageGl) 
+
+    // I got mocha.js to run  and   on the demo in web nothing should fail
+    let warn=true;
     warn = warn && (unit.getAt(0,0)===5);
     warn = warn && (unit.getAt(0,1)===5);
-     if (warn){
+    if (warn){
         ctx.fillStyle='#FFF'
-        ctx.fillRect( 1, y,1,1 ); // my tes framework
-     }
-     ctx.putImageData( image, 10, y+=6 ); 
+        ctx.fillRect( 1, y,1,1 ); // my test framework
+    }
+    ctx.putImageData( image, 10, y+=6 ); 
 }

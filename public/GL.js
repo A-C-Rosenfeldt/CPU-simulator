@@ -2,8 +2,8 @@
 class AttribNameRange {
 }
 // CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
-export function main(canvasId) {
-    const gl = document.getElementById("GlCanvas").getContext("webgl");
+export function main(canvasId, data) {
+    const gl = document.getElementById(canvasId).getContext("webgl");
     if (!gl) {
         alert("Unable to initialize WebGL. Your browser or machine may not support it.");
         return;
@@ -54,7 +54,7 @@ export function main(canvasId) {
     const boilerplate = initVertexBuffers.bind(gl, shaderProgram); // Readable?
     // this removes all output ToDo
     ranges.map(boilerplate); // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
-    loadTexture(gl); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
+    loadTexture(gl, data); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
     gl.useProgram(shaderProgram);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
 }
@@ -101,12 +101,14 @@ function loadShader(gl, type, source) {
     }
     return shader;
 }
+export class SimpleImage {
+}
 //
 // Initialize a texture and load an image.
 // When the image finished loading copy it into the texture.
 //
 // Texture != vertex buffer
-function loadTexture(gl) {
+function loadTexture(gl, data) {
     // Because images have to be download over the internet
     // they might take a moment until they are ready.
     // Until then put a single pixel in the texture so we can
@@ -114,29 +116,11 @@ function loadTexture(gl) {
     // we'll update the texture with the contents of the image.
     const level = 0;
     const internalFormat = gl.RGBA;
-    const width = 16;
-    const height = 16;
+    // const width = 16;
+    // const height = 16;
     const border = 0;
     const srcFormat = gl.RGBA;
     const srcType = gl.UNSIGNED_BYTE;
-    const pixel = new Uint8Array(1024); // 2+4+4 = 10
-    pixel[0] = 0; //[0, 0, 255, 255];  // opaque blue
-    pixel[1] = 0;
-    pixel[2] = 255;
-    pixel[3] = 255;
-    var i = 4;
-    for (; i < 32;) {
-        pixel[i++] = 255; //[0, 0, 255, 255];  // opaque blue
-        pixel[i++] = 0;
-        pixel[i++] = 0;
-        pixel[i++] = 255;
-    }
-    for (; i < 64;) {
-        pixel[i++] = 0; //[0, 0, 255, 255];  // opaque blue
-        pixel[i++] = 255;
-        pixel[i++] = 0;
-        pixel[i++] = 255;
-    }
     const texture = gl.createTexture();
     // does not make any sense and apparently Browser and a Nvidea drivers think so too:  gl.enable(gl.TEXTURE_2D);
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -144,7 +128,7 @@ function loadTexture(gl) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixel);
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, data.width, data.height, border, srcFormat, srcType, data.pixel);
     /*
       const image = new Image();
       image.onload = function() {

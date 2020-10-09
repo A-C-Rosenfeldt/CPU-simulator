@@ -1,3 +1,4 @@
+import {SimpleImage} from './GL'
 // pivot is no necessary for small matrix
 // our matrix has block structure
 // one block with large entries on diagonale
@@ -293,7 +294,7 @@ export class Tridiagonal{
         return this.row[row].get(column);
     }
 
-    printGl():Uint8Array{
+    printGl():SimpleImage{
         const s=this.row.length
         const pixel = new Uint8Array(s*s*4); // 2+4+4 = 10
         // RGBA. This flat data structure resists all functional code
@@ -308,7 +309,7 @@ export class Tridiagonal{
         for(let r=0, pointer=0;r<this.row.length;r++, pointer+=4){
             this.row[r].printGl(pixel, pointer)
         }
-        return pixel;
+        return {width: s, height:s, pixel: pixel};
     }    
 
     print():ImageData{

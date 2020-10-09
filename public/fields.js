@@ -194,6 +194,34 @@ export class StaticField {
         });
         return iD;
     }
+    PrintGl() {
+        const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length);
+        // RGBA. This flat data structure resists all functional code
+        // ~screen
+        for (let i = 0; i < pixel.length;) {
+            // greenscreen
+            pixel[i++] = 0;
+            pixel[i++] = 255;
+            pixel[i++] = 0;
+            pixel[i++] = 255;
+        }
+        this.touchTypedDescription.forEach((str, i) => {
+            // JS is strange still. I need index:      for (let c of str) 
+            for (let k = 0; k < str.length; k++) {
+                const c = str[k];
+                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+                let p = ((i * this.maxStringLenght) + k) << 2;
+                //iD.data.set([
+                pixel[p++] = bandgaps.get(c) * 30;
+                pixel[p++] = 0;
+                pixel[p++] = c === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
+                pixel[p++] = 255;
+                //  ((i*this.maxStringLenght)+k)<<2)
+                //}
+            }
+        });
+        return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
+    }
 }
 class Field extends StaticField {
     constructor() {
