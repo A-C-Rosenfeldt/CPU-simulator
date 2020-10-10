@@ -13,7 +13,7 @@ export function main(canvasId, data) {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader?
     const ranges = [
         { "attrib": 'aTextureCoord', "range": [0, 1] },
-        { "attrib": 'aVertexPosition', "range": [-0.5, 0.5] } // to target
+        { "attrib": 'aVertexPosition', "range": [-1.0, 1.0] } // to target
     ];
     const shaderProgram = gl.createProgram();
     {

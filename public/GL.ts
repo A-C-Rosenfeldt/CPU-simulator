@@ -25,7 +25,7 @@ export function main(canvasId:string, data:SimpleImage) {
 
   const ranges = [
     { "attrib":  'aTextureCoord', "range": [0, 1] }, // from source
-      { "attrib":  'aVertexPosition'  , "range":[-0.5, 0.5] }  // to target
+      { "attrib":  'aVertexPosition'  , "range":[-1.0, 1.0] }  // to target
   ]
 
   const shaderProgram = gl.createProgram();
