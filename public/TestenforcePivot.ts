@@ -18,7 +18,7 @@ let y=10
     const image=scala.print() // check 2020082401039
     ctx.putImageData( image, 1, y+=6 );
 
-    const texture=scala.printGl()
+    const texture=scala.PrintGl()
     main('MatrixCanvasGl',texture)
 }
 
@@ -32,12 +32,12 @@ let y=10
     let image=unit.print() // check 2020082401157
     ctx.putImageData( image, 10, y+=6 ); 
 
-    let imageGl=unit.printGl()
+    let imageGl=unit.PrintGl()
     main('MatrixCanvasGl0',imageGl) 
 
     unit.row[0].sub(unit.row[1],1)  // 0,0,0 -> 1,1,1 has no gaps in pass1. That is okay
     image=unit.print() // check 2020082401157
-    imageGl=unit.printGl()
+    imageGl=unit.PrintGl()
     main('MatrixCanvasGl1',imageGl) 
 
     // I got mocha.js to run  and   on the demo in web nothing should fail

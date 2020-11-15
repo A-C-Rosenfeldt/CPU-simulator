@@ -189,7 +189,7 @@ export class Row {
         this.data.push([1]);
     }
     // parent has to initialize buffer because we fill only defined values
-    printGl(targetRough, targetFine) {
+    PrintGl(targetRough, targetFine) {
         this.ranges.forEach((r, i) => this.data[i].forEach((cell, j) => {
             let p = targetFine + (this.starts[r[0]] + j) << 2;
             targetRough[p++] = cell < 0 ? cell * Row.printScale : 0;
@@ -268,7 +268,7 @@ export class Tridiagonal {
     getAt(row, column) {
         return this.row[row].get(column);
     }
-    printGl() {
+    PrintGl() {
         const s = this.row.length;
         const pixel = new Uint8Array(s * s * 4); // 2+4+4 = 10
         // RGBA. This flat data structure resists all functional code
@@ -280,7 +280,7 @@ export class Tridiagonal {
             pixel[i++] = 255;
         }
         for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += 4) {
-            this.row[r].printGl(pixel, pointer);
+            this.row[r].PrintGl(pixel, pointer);
         }
         return { width: s, height: s, pixel: pixel };
     }
