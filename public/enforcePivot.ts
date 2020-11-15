@@ -23,14 +23,14 @@ export class Row{
     data:number[][] = [[],[],[]] 
 
     // Mirror and generally metal leads to values > 1 on the diagonal
-    constructor(pos:number, pitch:number, data:number[][]){
+    constructor(pos:number, pitch:number, data:number[][], forwardpitch=pitch){
         this.data=data
         this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
 
         this.starts[0]-=pitch
         this.starts[1]-=pitch        
-        this.starts[4]+=pitch
-        this.starts[5]+=pitch
+        this.starts[4]+=forwardpitch
+        this.starts[5]+=forwardpitch
         
         // for diagonal-only construction
         if (this.starts[1]>this.starts[2]){
@@ -206,15 +206,15 @@ export class Row{
        this.data.push([1])
     }
 
-    static printScale=20;
+    static printScale=30;
 
     // parent has to initialize buffer because we fill only defined values
     printGl(targetRough:Uint8Array, targetFine:number ){
         this.ranges.forEach((r,i)=>this.data[i].forEach((cell,j)=>{
             let p=targetFine+(this.starts[r[0]]+j)<<2
             targetRough[p++]=cell<0?cell*Row.printScale:0
-            targetRough[p++]=0
             targetRough[p++]=cell>0?cell*Row.printScale:0
+            targetRough[p++]=0
             targetRough[p++]=255 // better not do black numbers on black screen  
         }))
     }
@@ -301,8 +301,8 @@ export class Tridiagonal{
         for(let i=0;i<pixel.length;){
             // greenscreen
             pixel[i++] = 0
-            pixel[i++] = 255
             pixel[i++] = 0
+            pixel[i++] = 128
             pixel[i++] = 255
         }
         

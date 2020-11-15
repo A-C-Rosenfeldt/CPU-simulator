@@ -169,8 +169,10 @@ export class StaticField {
     // EG exampleField
     constructor(touchTypedDescription) {
         this.maxStringLenght = Math.max.apply(null, touchTypedDescription.map(t => t.length));
+        this.flatLength = touchTypedDescription.map(t => t.length).reduce((a, c) => a + c, 0);
         this.touchTypedDescription = touchTypedDescription;
         // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
+        // Yes we should because I do not want to expose this to  Field2Matrix
     }
     Print() {
         const iD = new ImageData(this.maxStringLenght, this.touchTypedDescription.length);
@@ -199,11 +201,11 @@ export class StaticField {
         // RGBA. This flat data structure resists all functional code
         // ~screen
         for (let i = 0; i < pixel.length;) {
-            // greenscreen
+            // bluescreen
             pixel[i++] = 0;
-            pixel[i++] = 255;
             pixel[i++] = 0;
-            pixel[i++] = 255;
+            pixel[i++] = 0;
+            pixel[i++] = 32;
         }
         this.touchTypedDescription.forEach((str, i) => {
             // JS is strange still. I need index:      for (let c of str) 
@@ -212,7 +214,7 @@ export class StaticField {
                 const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
                 let p = ((i * this.maxStringLenght) + k) << 2;
                 //iD.data.set([
-                pixel[p++] = bandgaps.get(c) * 30;
+                pixel[p++] = bandgaps.get(c) * 50;
                 pixel[p++] = 0;
                 pixel[p++] = c === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
                 pixel[p++] = 255;
@@ -223,14 +225,210 @@ export class StaticField {
         return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
     }
 }
-class Field extends StaticField {
+export class FieldToDiagonal extends StaticField {
+    constructor(touchTypedDescription) {
+        super(touchTypedDescription);
+        this.fieldInVarFloats[0][0] = new Tupel();
+        this.ConstTextToVarFloats();
+    }
+    // need to store the electric field somewhere
+    // Bandgap may stay in text? But this strange replacement function?
+    ConstTextToVarFloats() {
+        // May be later: const pixel=new Float64Array(4*this.maxStringLenght * this.touchTypedDescription.length)
+        this.touchTypedDescription.forEach((str, i) => {
+            // JS is strange still. I need index:      for (let c of str) 
+            for (let k = 0; k < str.length; k++) {
+                const c = str[k];
+                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+                const tu = new Tupel();
+                tu.BandGap = bandgaps.get(c);
+                tu.Potential = 0; // field
+                tu.Doping = c === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
+                this.fieldInVarFloats[i][k] = tu;
+            }
+        });
+    }
+    PrintGl() {
+        const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length);
+        // RGBA. This flat data structure resists all functional code
+        // ~screen
+        for (let i = 0; i < pixel.length;) {
+            // bluescreen
+            pixel[i++] = 0;
+            pixel[i++] = 0;
+            pixel[i++] = 0;
+            pixel[i++] = 32; // partly transparent like on modern windows managers
+        }
+        // flatten
+        this.fieldInVarFloats.forEach((str, i) => {
+            // JS is strange still. I need index:      for (let c of str) 
+            for (let k = 0; k < str.length; k++) {
+                const c = str[k];
+                let p = ((i * this.maxStringLenght) + k) << 2;
+                //iD.data.set([
+                pixel[p++] = c.BandGap; //bandgaps.get(c)*50
+                pixel[p++] = c.Potential;
+                pixel[p++] = c.Doping; // charge density. Blue is so weak on my monitor
+                pixel[p++] = 255;
+                //  ((i*this.maxStringLenght)+k)<<2)
+                //}
+            }
+        });
+        return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
+    }
+    // Code for testing! Only diagonal. ToDo: Find special cases code!
+    // What about jaggies? Do if in inner loop? If beyong jaggy above || first line?
+    ToMatrix() {
+        // Tridiagonal instead of:  call meander in FinFet
+        // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
+        // 
+        const matrix = new Tridiagonal(this.flatLength); // number of rows. May need to grow, but no problem in sparse notation
+        // flatten
+        let p = 0;
+        // let ps=[p]  // Due to FinFet  triode Gate symmetry, asymmetric jaggies are a thing
+        // let c=''
+        for (let i = 0; i < this.fieldInVarFloats.length; i++) {
+            const str = this.fieldInVarFloats[i];
+            // JS is strange still. I need index:      for (let c of str) 
+            for (let k = 0; k < str.length; k++) {
+                const c = str[k];
+                matrix.row[p] = new Row(p, 0, [[], [c.BandGap /* c.Potential // unsuited for testing*/], []]);
+                p++;
+            }
+            // small array. Trying to get semantics correct
+            //ps=ps.slice(0,1) 
+            //ps.unshift(p) 
+        }
+        return matrix;
+    }
+}
+export class Field extends FieldToDiagonal {
     constructor() {
         super(...arguments);
         this.bufferId = 0; // like field in interlaced video. Used to double buffer the carriers
     }
     ToMatrix() {
         // Tridiagonal instead of:  call meander in FinFet
-        return new Tridiagonal(this.touchTypedDescription.length);
+        // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
+        // 
+        const matrix = new Tridiagonal(this.flatLength); // number of rows. May need to grow, but no problem in sparse notation
+        // flatten
+        let i_mat = 0;
+        let pitch = 0;
+        // let ps=[p]  // Due to FinFet  triode Gate symmetry, asymmetric jaggies are a thing
+        // let c=''
+        for (let i = 0; i < this.fieldInVarFloats.length; i++) {
+            const str = this.fieldInVarFloats[i];
+            // JS is strange still. I need index:      for (let c of str) 
+            for (let k = 0; k < str.length; k++) {
+                const c = str[k];
+                let k_mat = i_mat; // Start with diagonal // Tridiagonal is not yet tested. Maybe I need a second trick to tackle all shapes of sparseness:  this.Interlace(x,y)
+                // ToDo: Move behind the solver: Repeat this verschachtelter loop to multiply vector with matrix and to convert vector back to field:  flat[flatIndex]=this.field[x][y];
+                const proto = [[], [4], []];
+                // Laplace will source all fields. Only target is XOR ChargeDensity.
+                if (c.BandGap === 0) {
+                    // Charge Carrier
+                }
+                else {
+                    // Laplace 4x4 from the end of this file
+                    //LaPlace4x4(tiles:number[][][])
+                    {
+                        // const flat=Number[4*4];
+                        // for(let y=0;y<4;y++){
+                        //   for(var x=0;x<4;x++){
+                        // this.homo[flatIndex]=this.field[x][y].ChargeDensity();
+                        // this.mat[flatIndex][flatIndex]=4; // diagnoal entries are all <> 0
+                        if (k < str.length - 1) {
+                            proto[1].push(-1);
+                        }
+                        if (k > 0) {
+                            proto[1].unshift(-1);
+                            k_mat--;
+                        }
+                        // Jagged ( symmetry or later: wired-or  )
+                        if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
+                            proto[2] = [-1];
+                        }
+                        if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
+                            proto[0] = [-1];
+                        }
+                        // const x=i,y=k
+                        // // homogenous and inhomogenous (the border: 4+4+4+4) parts
+                        // if (x>0)
+                        // {
+                        //   this.mat[flatIndex][this.Interlace(x-1,y)]=-1;
+                        // }else{
+                        //   this.homo[flatIndex] -= this.contacts[0].wire.getVoltage(0)[0]
+                        // }
+                        // if (x<4-1)
+                        // {
+                        //   this.mat[flatIndex][this.Interlace(x+1,y)]=-1;
+                        // }else{
+                        //   this.homo[flatIndex][this.Interlace(x-1,y)]=-2; // see above
+                        // }
+                        // if (y>0)
+                        // {
+                        //   this.mat[flatIndex][this.Interlace(x,y-1)]=-1;
+                        // }else{
+                        //   this.homo[flatIndex] -= tiles[0][x][4-1];
+                        // }          
+                        // if (y<4-1)
+                        // {
+                        //   this.mat[flatIndex][this.Interlace(x,y+1)]=-1;
+                        // }else{
+                        //   this.homo[flatIndex] -= tiles[1][x][0];
+                        // }   
+                        //   }
+                        // }
+                    }
+                    // if (i>0 && this.fieldInVarFloats[i-1].length>k){
+                    //   compressed[0]=[-1]
+                    // }
+                    // if (i<this.fieldInVarFloats.length-1&& this.fieldInVarFloats[i+1].length>k){
+                    //   compressed[2]=[-1]
+                    // }  
+                }
+                matrix.row[i_mat] = new Row(k_mat, pitch, proto, str.length); // pitch need to be relativ to pos ( not to array bounds )
+                i_mat++;
+            }
+            pitch = str.length;
+            // small array. Trying to get semantics correct
+            // ps=ps.slice(0,1) 
+            // ps.unshift(i_mat) 
+        }
+        return matrix;
+    }
+    ToMatrix0() {
+        // Tridiagonal instead of:  call meander in FinFet
+        // jagged array is possible. Boundary is boundaray
+        const matrix = new Tridiagonal(this.flatLength); // number of rows. May need to grow, but no problem in sparse notation
+        const pitch = [0, 0];
+        // ToDo find existing code about the top and low boundary
+        for (let i = 0; i < matrix.row.length; i++) {
+            matrix.row[i] = new Row(i, 10, [[-1], [-1, 4, -1], [-1]]);
+        }
+        // Todo: extablish this real version
+        let p = 0;
+        // copied from printGL
+        this.touchTypedDescription.forEach((str, i) => {
+            // JS is strange still. I need index:      for (let c of str) 
+            pitch[1] = pitch[0];
+            pitch[0] = str.length;
+            for (let k = 0; k < str.length; k++) {
+                const c = str[k];
+                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+                let p = ((i * this.maxStringLenght) + k) << 2;
+                matrix.row[p++] = new Row(i, pitch[1], [[-1], [-1, 4, -1], [-1]], pitch[1]);
+                //iD.data.set([
+                // pixel[p++]=bandgaps.get(c)*50
+                // pixel[p++]=0
+                // pixel[p++]=  c==='-'?200:0; // charge density. Blue is so weak on my monitor
+                // pixel[p++] = 255
+                //  ((i*this.maxStringLenght)+k)<<2)
+                //}
+            }
+        });
+        return matrix;
     }
 }
 // this example is later cut and refused (as in fuse, to weld) as needed
@@ -249,6 +447,13 @@ export const exampleField = [
     [3, 'sssiiii'],
     [1, 'mmmmmmm'],
 ].map(whatDoesNumberMean => whatDoesNumberMean.slice(-1)[0]);
+export const fieldTobeSquared = [
+    // connected m  . Connected to wire with impedance=50
+    'sssm',
+    'siii',
+    'i-im',
+    'sssi',
+];
 var html = `
   <div>
     <span>Some HTML here</span>
@@ -532,42 +737,6 @@ export class FinFet {
             y >>= 1;
         }
         return combined;
-    }
-    LaPlace4x4(tiles) {
-        const flat = Number[4 * 4];
-        for (let y = 0; y < 4; y++) {
-            for (var x = 0; x < 4; x++) {
-                let flatIndex = this.Interlace(x, y);
-                flat[flatIndex] = this.field[x][y];
-                this.homo[flatIndex] = this.field[x][y].ChargeDensity();
-                this.mat[flatIndex][flatIndex] = 4; // diagnoal entries are all <> 0
-                // homogenous and inhomogenous (the border: 4+4+4+4) parts
-                if (x > 0) {
-                    this.mat[flatIndex][this.Interlace(x - 1, y)] = -1;
-                }
-                else {
-                    this.homo[flatIndex] -= this.contacts[0].wire.getVoltage(0)[0];
-                }
-                if (x < 4 - 1) {
-                    this.mat[flatIndex][this.Interlace(x + 1, y)] = -1;
-                }
-                else {
-                    this.homo[flatIndex][this.Interlace(x - 1, y)] = -2; // see above
-                }
-                if (y > 0) {
-                    this.mat[flatIndex][this.Interlace(x, y - 1)] = -1;
-                }
-                else {
-                    this.homo[flatIndex] -= tiles[0][x][4 - 1];
-                }
-                if (y < 4 - 1) {
-                    this.mat[flatIndex][this.Interlace(x, y + 1)] = -1;
-                }
-                else {
-                    this.homo[flatIndex] -= tiles[1][x][0];
-                }
-            }
-        }
     }
 }
 //# sourceMappingURL=fields.js.map

@@ -14,7 +14,7 @@
 // we could store left and right side of the equation
 export class Row {
     // Mirror and generally metal leads to values > 1 on the diagonal
-    constructor(pos, pitch, data) {
+    constructor(pos, pitch, data, forwardpitch = pitch) {
         this.starts = [0, 0, 0, 0, 0, 0]; // vs GC, number of test cases
         this.ranges = [[0, 1], [2, 3], [4, 5]];
         this.data = [[], [], []];
@@ -22,8 +22,8 @@ export class Row {
         this.starts = [].concat.apply([], this.data.map(d => [pos - Math.floor(d.length / 2), pos + Math.ceil(d.length / 2)]));
         this.starts[0] -= pitch;
         this.starts[1] -= pitch;
-        this.starts[4] += pitch;
-        this.starts[5] += pitch;
+        this.starts[4] += forwardpitch;
+        this.starts[5] += forwardpitch;
         // for diagonal-only construction
         if (this.starts[1] > this.starts[2]) {
             this.starts[0] -= this.starts[1] - this.starts[2];
@@ -193,8 +193,8 @@ export class Row {
         this.ranges.forEach((r, i) => this.data[i].forEach((cell, j) => {
             let p = targetFine + (this.starts[r[0]] + j) << 2;
             targetRough[p++] = cell < 0 ? cell * Row.printScale : 0;
-            targetRough[p++] = 0;
             targetRough[p++] = cell > 0 ? cell * Row.printScale : 0;
+            targetRough[p++] = 0;
             targetRough[p++] = 255; // better not do black numbers on black screen  
         }));
     }
@@ -237,7 +237,7 @@ export class Row {
         }
     }
 }
-Row.printScale = 20;
+Row.printScale = 30;
 class RowTest {
     data() {
         let row = new Row(3, 4, [[0.25], [0.25], [0.25], [0.25]]);
@@ -275,8 +275,8 @@ export class Tridiagonal {
         for (let i = 0; i < pixel.length;) {
             // greenscreen
             pixel[i++] = 0;
-            pixel[i++] = 255;
             pixel[i++] = 0;
+            pixel[i++] = 128;
             pixel[i++] = 255;
         }
         for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += 4) {

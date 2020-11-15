@@ -1,4 +1,4 @@
-import { StaticField, exampleField } from './fields.js';
+import { StaticField, exampleField, FieldToDiagonal, fieldTobeSquared } from './fields.js';
 import { main } from './GL.js';
 //import 'assert'
 const print = document.getElementById('FieldsCanvas');
@@ -14,5 +14,14 @@ let y = 10;
     var imageGl = scala.PrintGl();
     main('FieldGl0', imageGl);
     //ctx.putImageData( image, 1, y+=6 );
+    // 2020-11-06
+    const dynamicField = new FieldToDiagonal(fieldTobeSquared);
+    // reproduce stuff from above
+    var image = dynamicField.Print(); // check 2020082401039
+    ctx.putImageData(image, 1, y += 6);
+    var imageGl = dynamicField.PrintGl();
+    main('FieldGl1', imageGl);
+    // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
+    var squared = dynamicField.ToMatrix();
 }
 //# sourceMappingURL=TestFields.js.map
