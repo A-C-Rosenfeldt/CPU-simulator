@@ -304,11 +304,11 @@ export class StaticField{
 
 
 export class FieldToDiagonal extends StaticField {
-  fieldInVarFloats:Tupel[][]
+  fieldInVarFloats:Tupel[][]=[]
 
   constructor(touchTypedDescription:string[]){
     super(touchTypedDescription);
-    this.fieldInVarFloats[0][0]=new Tupel()
+    //this.fieldInVarFloats[0][0]=new Tupel()
     this.ConstTextToVarFloats();
   }
 
@@ -318,6 +318,7 @@ export class FieldToDiagonal extends StaticField {
     // May be later: const pixel=new Float64Array(4*this.maxStringLenght * this.touchTypedDescription.length)
 
     this.touchTypedDescription.forEach((str,i)=>{
+      const row:Tupel[]=[]
       // JS is strange still. I need index:      for (let c of str) 
       for(let k=0;k<str.length;k++)
       {
@@ -330,9 +331,9 @@ export class FieldToDiagonal extends StaticField {
           tu.Potential=0  // field
           tu.Doping=  c==='-'?200:0 // charge density. Blue is so weak on my monitor
         
-        this.fieldInVarFloats[i][k]=tu;
+        row[k]=tu;
     }
-   
+    this.fieldInVarFloats[i]=row;
   })
   }
 
