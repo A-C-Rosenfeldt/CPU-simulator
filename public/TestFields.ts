@@ -1,3 +1,4 @@
+import { Row } from './enforcePivot.js';
 import { StaticField, exampleField, FieldToDiagonal, fieldTobeSquared, Field } from './fields.js'
 import { main } from './GL.js';
 //import 'assert'
@@ -35,8 +36,10 @@ let y=10
     squared=tri.ToMatrix()
     var imageGl=squared.PrintGl()
     main('FieldGl0_tri',imageGl) 
-
-    
+    // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
+    squared.row[1]=new Row(3,0,[[],[5],[]]);
+    var imageGl=squared.PrintGl()
+    main('FieldGl0_tri_blank',imageGl) 
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
-    squared=diag.ToMatrix()
+    //squared=diag.ToMatrix()
 }

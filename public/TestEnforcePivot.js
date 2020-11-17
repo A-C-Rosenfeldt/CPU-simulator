@@ -19,7 +19,7 @@ let y = 10;
 }
 {
     let size = 4;
-    const unit = new Tridiagonal(size);
+    let unit = new Tridiagonal(size);
     for (var i = 0; i < size; i++) {
         unit.row[i] = new Row(i, 0, [[], [5], []]);
     }
@@ -40,5 +40,17 @@ let y = 10;
         ctx.fillRect(1, y, 1, 1); // my test framework
     }
     ctx.putImageData(image, 10, y += 6);
+    // }{
+    // fails 20201117. Pitch is still 4 ? Global data or leftover from my early design with fixed (4?? very early) tile width.
+    size++;
+    unit = new Tridiagonal(size);
+    for (var i = 0; i < size; i++) {
+        unit.row[i] = new Row(i, 0, [[], [5], []]);
+    }
+    imageGl = unit.PrintGl();
+    main('MatrixCanvasGl5', imageGl);
+    unit.row[2].sub(unit.row[3], 1); // 20201117 this works
+    imageGl = unit.PrintGl(); // 20201117 so here must be a bug. Solved. Was a const=4 in prototype
+    main('MatrixCanvasGl15', imageGl);
 }
 //# sourceMappingURL=TestEnforcePivot.js.map

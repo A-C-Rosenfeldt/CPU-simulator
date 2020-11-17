@@ -279,7 +279,7 @@ export class Tridiagonal {
             pixel[i++] = 128;
             pixel[i++] = 255;
         }
-        for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += 4) {
+        for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += s /*20201117 first test: 4*/) {
             this.row[r].PrintGl(pixel, pointer);
         }
         return { width: s, height: s, pixel: pixel };
