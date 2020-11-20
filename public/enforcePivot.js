@@ -27,6 +27,7 @@ export class Span extends Array {
         return super.unshift(items);
     }
 }
+// Consider: RowConstructor which takes Span instead of Array<Span> ( check for .Start )
 export function FromRaw(...b) {
     const s = new Span(b.length, 0); // set prototype . Ducktyping alone won't call correct unshift
     // transfer values without destroying prototype and being somewhat comaptible with C# and Java
@@ -76,6 +77,14 @@ export class Row {
             console.log(this.starts);
             throw "no order";
         }
+    }
+    static Single(pos, b) {
+        const a = new Array(3);
+        a[0] = new Span(0, 0);
+        a[1] = FromRaw(b);
+        a[1].start = pos;
+        a[2] = new Span(0, 0);
+        return new Row(a);
     }
     find(at) {
         let segment = this.starts.length;
@@ -285,11 +294,11 @@ export class Row {
     }
 }
 Row.printScale = 30;
-class RowTest {
-    data() {
-        let row = new Row(3, 4, [[0.25], [0.25], [0.25], [0.25]]);
-    }
-}
+// class RowTest{
+//     data(){
+//         let row=new Row(3,4,[[0.25],[0.25],[0.25],[0.25]]);
+//     }
+// }
 export class Tridiagonal {
     constructor(length) {
         this.row = new Array(length);
@@ -307,7 +316,7 @@ export class Tridiagonal {
     }
     setTo1() {
         this.row.forEach((row, i) => {
-            this.row[i] = new Row(i, 0, [[], [1], []]);
+            this.row[i] = Row.Single(i, 1); //new Row(i,0,[[],[1],[]])
         });
     }
     length() {

@@ -14,7 +14,7 @@ let y=10
 
 {
     const scala=new Tridiagonal(1)
-    scala.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
+    scala.row[0]=Row.Single(0,4) //new Row(0,0,[[],[4],[]]) // Faktor 20
     const image=scala.print() // check 2020082401039
     ctx.putImageData( image, 1, y+=6 );
 
@@ -26,7 +26,7 @@ let y=10
     let size=4
     let unit=new Tridiagonal(size)
     for(var i=0;i<size;i++){
-        unit.row[i]=new Row(i,0,[[],[5],[]])
+        unit.row[i]=Row.Single(i,5) //new Row(i,0,[[],[5],[]])
     }
 
     let image=unit.print() // check 2020082401157
@@ -58,7 +58,7 @@ let y=10
     size++
     unit=new Tridiagonal(size)
     for(var i=0;i<size;i++){
-        unit.row[i]=new Row(i,0,[[],[5],[]])
+        unit.row[i]=Row.Single(i,5) //new Row(i,0,[[],[5],[]])
     }
     imageGl=unit.PrintGl()
     main('MatrixCanvasGl5',imageGl)   

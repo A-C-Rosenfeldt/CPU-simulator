@@ -393,8 +393,12 @@ export class FieldToDiagonal extends StaticField {
       const str=this.fieldInVarFloats[i]
       // JS is strange still. I need index:      for (let c of str) 
       for (let k = 0; k < str.length; k++) {
-        const c = str[k]        
-        matrix.row[p] = new Row(p, 0, [[], [c.BandGap /* c.Potential // unsuited for testing*/], []])
+        const c = str[k]   
+        // const a=new Array<Span<number>>(3)
+        // a[0]=new Span<number>(0,0)
+        // a[1]=FromRaw<number>(c.BandGap)
+        // a[2]=new Span<number>(0,0)
+        matrix.row[p] = Row.Single(p,c.BandGap) //new Row(a)//p, 0, [[], [ /* c.Potential // unsuited for testing*/], []])
         p++
       }
 
@@ -492,8 +496,8 @@ export class Field extends FieldToDiagonal {
     const pitch=[0,0]
     // ToDo find existing code about the top and low boundary
     for(let i=0;i<matrix.row.length;i++){
-      matrix.row[i]=new Row(i,10,[[-1],[-1,4,-1],[-1]])
-
+      matrix.row[i]=null //  new Row(i,10,[[-1],[-1,4,-1],[-1]])
+      throw "implementation is in a different method"
       
     }
 
@@ -513,7 +517,8 @@ export class Field extends FieldToDiagonal {
 
    
 
-        matrix.row[p++]=new Row(i,pitch[1],[[-1],[-1,4,-1],[-1]],pitch[1])
+        matrix.row[p++]=null //new Row(i,pitch[1],[[-1],[-1,4,-1],[-1]],pitch[1])
+        throw "implementation is in a different method"
         //iD.data.set([
           // pixel[p++]=bandgaps.get(c)*50
           // pixel[p++]=0

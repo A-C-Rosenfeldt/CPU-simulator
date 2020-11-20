@@ -23,7 +23,7 @@ describe('Accessing my code', () => {
 
   it('shOuld reTurn 4', () => {
     const scalar=new Tridiagonal(1)
-    scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
+    scalar.row[0]=Row.Single(0,4) // new 0,[[],[4],[]]) // Faktor 20
     const result = scalar.getAt(0,0) //hello();
     expect(result).to.equal(4);
   });
@@ -37,7 +37,7 @@ describe('Doing some linAlg', () => {
       let size = 4
       const unit = new Tridiagonal(size)
       for(var i=0;i<size;i++){
-        unit.row[i]=new Row(i,0,[[],[5],[]])
+        unit.row[i]=Row.Single(i,5) //0,[[],[5],[]])
       }
 
       unit.row[0].sub(unit.row[1], 1)  // 0,0,0 -> 1,1,1 has no gaps in pass1. That is okay

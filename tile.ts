@@ -51,7 +51,7 @@ composeAndFlood(){
         }
     }
 
-    matrix.row.push(new Row(metal_met,0,[[],(new Array(ones).fill(1)),[]]))
+    throw "implementation moved!" // matrix.row.push(new Row(metal_met,0,[[],(new Array(ones).fill(1)),[]]))
 
 }
 }

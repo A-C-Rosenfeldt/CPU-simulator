@@ -33,6 +33,7 @@ export class Span<T> extends Array{
     //string:number[]=[]
 }
 
+// Consider: RowConstructor which takes Span instead of Array<Span> ( check for .Start )
 export function FromRaw<T>(...b:Array<T>):Span<T>{
     const s= new Span<T>(b.length,0);  // set prototype . Ducktyping alone won't call correct unshift
     // transfer values without destroying prototype and being somewhat comaptible with C# and Java
@@ -42,6 +43,10 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
     }
     return s
 }
+
+
+
+
 export class Row{
     starts:number[] ;//= [0,0,0,0,0,0]; // vs GC, number of test cases
     ranges=[[0,1],[2,3],[4,5]]
@@ -90,6 +95,15 @@ export class Row{
             console.log(this.starts)
             throw "no order";
         }
+    }
+
+    static Single(pos:number, b: number):Row{
+        const a=new Array<Span<number>>(3)
+        a[0]=new Span<number>(0,0)
+        a[1]=FromRaw<number>(b);a[1].start=pos
+        a[2]=new Span<number>(0,0)
+    
+        return new Row(a)
     }
 
     private find(at:number):number[]{
@@ -311,11 +325,11 @@ export class Row{
 
 }
 
-class RowTest{
-    data(){
-        let row=new Row(3,4,[[0.25],[0.25],[0.25],[0.25]]);
-    }
-}
+// class RowTest{
+//     data(){
+//         let row=new Row(3,4,[[0.25],[0.25],[0.25],[0.25]]);
+//     }
+// }
 
 export class Tridiagonal{
     row:Row[]
@@ -337,7 +351,7 @@ export class Tridiagonal{
 
     setTo1(){
         this.row.forEach((row,i)=>{
-            this.row[i]=new Row(i,0,[[],[1],[]])
+            this.row[i]=Row.Single(i,1) //new Row(i,0,[[],[1],[]])
         })
     }
 
