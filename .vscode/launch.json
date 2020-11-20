@@ -27,7 +27,7 @@
             "name": "Launch Edge",
             "request": "launch",
             "type": "pwa-msedge",
-            "url": "http://localhost:3000",
+            "url": "http://localhost:3000/index.htm",
             "webRoot": "${workspaceFolder}/public"
         },
         {
@@ -41,6 +41,19 @@
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]
+        },
+        {
+            "name": "Launch via NPM",
+            "request": "launch",
+            "runtimeArgs": [
+                "test",
+                "debug"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
         }
     ]
 }

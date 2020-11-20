@@ -1,4 +1,4 @@
-import {Tridiagonal, Row} from './enforcePivot.js'
+import {Tridiagonal, Span, Row, FromRaw} from './enforcePivot.js'
 import {Wire} from './wire.js'  // kind of hoisting. I need to criss cross import for parent-child  relation
 import {SimpleImage} from './GL'
 import './field/semiconductor.js'
@@ -160,7 +160,14 @@ class /*SemiconductorMetal*/ Contact{
       //,[,],
       [-1/* new col only  */,+1 /*new col and row*/] // we only add I to the homognous side.
     //];
-    this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
+    //this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
+    // new interface to Row
+    const a=new Array<Span<number>>(3)
+    a[0]=new Span<number>(0,0)
+    a[1]=FromRaw<number>(-1,+1)//R)
+    a[2]=new Span<number>(0,0)
+    this.matrix.row.push(new Row(a));
+
     //matrix.appendOnDiagonal(R); //I
     const VoltageInWire=3;
     this.column.concat(R.map(r=>VoltageInWire*r) /*, 2 ???]*/);
@@ -418,85 +425,51 @@ export class Field extends FieldToDiagonal {
       const str=this.fieldInVarFloats[i]
       // JS is strange still. I need index:      for (let c of str) 
       for (let k = 0; k < str.length; k++) {
+        // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
+        let span=[-pitch,0, str.length].map(global=>new Span<number>(0,global+i_mat))
+
+        let rle=[pitch-1, str.length-1]
         const c = str[k]      
         let k_mat=i_mat; // Start with diagonal // Tridiagonal is not yet tested. Maybe I need a second trick to tackle all shapes of sparseness:  this.Interlace(x,y)
         // ToDo: Move behind the solver: Repeat this verschachtelter loop to multiply vector with matrix and to convert vector back to field:  flat[flatIndex]=this.field[x][y];
 
-        const proto=[[], [4], []]
+        span[1].push(4); //const proto:Span<number>[]=[[], [4], []]
+
         // Laplace will source all fields. Only target is XOR ChargeDensity.
-        if (c.BandGap===0)
-        {
+        if (c.BandGap === 0) {
           // Charge Carrier
-        }else{
-        // Laplace 4x4 from the end of this file
-        //LaPlace4x4(tiles:number[][][])
-        {
-          // const flat=Number[4*4];
-          // for(let y=0;y<4;y++){
-          //   for(var x=0;x<4;x++){
+        } else {
+          // Laplace 4x4 from the end of this file
+          {
+            if (k < str.length - 1) {
+              span[1].push(-1)
+              rle[1]--
+            }
+            if (k > 0) {
+              span[1].unshift(-1)
+              k_mat--; rle[0]--
+            }
 
-              
-              // this.homo[flatIndex]=this.field[x][y].ChargeDensity();
-              // this.mat[flatIndex][flatIndex]=4; // diagnoal entries are all <> 0
+            // Jagged ( symmetry or later: wired-or  )
+            if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
+              span[0].push(-1)
+              rle[0]--
+            } else {
+              span[0]=span[1]
+              rle[0] = 0
+            }
 
-              if (k<str.length-1){
-                proto[1].push(-1)
-              }
-              if (k>0){
-                proto[1].unshift(-1)
-                k_mat--
-              }
+            if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
+              span[2].push(-1)
+            } else {
+              //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
+              rle[1] = 0
+            }
+          }
+        }
 
-              // Jagged ( symmetry or later: wired-or  )
-              if (i+1<this.fieldInVarFloats.length && this.fieldInVarFloats[i+1].length>k){
-                proto[2]=[-1]
-              }
-              if (i>0  && this.fieldInVarFloats[i-1].length>k ){
-                proto[0]=[-1]
-              }
-
-              // const x=i,y=k
-              // // homogenous and inhomogenous (the border: 4+4+4+4) parts
-              // if (x>0)
-              // {
-              //   this.mat[flatIndex][this.Interlace(x-1,y)]=-1;
-              // }else{
-              //   this.homo[flatIndex] -= this.contacts[0].wire.getVoltage(0)[0]
-              // }
-    
-              // if (x<4-1)
-              // {
-              //   this.mat[flatIndex][this.Interlace(x+1,y)]=-1;
-              // }else{
-              //   this.homo[flatIndex][this.Interlace(x-1,y)]=-2; // see above
-              // }
-    
-              // if (y>0)
-              // {
-              //   this.mat[flatIndex][this.Interlace(x,y-1)]=-1;
-              // }else{
-              //   this.homo[flatIndex] -= tiles[0][x][4-1];
-              // }          
-    
-              // if (y<4-1)
-              // {
-              //   this.mat[flatIndex][this.Interlace(x,y+1)]=-1;
-              // }else{
-              //   this.homo[flatIndex] -= tiles[1][x][0];
-              // }   
-    
-          //   }
-          // }
-        }        
-        // if (i>0 && this.fieldInVarFloats[i-1].length>k){
-        //   compressed[0]=[-1]
-        // }
-        // if (i<this.fieldInVarFloats.length-1&& this.fieldInVarFloats[i+1].length>k){
-        //   compressed[2]=[-1]
-        // }  
-      }
-
-        matrix.row[i_mat] = new Row(k_mat, pitch , proto, str.length ) // pitch need to be relativ to pos ( not to array bounds )
+        matrix.row[i_mat] = new Row(span) // , proto)
+        // new Row(k_mat, rle , proto, (proto[2].length===0?0: str.length) ) // pitch need to be relativ to pos ( not to array bounds )
         i_mat++
       }
 

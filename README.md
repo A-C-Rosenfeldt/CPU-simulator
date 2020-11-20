@@ -9,3 +9,8 @@ Try it out on: https://a-c-rosenfeldt.github.io/CPU-simulator/public
 Todo:
 Look into multibit-lines: https://de.wikipedia.org/wiki/Logisim
 Check volatages: http://forum.6502.org/viewtopic.php?f=8&t=1768
+
+
+npm test works
+
+VSC test browser again not

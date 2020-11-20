@@ -17,31 +17,79 @@ import {SimpleImage} from './GL'
 // explain a CPU
 
 // we could store left and right side of the equation
+export class Span<T> extends Array{
+    start:number=0
+    unshift(...items: T[]): number{
+        if (this.start){
+            if (--this.start<0) {throw "below bounds" }
+        }
+
+        return super.unshift(items)
+    }
+    constructor(l:number,s:number) { //start:number, data:Arry<T>){
+        super(l)        
+        this.start=s
+    }
+    //string:number[]=[]
+}
+
+export function FromRaw<T>(...b:Array<T>):Span<T>{
+    const s= new Span<T>(b.length,0);  // set prototype . Ducktyping alone won't call correct unshift
+    // transfer values without destroying prototype and being somewhat comaptible with C# and Java
+    // Does this translate into arguments[] ?
+    for(var i=0;i<b.length;i++){
+        s[i]=b[i]
+    }
+    return s
+}
 export class Row{
-    starts:number[] = [0,0,0,0,0,0]; // vs GC, number of test cases
+    starts:number[] ;//= [0,0,0,0,0,0]; // vs GC, number of test cases
     ranges=[[0,1],[2,3],[4,5]]
     data:number[][] = [[],[],[]] 
 
+    // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
-    constructor(pos:number, pitch:number, data:number[][], forwardpitch=pitch){
-        this.data=data
-        this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
+    constructor(start:Span<number>[]){//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
+        this.data=start.map(s=>s.slice()) // convert Span to base class  ES6: [...s] Do I like it?
 
-        this.starts[0]-=pitch
-        this.starts[1]-=pitch        
-        this.starts[4]+=forwardpitch
-        this.starts[5]+=forwardpitch
+        // 2020-11-19 ToDo: This is to complicated: does not work well with vertical edges
+        //this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
+
+        // var aggregate=data.map(d=>d.length)
+        // {
+        //     let i=0
+        //     let a=aggregate[i++]
+        //     do{
+
+        //     }
+
+        // }
+        // Better do: start of diagonal range  and from there  run length encoding of zeros
+        this.starts=[].concat.apply([],start.map(d=>[d.start,d.start+d.length]))      
+        //this.starts=new Array(6).fill(pos)
+        // {
+        //     const fitch = forwardpitch
+        //     this.starts[0] -= pitch + data[0].length
+        //     this.starts[1] -= pitch + data[0].length
+        //     this.starts[4] += fitch + data[1].length
+        //     this.starts[5] += fitch + data[1].length
+        // }
+        // // for diagonal-only construction
+        // if (this.starts[1]>this.starts[2]){
+        //     this.starts[0]-=this.starts[1]-this.starts[2]
+        //     this.starts[1]=this.starts[2]
+        // }
         
-        // for diagonal-only construction
-        if (this.starts[1]>this.starts[2]){
-            this.starts[0]-=this.starts[1]-this.starts[2]
-            this.starts[1]=this.starts[2]
+        // if (this.starts[4]<this.starts[3]){
+        //     this.starts[5]-=this.starts[4]-this.starts[3]
+        //     this.starts[4]=this.starts[3]
+        // }
+        
+        //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
+        if (this.starts.reduce<number>((v1,v0)=>v0>=v1? v0 : Number.MAX_SAFE_INTEGER,0) === Number.MAX_SAFE_INTEGER ) {
+            console.log(this.starts)
+            throw "no order";
         }
-        
-        if (this.starts[4]<this.starts[3]){
-            this.starts[5]-=this.starts[4]-this.starts[3]
-            this.starts[4]=this.starts[3]
-        }            
     }
 
     private find(at:number):number[]{
@@ -240,7 +288,7 @@ export class Row{
 
     // only used for test. The other matrix will be an inverted Matrix, which is no sparse
     innerProduct_Matrix(M: Tridiagonal):Row {
-        const accs=new Array(M.length())
+        const accs=new Span(M.length(),0)
         for (let acc_i = 0; acc_i < M.length(); acc_i++) {
             let acc = 0
             this.ranges.forEach((r, i) => {
@@ -251,8 +299,12 @@ export class Row{
             accs[acc_i]=acc
         }
         {
-            const row=new Row(0,0,[[],[],[]])
-            row.data[1]=accs
+            let a=new Array<Span<number>>(3) //=[[],[],[]];
+            a[0]=new Span<number>(0,0) //.start=0)
+            a[1]=accs
+            a[2]=new Span<number>(0,accs.length)
+            const row=new Row(a) //0,0,[[],[],[]])
+            //row.data[1]=accs
             return row
         }
     }    
@@ -272,6 +324,8 @@ export class Tridiagonal{
         //I cannot create rows
         //I do not want thousand different constructors
         //user will have to fill the array
+
+        // Square because I need the inverse
     }
 
     is1():boolean{
@@ -307,7 +361,12 @@ export class Tridiagonal{
         }
         
         for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s /*20201117 first test: 4*/){
-            this.row[r].PrintGl(pixel, pointer)
+            const o=this.row[r]
+            if (o.starts.slice(-1)[0]>this.row.length){
+                console.log("Starts: "+o.starts+" > "+this.row.length)
+                throw "out of upper bound"
+            }
+            o.PrintGl(pixel, pointer)
         }
         return {width: s, height:s, pixel: pixel};
     }    
