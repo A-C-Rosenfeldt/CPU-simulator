@@ -13,8 +13,8 @@
 // explain a CPU
 // we could store left and right side of the equation
 export class Span extends Array {
-    constructor(l, s) {
-        super(l);
+    constructor(len, s) {
+        super(len);
         this.start = 0;
         this.start = s;
     }
@@ -80,10 +80,10 @@ export class Row {
     }
     static Single(pos, b) {
         const a = new Array(3);
-        a[0] = new Span(0, 0);
+        a[0] = new Span(0, pos);
         a[1] = FromRaw(b);
         a[1].start = pos;
-        a[2] = new Span(0, 0);
+        a[2] = new Span(0, pos + 1);
         return new Row(a);
     }
     find(at) {

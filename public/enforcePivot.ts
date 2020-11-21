@@ -26,8 +26,8 @@ export class Span<T> extends Array{
 
         return super.unshift(items)
     }
-    constructor(l:number,s:number) { //start:number, data:Arry<T>){
-        super(l)        
+    constructor(len:number,s:number) { //start:number, data:Arry<T>){
+        super(len)        
         this.start=s
     }
     //string:number[]=[]
@@ -99,9 +99,9 @@ export class Row{
 
     static Single(pos:number, b: number):Row{
         const a=new Array<Span<number>>(3)
-        a[0]=new Span<number>(0,0)
+        a[0]=new Span<number>(0,pos)
         a[1]=FromRaw<number>(b);a[1].start=pos
-        a[2]=new Span<number>(0,0)
+        a[2]=new Span<number>(0,pos+1)
     
         return new Row(a)
     }

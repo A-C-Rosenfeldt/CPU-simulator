@@ -459,14 +459,14 @@ export class Field extends FieldToDiagonal {
               span[0].push(-1)
               rle[0]--
             } else {
-              span[0]=span[1]
+              span[0].start=span[1].start //what was this? span[0]=span[1]
               rle[0] = 0
             }
 
             if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
               span[2].push(-1)
             } else {
-              //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
+              span[2].start=span[1].start+span[1].length //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
               rle[1] = 0
             }
           }
