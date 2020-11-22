@@ -118,6 +118,7 @@ export class Row {
         }
     }
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
+    // Doesn't look like this code knows about the number of spans. So do I really need the constraint? After all, I cannot enforce anything using spans. Permutation is transparent to this.
     sub(that, factor) {
         let clone = this.starts.slice(); // copy all elements
         that.starts;
@@ -129,10 +130,11 @@ export class Row {
         for (let pass = 0; pass < 2; pass++) {
             console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join());
             let gaps = [[], []];
-            let i = 0; // Mybe use .values instead?
-            let a = 0;
+            let i = 0; // this  Mybe use .values instead?
+            let a = 0; // that
             let story = [];
             let gap = 0;
+            // inner join ( sparse version )
             do {
                 // console.log("i "+i+" a "+a)
                 const pass1gap = gap;
@@ -373,6 +375,14 @@ export class Tridiagonal {
                 }
         }
         return inve;
+    }
+    inverseWithPivot() {
+        // What is this pivot thing anyway? Double wide matrix. Check for largest element with unknown column header. Clear other entries in this column.
+        // For span optimization I may want to use a row with the shortest span. Make sure that larges entry is not greater by a factor of 16? Consider contrast in Row and column?
+        // I may want to backtrack, I matrix grows beyond a certain factor  =>  print statistics
+        // You know in LU this would not be possible, but we don't want a vector, we want a matrix.
+        // LU   or the recipe in Wikipedia: First do L to get the determinant. But our code cannot catch this exception, so why bother? With L matrix I would need to keep a book about finished rows 
+        // Pivot is a can of worms
     }
     MatrixProduct(that) {
         if (Array.isArray(that)) { // Poisson simulation uses columns

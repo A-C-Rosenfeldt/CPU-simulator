@@ -206,6 +206,8 @@ class Tupel{
     Potential: number;  // Voltage relative to ground
     BandGap: number; // Voltage. 0=metal. 1=Si. 3=SiO2
     
+    RunningNumberOfJaggedArray: number;
+
     ToTexture(raw : Uint8Array, p:number )
     {
         raw[p+3]=255;
@@ -235,6 +237,7 @@ class Tupel{
     }
 }
 
+// import format, test GL
 export class StaticField{
   touchTypedDescription:string[]
   maxStringLenght:number
@@ -247,8 +250,6 @@ export class StaticField{
     // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
     // Yes we should because I do not want to expose this to  Field2Matrix
   }
-
-
 
   Print( ):ImageData{ //ToPicture   print=text vs picture?
     const iD=new ImageData(this.maxStringLenght, this.touchTypedDescription.length)
@@ -319,13 +320,15 @@ export class FieldToDiagonal extends StaticField {
     this.ConstTextToVarFloats();
   }
 
+
+
   // need to store the electric field somewhere
   // Bandgap may stay in text? But this strange replacement function?
   ConstTextToVarFloats( ):void{ //ToPicture   print=text vs picture?
     // May be later: const pixel=new Float64Array(4*this.maxStringLenght * this.touchTypedDescription.length)
 
     this.touchTypedDescription.forEach((str,i)=>{
-      const row:Tupel[]=[]
+      const row= new Array<Tupel>(str.length) //[]=[]
       // JS is strange still. I need index:      for (let c of str) 
       for(let k=0;k<str.length;k++)
       {
@@ -379,7 +382,7 @@ export class FieldToDiagonal extends StaticField {
 
   // Code for testing! Only diagonal. ToDo: Find special cases code!
   // What about jaggies? Do if in inner loop? If beyong jaggy above || first line?
-  ToMatrix(): Tridiagonal{
+  ToDiagonalMatrix(): Tridiagonal{
     // Tridiagonal instead of:  call meander in FinFet
     // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
     // 
@@ -413,8 +416,57 @@ export class FieldToDiagonal extends StaticField {
 
 
 export class Field extends FieldToDiagonal {
+  ToDoubleSquareMatrixSortByKnowledge(): Tridiagonal[]{
+    // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
+    // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns
+    // So why not already supply the known columns and avoid this  unmotivated  create new unity matrix in Gauss-Jordan?
+    // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
+    // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
+    throw "not implemented"
+    return null
+  }
 
-  ToMatrix(): Tridiagonal{
+  // I want to make this function as general as possible because I haven't jet found an argument against this concept.
+  // Maybe use helper class and polymorphism to remove collector?
+  // Trouble is: the loops all look slightly different. Position of parameters is easy to read in the base classes. Code only covers 20 lines. Lots of interfaces to external API.
+  // So this is for my internal formats ( field and matrix ). Should be possible to edit all interface to assimilate all adapter-code
+  // This code is (ToDo )used by the following 3 methods.
+  protected IterateOverAllCells<T>(f: (i_mat: number, i: number, k: number) => T ) {
+    const collector= new Array<T>(this.flatLength)
+    let i_mat = 0
+    for (let i = 0; i < this.fieldInVarFloats.length; i++) {
+      const str = this.fieldInVarFloats[i]
+      // JS is strange still. I need index:      for (let c of str) 
+      for (let k = 0; k < str.length; k++) {
+        // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
+        collector[i_mat++] = str[k] as any as T  // ToDo   So I have to support both directions. Collector is part of the function?
+        //f(str[k] /* reference type */, /* Todo: uuupsie. Vector is supposed to have value type elements */)
+        //f(i_mat, i, k);
+      }
+    }
+    throw "Only sceleton"
+  }
+
+  private knownItemsOnly(m,i,k):number{
+    return 0
+  }
+
+  // Since matrix multiplication is always more expensive (squared) then the vector stuff, and for tests, vectors are value type, and binding is done by copy in field
+  KnownItemsOnly(): Array<number>{
+    //FieldCoordsToIndexIntoVector
+    //this.fieldInVarFloats.map(f => f.)
+    this.IterateOverAllCells(this.knownItemsOnly )
+    throw "not fully implemented"
+    return null
+  }
+
+  FromUnknownItems(linalg :Array<number>){
+    throw "not fully implemented"
+    return null
+  }
+
+  // ToDo: The Matrix code does not want the special case: number of spans=3
+  ToSparseMatrix(): Tridiagonal{
     // Tridiagonal instead of:  call meander in FinFet
     // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
     // 
@@ -473,6 +525,12 @@ export class Field extends FieldToDiagonal {
         }
 
         matrix.row[i_mat] = new Row(span) // , proto)
+
+
+        this.fieldInVarFloats[i][k].RunningNumberOfJaggedArray=i_mat // binding. This would allow for a dynamic column pivot ToDo in "enforcePivot". Row pivot happens inside the double-wide matrix
+
+
+
         // new Row(k_mat, rle , proto, (proto[2].length===0?0: str.length) ) // pitch need to be relativ to pos ( not to array bounds )
         i_mat++
       }

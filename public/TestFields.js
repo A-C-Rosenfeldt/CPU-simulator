@@ -20,13 +20,13 @@ let y = 10;
     var imageGl = diag.PrintGl();
     main('FieldGl0_field', imageGl);
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
-    let squared = diag.ToMatrix();
+    let squared = diag.ToDiagonalMatrix();
     var imageGl = squared.PrintGl();
     main('FieldGl0_mat', imageGl);
     // Constructor is too fat? Now that I parse already in the base class? ToDo!
     const tri = new Field(fieldTobeSquared);
     // reproduce stuff from above
-    squared = tri.ToMatrix();
+    squared = tri.ToSparseMatrix();
     var imageGl = squared.PrintGl();
     main('FieldGl0_tri', imageGl);
     // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
