@@ -350,6 +350,34 @@ export class Field extends FieldToDiagonal {
         }
         throw "Only sceleton";
     }
+    // for testing. Pure function
+    static AugmentMatrix(M) {
+        M.row.forEach((r, i) => {
+            r.data.push([1]);
+            const s = M.row.length + i;
+            r.starts.push(s);
+            r.starts.push(s + 1);
+        });
+    }
+    sortByKnowledge(m, i, k) {
+        if (this.fieldInVarFloats[i][k].BandGap === 0) {
+            // This code fails for "vertical" pitched spans with length > 1
+            const m = this.M.row[this.i];
+            const o = this.M.row.length >> 1;
+            const a = m.get(i);
+            m.set(m.get(i + o), i);
+            m.set(a, i + o); // moved clear into set
+        }
+        //throw "not fully implementd"
+        return 0;
+    }
+    SortByKnowledge(M) {
+        this.M = M;
+        M.row.forEach((r, i) => {
+            this.i = i;
+            this.IterateOverAllCells(this.sortByKnowledge);
+        });
+    }
     knownItemsOnly(m, i, k) {
         return 0;
     }
@@ -388,10 +416,10 @@ export class Field extends FieldToDiagonal {
                 // ToDo: Move behind the solver: Repeat this verschachtelter loop to multiply vector with matrix and to convert vector back to field:  flat[flatIndex]=this.field[x][y];
                 span[1].push(4); //const proto:Span<number>[]=[[], [4], []]
                 // Laplace will source all fields. Only target is XOR ChargeDensity.
-                if (c.BandGap === 0) {
-                    // Charge Carrier
-                }
-                else {
+                // I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
+                // Charge Carrier
+                //else 
+                {
                     // Laplace 4x4 from the end of this file
                     {
                         if (k < str.length - 1) {

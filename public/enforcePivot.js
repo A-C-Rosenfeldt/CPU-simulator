@@ -93,18 +93,65 @@ export class Row {
                 return null;
         }
         ;
-        if (segment & 1) { // it is different for --   compared to ++
-            return null;
-        }
-        return [segment >> 1, at - this.starts[segment]];
+        // if (segment & 1){ // it is different for --   compared to ++
+        //     return null
+        // }
+        return [segment, at - this.starts[segment]];
     }
     get(at) {
         const tupel = this.find(at);
-        return tupel[0] !== null ? this.data[tupel[0]][tupel[1]] : 0;
+        return tupel[0] & 1 ? 0 : this.data[tupel[0] >> 1][tupel[1]];
     }
     set(value, at) {
         const tupel = this.find(at);
-        return this.data[tupel[0]][tupel[1]];
+        if (value === 0) { // used by field.swap
+            this.clear(tupel, at);
+        }
+        else {
+            // ToDo: insert behind
+            // let  function find return segment  ( without shift )
+            let segment = tupel[0];
+            if (segment & 1) {
+                segment >>= 1;
+                // vertical (in Matrix) span of horizontal neighbourhood in field 
+                // special cases are in clear
+                // I hope that I do not need them here
+                // vertical (in Matrix) span of vertical neighbourhood in field ( pitched )
+                // Important: Fill the pitch position.  ToDo: Check for double wide matrix. As of 20201124 has data.length >= 4
+                // Maybe later switch to full run length. What about the number of special cases? We need the join and we need an additional  function clear (which can split) 
+                this.sub(Row.Single(at, value)); // without factor it just writes all nonnull components of argument to this.row
+                // this should find the date with length=0?
+            }
+            else {
+                this.data[tupel[0] >> 1][tupel[1]] = value;
+            }
+        }
+    }
+    // Makes you think that  Matrix.Sub  should also be able to detect  0  .. cost: move code around   .. benefit: Matrix with integers can easily hit 0  ..  Bandgap integers? Inverse -> rationals. Pivot? Vectors are floats
+    clear(tupel, at) {
+        let segment = tupel[0];
+        if ((segment & 1) === 0) {
+            // similar code to set for the cases where trim
+            if (this.starts[segment] === at) { // we are looping big to low (because that is the way!) .  Zero span starts towards higher positions
+                this.data[tupel[0]].pop(); //push(value)
+                this.starts[segment]--; // ToDo: check
+                return;
+            }
+            if (this.starts[segment + 1] === at) {
+                this.data[tupel[0]].shift();
+                this.starts[segment]++; // ToDo: check
+                return;
+            }
+            // pop
+            // shift
+            // case: cut
+            // old: find data with length=0
+            // new: 
+            this.starts.splice(segment, 0, tupel[1], tupel[1] + 1);
+            segment >>= 1;
+            const d = this.data[tupel[0]];
+            this.data.splice(segment, 0, this.data[tupel[0]].slice(0, tupel[1]), d.slice(0, tupel[1]), d.slice(tupel[1]));
+        }
     }
     is1() {
         return 1e-6 > (Math.max.apply(this.data.map(d => Math.max.apply(d))) -
@@ -173,7 +220,12 @@ export class Row {
                             if (pass1gap & 2) {
                                 for (let b = 0; b < cut0.length; b++) {
                                     console.log("b " + b);
-                                    cut0[b] -= factor * that.data[a >> 1][b + (story[1] - that.starts[a])];
+                                    if (factor) {
+                                        cut0[b] = factor * that.data[a >> 1][b + (story[1] - that.starts[a])];
+                                    }
+                                    else {
+                                        cut0[b] = that.data[a >> 1][b + (story[1] - that.starts[a])]; // used for swapping columns
+                                    }
                                 }
                             }
                             ts.push(cut0);
@@ -376,14 +428,15 @@ export class Tridiagonal {
         }
         return inve;
     }
-    inverseWithPivot() {
-        // What is this pivot thing anyway? Double wide matrix. Check for largest element with unknown column header. Clear other entries in this column.
-        // For span optimization I may want to use a row with the shortest span. Make sure that larges entry is not greater by a factor of 16? Consider contrast in Row and column?
-        // I may want to backtrack, I matrix grows beyond a certain factor  =>  print statistics
-        // You know in LU this would not be possible, but we don't want a vector, we want a matrix.
-        // LU   or the recipe in Wikipedia: First do L to get the determinant. But our code cannot catch this exception, so why bother? With L matrix I would need to keep a book about finished rows 
-        // Pivot is a can of worms
-    }
+    // ToDo on demand
+    //inverseWithPivot(): void {
+    // What is this pivot thing anyway? Double wide matrix. Check for largest element with unknown column header. Clear other entries in this column.
+    // For span optimization I may want to use a row with the shortest span. Make sure that larges entry is not greater by a factor of 16? Consider contrast in Row and column?
+    // I may want to backtrack, I matrix grows beyond a certain factor  =>  print statistics
+    // You know in LU this would not be possible, but we don't want a vector, we want a matrix.
+    // LU   or the recipe in Wikipedia: First do L to get the determinant. But our code cannot catch this exception, so why bother? With L matrix I would need to keep a book about finished rows 
+    // Pivot is a can of worms
+    //}    
     MatrixProduct(that) {
         if (Array.isArray(that)) { // Poisson simulation uses columns
             return this.row.map(r => {
@@ -397,6 +450,26 @@ export class Tridiagonal {
             });
             return degen;
         }
+    }
+    //product
+    //Tridiagonal|
+    // }
+    // // Note how the filenam as of 20201124 still contains "enforcePivot", but that responsibility lies fully within field.cs
+    // export class MatrixTupelWithCommonSpans extends Tridiagonal{
+    inverseHalf() {
+        //const inve=new Tridiagonal(this.row.length) // I may want to merge the runlength encoders?
+        for (let i = 0; i < this.row.length >> 1; i++) {
+            this.row[i].scale(1 / this.row[i].get(i));
+            for (let k = 0; k < this.row.length; k++)
+                if (k !== i) {
+                    const f = this.row[k].get(i);
+                    if (f !== 0) {
+                        this.row[k].sub(this.row[i], f);
+                        //inve.row[k].sub(this.row[i],f)
+                    }
+                }
+        }
+        // in place //return inve
     }
 }
 //# sourceMappingURL=enforcePivot.js.map

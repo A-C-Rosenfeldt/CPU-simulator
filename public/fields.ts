@@ -447,6 +447,43 @@ export class Field extends FieldToDiagonal {
     throw "Only sceleton"
   }
 
+  // for testing. Pure function
+  public static AugmentMatrix(M:Tridiagonal){
+    M.row.forEach((r,i)=>{
+      r.data.push([1])
+      const s=M.row.length+i
+      r.starts.push(s)
+      r.starts.push(s+1)
+    })
+  }
+
+  private sortByKnowledge(m,i,k):number{
+    if (this.fieldInVarFloats[i][k].BandGap===0){
+
+      // This code fails for "vertical" pitched spans with length > 1
+      const m=this.M.row[this.i]
+      const o=this.M.row.length>>1
+      const a=m.get(i)
+      m.set(m.get(i+o),i)
+      m.set(a,i+o)   // moved clear into set
+    }
+    //throw "not fully implementd"
+    return 0
+  }
+
+  // ToDo: Composition
+  private M:Tridiagonal;
+  private i:number;
+
+  public SortByKnowledge(M:Tridiagonal){
+    this.M=M;
+
+    M.row.forEach((r,i)=>{
+      this.i=i;
+      this.IterateOverAllCells(this.sortByKnowledge)
+    })
+  }
+
   private knownItemsOnly(m,i,k):number{
     return 0
   }
@@ -492,9 +529,10 @@ export class Field extends FieldToDiagonal {
         span[1].push(4); //const proto:Span<number>[]=[[], [4], []]
 
         // Laplace will source all fields. Only target is XOR ChargeDensity.
-        if (c.BandGap === 0) {
+        // I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
           // Charge Carrier
-        } else {
+        //else 
+        {
           // Laplace 4x4 from the end of this file
           {
             if (k < str.length - 1) {
