@@ -43,6 +43,41 @@ export class Row {
     constructor(start) {
         this.ranges = [[0, 1], [2, 3], [4, 5]];
         this.data = [[], [], []];
+        // we need to filter and map at the same time. So forEach it is  (not functional code here)
+        // Basically we could deal with 0 in data and 0 in range, but then we could just go back to full matrix
+        // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
+        for (let pass = 0;; pass++) {
+            let counter = 0;
+            start.forEach(s => {
+                const range = [s.length, 0];
+                //const ranpe=ranpe.slice(0,ranpe.length)
+                // only string has trim(). And it can't even return the number of trimmed items  
+                s.forEach((t, i) => {
+                    if (t !== 0) {
+                        for (let d = 0; d++; d < 2) {
+                            range[d] = Math.min(range[d], i);
+                            i = -i;
+                        }
+                    }
+                });
+                if (range[0] < -range[1]) {
+                    if (pass === 1) {
+                        this.starts[counter] = (s.start + range[0], s.start - range[1]);
+                        this.data[counter] = (s.slice(range[0], range[1]));
+                    }
+                    counter++;
+                }
+            });
+            if (pass > 0) {
+                break;
+            }
+            this.starts = new Array(counter);
+            this.data = new Array(counter);
+            // fun=(s:Span<number>,range)=>{
+            //     this.starts.push(s.start+range[0],s.start-range[1])
+            //     this.data.push(s.slice(range[0],range[1]))
+            // }
+        }
         this.data = start.map(s => s.slice()); // convert Span to base class  ES6: [...s] Do I like it?
         // 2020-11-19 ToDo: This is to complicated: does not work well with vertical edges
         //this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))

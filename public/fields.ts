@@ -519,14 +519,16 @@ export class Field extends FieldToDiagonal {
       // JS is strange still. I need index:      for (let c of str) 
       for (let k = 0; k < str.length; k++) {
         // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
-        let span=[-pitch,0, str.length].map(global=>new Span<number>(0,global+i_mat))
+        // allocate max needed memory. Initialize with 0 
+        let span=[-pitch,-1, str.length].map((global,l)=>new Span<number>(3-(Math.abs(1-l)<<1),global+i_mat))      
 
         let rle=[pitch-1, str.length-1]
         const c = str[k]      
         let k_mat=i_mat; // Start with diagonal // Tridiagonal is not yet tested. Maybe I need a second trick to tackle all shapes of sparseness:  this.Interlace(x,y)
         // ToDo: Move behind the solver: Repeat this verschachtelter loop to multiply vector with matrix and to convert vector back to field:  flat[flatIndex]=this.field[x][y];
 
-        span[1].push(4); //const proto:Span<number>[]=[[], [4], []]
+        span[1][1]=4; //const proto:Span<number>[]=[[], [4], []]
+        //const build_h=new Span<number>(0,i_mat)
 
         // Laplace will source all fields. Only target is XOR ChargeDensity.
         // I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
@@ -536,31 +538,32 @@ export class Field extends FieldToDiagonal {
           // Laplace 4x4 from the end of this file
           {
             if (k < str.length - 1) {
-              span[1].push(-1)
+              span[1][2]=-1 //.push(-1)
               rle[1]--
             }
             if (k > 0) {
-              span[1].unshift(-1)
+              span[1][0]=-1 //.unshift(-1)
               k_mat--; rle[0]--
             }
 
             // Jagged ( symmetry or later: wired-or  )
             if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
-              span[0].push(-1)
+              span[0][0]=-1 //.push(-1)
               rle[0]--
             } else {
               span[0].start=span[1].start //what was this? span[0]=span[1]
               rle[0] = 0
             }
-
             if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
-              span[2].push(-1)
+              span[2][0]=-1 //.push(-1)
             } else {
               span[2].start=span[1].start+span[1].length //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
               rle[1] = 0
             }
           }
         }
+
+        //span.filter()
 
         matrix.row[i_mat] = new Row(span) // , proto)
 
