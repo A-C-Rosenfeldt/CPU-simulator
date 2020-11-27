@@ -38,6 +38,8 @@ export function FromRaw(...b) {
     return s;
 }
 export class Row {
+    // this constructor tries to avoid GC. Maybe test later?
+    // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
     // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
     constructor(start) {
@@ -62,8 +64,8 @@ export class Row {
                 });
                 if (range[0] < -range[1]) {
                     if (pass === 1) {
-                        this.starts[counter] = (s.start + range[0], s.start - range[1]);
-                        this.data[counter] = (s.slice(range[0], range[1]));
+                        this.starts.splice(counter << 1, 2, s.start + range[0], s.start - range[1]); // should be  in placw
+                        this.data[counter] = s.slice(range[0], range[1]);
                     }
                     counter++;
                 }
@@ -71,43 +73,43 @@ export class Row {
             if (pass > 0) {
                 break;
             }
-            this.starts = new Array(counter);
+            this.starts = new Array(counter << 1);
             this.data = new Array(counter);
             // fun=(s:Span<number>,range)=>{
             //     this.starts.push(s.start+range[0],s.start-range[1])
             //     this.data.push(s.slice(range[0],range[1]))
             // }
         }
-        this.data = start.map(s => s.slice()); // convert Span to base class  ES6: [...s] Do I like it?
-        // 2020-11-19 ToDo: This is to complicated: does not work well with vertical edges
-        //this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
-        // var aggregate=data.map(d=>d.length)
-        // {
-        //     let i=0
-        //     let a=aggregate[i++]
-        //     do{
-        //     }
-        // }
-        // Better do: start of diagonal range  and from there  run length encoding of zeros
-        this.starts = [].concat.apply([], start.map(d => [d.start, d.start + d.length]));
-        //this.starts=new Array(6).fill(pos)
-        // {
-        //     const fitch = forwardpitch
-        //     this.starts[0] -= pitch + data[0].length
-        //     this.starts[1] -= pitch + data[0].length
-        //     this.starts[4] += fitch + data[1].length
-        //     this.starts[5] += fitch + data[1].length
-        // }
-        // // for diagonal-only construction
-        // if (this.starts[1]>this.starts[2]){
-        //     this.starts[0]-=this.starts[1]-this.starts[2]
-        //     this.starts[1]=this.starts[2]
-        // }
-        // if (this.starts[4]<this.starts[3]){
-        //     this.starts[5]-=this.starts[4]-this.starts[3]
-        //     this.starts[4]=this.starts[3]
-        // }
-        //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
+        // this.data=start.map(s=>s.slice()) // convert Span to base class  ES6: [...s] Do I like it?
+        // // 2020-11-19 ToDo: This is to complicated: does not work well with vertical edges
+        // //this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
+        // // var aggregate=data.map(d=>d.length)
+        // // {
+        // //     let i=0
+        // //     let a=aggregate[i++]
+        // //     do{
+        // //     }
+        // // }
+        // // Better do: start of diagonal range  and from there  run length encoding of zeros
+        // this.starts=[].concat.apply([],start.map(d=>[d.start,d.start+d.length]))      
+        // //this.starts=new Array(6).fill(pos)
+        // // {
+        // //     const fitch = forwardpitch
+        // //     this.starts[0] -= pitch + data[0].length
+        // //     this.starts[1] -= pitch + data[0].length
+        // //     this.starts[4] += fitch + data[1].length
+        // //     this.starts[5] += fitch + data[1].length
+        // // }
+        // // // for diagonal-only construction
+        // // if (this.starts[1]>this.starts[2]){
+        // //     this.starts[0]-=this.starts[1]-this.starts[2]
+        // //     this.starts[1]=this.starts[2]
+        // // }
+        // // if (this.starts[4]<this.starts[3]){
+        // //     this.starts[5]-=this.starts[4]-this.starts[3]
+        // //     this.starts[4]=this.starts[3]
+        // // }
+        // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce((v1, v0) => v0 >= v1 ? v0 : Number.MAX_SAFE_INTEGER, 0) === Number.MAX_SAFE_INTEGER) {
             console.log(this.starts);
             throw "no order";
