@@ -3,7 +3,7 @@ import { Tridiagonal, Row } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
-describe('Hello function 2020-11-19 18:35', () => {
+describe('Hello function 2020-12-01 12:17', () => {
 
   it('should return hello world 2020-11-19 18:35', () => {
     //const scalar=new Tridiagonal(1)
@@ -19,7 +19,16 @@ describe('Hello function 2020-11-19 18:35', () => {
 // --require babel-register ./test/setup
 // test/**/*.test.js
 
-describe('Accessing my code', () => {
+describe('trim row (Accessing my code)', () => {
+  it('shOuld reTurn 4', () => {
+      //const scalar = new Tridiagonal(1);
+      const r = Row.Single(0, 4); // new 0,[[],[4],[]]) // Faktor 20
+      const result = r.data[0][0]; //hello();
+      expect(result).to.equal(4);
+  });
+});
+
+describe('Matrix Accessing my code', () => {
 
   it('shOuld reTurn 4', () => {
     const scalar=new Tridiagonal(1)

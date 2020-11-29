@@ -140,10 +140,10 @@ export class Row{
     }
 
     static Single(pos:number, b: number):Row{
-        const a=new Array<Span<number>>(3)
-        a[0]=new Span<number>(0,pos)
-        a[1]=FromRaw<number>(b);a[1].start=pos
-        a[2]=new Span<number>(0,pos+1)
+        const a=//new Array<Span<number>>(3)
+        //a[0]=new Span<number>(0,pos)
+        /*a[1]=*/[FromRaw<number>(b)];a[0].start=pos
+        //a[2]=new Span<number>(0,pos+1)
     
         return new Row(a)
     }

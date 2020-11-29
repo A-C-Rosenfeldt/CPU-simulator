@@ -21,7 +21,10 @@
                 "<node_internals>/**"
             ],
             "type": "pwa-node",
-            "env": {"TS_NODE_PROJECT":"tsconfig.test.json" }
+            "env": {
+                "TS_NODE_PREFER_TS_EXTS":"true",
+                "TS_NODE_PROJECT":"tsconfig.test.json"
+            }
         },
         {
             "name": "Launch Edge",
@@ -47,7 +50,7 @@
             "request": "launch",
             "runtimeArgs": [
                 "test",
-                "debug"
+                "inspect"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [

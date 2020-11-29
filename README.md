@@ -13,4 +13,11 @@ Check volatages: http://forum.6502.org/viewtopic.php?f=8&t=1768
 
 npm test works
 
-VSC test browser again not
+VSC mocha test browser again not
+    need to delete js files before launch
+        I think I already told it to prefer ts of js in    task.json ( but not in launch.json?? )
+
+settings.json
+   "mochaExplorer.env": {
+        "TS_NODE_PREFER_TS_EXTS":"true",
+    repeat this in launch.json
