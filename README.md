@@ -21,3 +21,5 @@ settings.json
    "mochaExplorer.env": {
         "TS_NODE_PREFER_TS_EXTS":"true",
     repeat this in launch.json
+
+Breakpoints are only recognized within texted files not in the testing file

@@ -68,17 +68,17 @@ export class Row{
                 // only string has trim(). And it can't even return the number of trimmed items  
                 s.forEach((t,i)=>{
                     if (t!==0){
-                        for(let d=0;d++;d<2){
+                        for(let d=0;d<2;d++){
                             range[d]=Math.min(range[d],i)
                             i=-i
                         }                    
                     }
                 })
-                if (range[0]<-range[1]){
+                if (range[0]<=-range[1]){
 
                     if (pass===1){
-                        this.starts.splice(counter<<1,2,s.start+range[0],s.start-range[1]) // should be  in placw
-                        this.data[counter]=s.slice(range[0],range[1])
+                        this.starts.splice(counter<<1,2,s.start+range[0],s.start+1-range[1]) // should be  in placw
+                        this.data[counter]=s.slice(range[0],1-range[1])
                     }
                     counter++
                 }

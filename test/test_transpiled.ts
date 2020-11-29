@@ -20,9 +20,10 @@ describe('Hello function 2020-12-01 12:17', () => {
 // test/**/*.test.js
 
 describe('trim row (Accessing my code)', () => {
-  it('shOuld reTurn 4', () => {
+  it('shOuld reTurn [4]', () => {
       //const scalar = new Tridiagonal(1);
       const r = Row.Single(0, 4); // new 0,[[],[4],[]]) // Faktor 20
+      expect(r.data[0].length).to.equal(1);
       const result = r.data[0][0]; //hello();
       expect(result).to.equal(4);
   });
