@@ -65,7 +65,9 @@ export class Row {
                 if (range[0] <= -range[1]) {
                     if (pass === 1) {
                         this.starts.splice(counter << 1, 2, s.start + range[0], s.start + 1 - range[1]); // should be  in placw
-                        this.data[counter] = s.slice(range[0], 1 - range[1]);
+                        const part = s.slice(range[0], 1 - range[1]); //  slice seems to return span.
+                        // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
+                        this.data[counter] = new Array().splice(0, 0, ...part); // ... seems to shed of "start" . In th 
                     }
                     counter++;
                 }
