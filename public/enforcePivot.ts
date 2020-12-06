@@ -17,19 +17,32 @@ import {SimpleImage} from './GL'
 // explain a CPU
 
 // we could store left and right side of the equation
-export class Span<T> extends Array{
-    start:number=0
+export class Span<T>{
+    extends: Array<T>  // we duplicate part of the interface in order to never need to copy the items
+    start:number
+    length:number
     unshift(...items: T[]): number{
         if (this.start){
             if (--this.start<0) {throw "below bounds" }
         }
 
-        return super.unshift(items)
+        return this.extends.unshift.apply(this,items)
     }
     constructor(len:number,s:number) { //start:number, data:Arry<T>){
-        super(len)        
+        this.extends=new Array<T>(len)        
         this.start=s
+        this.length=len
     }
+
+    forEach(callbackfn: (value: T, index: number, array: T[]) => void, thisArg?: any): void {
+        this.extends.forEach(callbackfn)
+    }
+    // shedOfStart(a,b):Array<T>{
+    //     //ParentClass.prototype JS 
+    //     // ES6 accepts both
+    //     let t= super.slice.call(this,a,b)
+    //     return t // TS
+    // }
     //string:number[]=[]
 }
 
@@ -39,7 +52,7 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
     // transfer values without destroying prototype and being somewhat comaptible with C# and Java
     // Does this translate into arguments[] ?
     for(var i=0;i<b.length;i++){
-        s[i]=b[i]
+        s.extends[i]=b[i]
     }
     return s
 }
@@ -48,9 +61,9 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
 
 
 export class Row{
-    starts:number[] ;//= [0,0,0,0,0,0]; // vs GC, number of test cases
-    ranges=[[0,1],[2,3],[4,5]]
-    data:number[][] = [[],[],[]] 
+    starts:number[] //= [0,0,0,0,0,0]; // vs GC, number of test cases
+    //ranges=[[0,1],[2,3],[4,5]]
+    data:number[][] //= [[],[],[]] 
 
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
@@ -78,9 +91,9 @@ export class Row{
 
                     if (pass===1){
                         this.starts.splice(counter<<1,2,s.start+range[0],s.start+1-range[1]) // should be  in placw
-                        const part= s.slice(range[0],1-range[1]) as Array<number> //  slice seems to return span.
+                        const part= s.extends.slice(range[0],1-range[1]) as Array<number> //  slice seems to return span.
                         // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
-                        this.data[counter]=new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                        this.data[counter]=part //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                     }
                     counter++
                 }
@@ -369,8 +382,8 @@ export class Row{
 
     // parent has to initialize buffer because we fill only defined values
     PrintGl(targetRough:Uint8Array, targetFine:number ){
-        this.ranges.forEach((r,i)=>this.data[i].forEach((cell,j)=>{
-            let p=targetFine+(this.starts[r[0]]+j)<<2
+        this.data.forEach((d,i)=>d.forEach((cell,j)=>{
+            let p=targetFine+(this.starts[i<<1]+j)<<2
             targetRough[p++]=cell<0?cell*Row.printScale:0
             targetRough[p++]=cell>0?cell*Row.printScale:0
             targetRough[p++]=0
@@ -380,31 +393,31 @@ export class Row{
 
     // parent has to initialize buffer because we fill only defined values
     print(targetRough:ImageData, targetFine:number ){
-        this.ranges.forEach((r,i)=>this.data[i].forEach((cell,j)=>{
+        this.data.forEach((d,i)=>d.forEach((cell,j)=>{
             targetRough.data.set([
                 cell<0?cell*Row.printScale:0,
                 0,
                 cell>0?cell*Row.printScale:0,255], // cannot do black numbers on black screen
-                targetFine+(this.starts[r[0]]+j)<<2)
+                targetFine+(this.starts[i<<1]+j)<<2)
         }))
     }
 
     innerProduct(column:number[] ):number{
         let acc=0
-        this.ranges.forEach((r,i)=>{this.data[i].forEach((cell,j)=>{
-            acc+=cell*column[j+this.starts[r[0]]]
+        this.data.forEach((d,i)=>{d.forEach((cell,j)=>{
+            acc+=cell*column[j+this.starts[i<<1]]
         })})
         return acc
     }    
 
     // only used for test. The other matrix will be an inverted Matrix, which is no sparse
     innerProduct_Matrix(M: Tridiagonal):Row {
-        const accs=new Span(M.length(),0)
+        const accs=new Span<number>(M.length(),0)
         for (let acc_i = 0; acc_i < M.length(); acc_i++) {
             let acc = 0
-            this.ranges.forEach((r, i) => {
-                this.data[i].forEach((cell, j) => {
-                    acc += cell * M.getAt(j+this.starts[r[0]], acc_i)
+            this.data.forEach((d, i) => {
+                d.forEach((cell, j) => {
+                    acc += cell * M.getAt(j+this.starts[i<<1], acc_i)
                 })
             })
             accs[acc_i]=acc

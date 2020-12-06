@@ -12,11 +12,11 @@
 // understandable performance ( like what you would do prematurely)
 // explain a CPU
 // we could store left and right side of the equation
-export class Span extends Array {
+export class Span {
     constructor(len, s) {
-        super(len);
-        this.start = 0;
+        this.extends = new Array(len);
         this.start = s;
+        this.length = len;
     }
     unshift(...items) {
         if (this.start) {
@@ -24,7 +24,10 @@ export class Span extends Array {
                 throw "below bounds";
             }
         }
-        return super.unshift(items);
+        return this.extends.unshift.apply(this, items);
+    }
+    forEach(callbackfn, thisArg) {
+        this.extends.forEach(callbackfn);
     }
 }
 // Consider: RowConstructor which takes Span instead of Array<Span> ( check for .Start )
@@ -33,7 +36,7 @@ export function FromRaw(...b) {
     // transfer values without destroying prototype and being somewhat comaptible with C# and Java
     // Does this translate into arguments[] ?
     for (var i = 0; i < b.length; i++) {
-        s[i] = b[i];
+        s.extends[i] = b[i];
     }
     return s;
 }
@@ -43,8 +46,6 @@ export class Row {
     // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
     constructor(start) {
-        this.ranges = [[0, 1], [2, 3], [4, 5]];
-        this.data = [[], [], []];
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
         // Basically we could deal with 0 in data and 0 in range, but then we could just go back to full matrix
         // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
@@ -65,9 +66,9 @@ export class Row {
                 if (range[0] <= -range[1]) {
                     if (pass === 1) {
                         this.starts.splice(counter << 1, 2, s.start + range[0], s.start + 1 - range[1]); // should be  in placw
-                        const part = s.slice(range[0], 1 - range[1]); //  slice seems to return span.
+                        const part = s.extends.slice(range[0], 1 - range[1]); //  slice seems to return span.
                         // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
-                        this.data[counter] = new Array().splice(0, 0, ...part); // ... seems to shed of "start" . In th 
+                        this.data[counter] = part; //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                     }
                     counter++;
                 }
@@ -336,8 +337,8 @@ export class Row {
     }
     // parent has to initialize buffer because we fill only defined values
     PrintGl(targetRough, targetFine) {
-        this.ranges.forEach((r, i) => this.data[i].forEach((cell, j) => {
-            let p = targetFine + (this.starts[r[0]] + j) << 2;
+        this.data.forEach((d, i) => d.forEach((cell, j) => {
+            let p = targetFine + (this.starts[i << 1] + j) << 2;
             targetRough[p++] = cell < 0 ? cell * Row.printScale : 0;
             targetRough[p++] = cell > 0 ? cell * Row.printScale : 0;
             targetRough[p++] = 0;
@@ -346,20 +347,20 @@ export class Row {
     }
     // parent has to initialize buffer because we fill only defined values
     print(targetRough, targetFine) {
-        this.ranges.forEach((r, i) => this.data[i].forEach((cell, j) => {
+        this.data.forEach((d, i) => d.forEach((cell, j) => {
             targetRough.data.set([
                 cell < 0 ? cell * Row.printScale : 0,
                 0,
                 cell > 0 ? cell * Row.printScale : 0, 255
             ], // cannot do black numbers on black screen
-            targetFine + (this.starts[r[0]] + j) << 2);
+            targetFine + (this.starts[i << 1] + j) << 2);
         }));
     }
     innerProduct(column) {
         let acc = 0;
-        this.ranges.forEach((r, i) => {
-            this.data[i].forEach((cell, j) => {
-                acc += cell * column[j + this.starts[r[0]]];
+        this.data.forEach((d, i) => {
+            d.forEach((cell, j) => {
+                acc += cell * column[j + this.starts[i << 1]];
             });
         });
         return acc;
@@ -369,9 +370,9 @@ export class Row {
         const accs = new Span(M.length(), 0);
         for (let acc_i = 0; acc_i < M.length(); acc_i++) {
             let acc = 0;
-            this.ranges.forEach((r, i) => {
-                this.data[i].forEach((cell, j) => {
-                    acc += cell * M.getAt(j + this.starts[r[0]], acc_i);
+            this.data.forEach((d, i) => {
+                d.forEach((cell, j) => {
+                    acc += cell * M.getAt(j + this.starts[i << 1], acc_i);
                 });
             });
             accs[acc_i] = acc;
