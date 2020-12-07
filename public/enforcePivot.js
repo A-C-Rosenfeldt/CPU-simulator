@@ -208,16 +208,16 @@ export class Row {
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
     // Doesn't look like this code knows about the number of spans. So do I really need the constraint? After all, I cannot enforce anything using spans. Permutation is transparent to this.
     sub(that, factor) {
-        let clone = this.starts.slice(); // copy all elements
+        let start_next = new Array(); //        =this.starts.slice() // copy all elements
+        let data_next = new Array(); // becomes the new Data array. Created push by push, splice by splice
         that.starts;
         let combinedStarts = [];
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
         let n = 0; //: number /// for pass=2
-        let ts = new Array();
         for (let pass = 0; pass < 2; pass++) {
             console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join());
-            let gaps = [[], []];
+            // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
             let i = 0; // this  Mybe use .values instead?
             let a = 0; // that
             let story = [];
@@ -229,9 +229,9 @@ export class Row {
                 do {
                     // trying to avoid infinity, null and undefined for better readability
                     let I = that.starts[that.starts.length - 1] + 1;
-                    let A = clone[clone.length - 1] + 1;
-                    if (i < clone.length) {
-                        I = clone[i];
+                    let A = this.starts[this.starts.length - 1] + 1;
+                    if (i < this.starts.length) {
+                        I = this.starts[i];
                     }
                     if (a < that.starts.length) {
                         A = that.starts[a];
@@ -251,78 +251,92 @@ export class Row {
                         }
                     }
                 } while (false);
-                if (pass === 1 && story.length === 2 /* this needs reversed story */) { // polymorphism?
+                if (pass === 1 && story.length === 2 /* in pass=0."micro pass"=0 story is not filled.  This needs reversed story */) { // polymorphism?
                     console.log('story ' + story[1] + ' ' + story[0] + ' gap ' + pass1gap);
+                    // what is this? Important: ts.push();this.data[index].concat(ts)
                     (function trailing(i, a) {
                         let cut0, cut1;
-                        if (pass1gap & 1) {
-                            console.log('this.data[' + i + '>>1].slice(' + story[1] + '-' + clone[i] + ',' + story[0] + '-' + clone[i] + ')');
-                            cut0 = this.data[i >> 1].slice(story[1] - clone[i], story[0] - clone[i]); // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
+                        if (pass1gap & 1) { // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
+                            console.log('this.data[' + i + '>>1].slice(' + story[1] + '-' + this.starts[i] + ',' + story[0] + '-' + this.starts[i] + ')');
+                            cut0 = this.data[i >> 1].slice(story[1] - this.starts[i], story[0] - this.starts[i]); // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
                             if (pass1gap & 2) {
                                 for (let b = 0; b < cut0.length; b++) {
                                     console.log("b " + b);
+                                    const t = that.data[a >> 1][b + (story[1] - that.starts[a])];
                                     if (factor) {
-                                        cut0[b] = factor * that.data[a >> 1][b + (story[1] - that.starts[a])];
+                                        cut0[b] -= factor * t;
                                     }
                                     else {
-                                        cut0[b] = that.data[a >> 1][b + (story[1] - that.starts[a])]; // used for swapping columns
+                                        cut0[b] += t; // used for swapping columns
                                     }
                                 }
                             }
-                            ts.push(cut0);
+                            data_next.push(cut0);
                         }
                         else {
                             if (pass1gap & 2) {
                                 console.log('ts.push(that.data[' + a + '>>1].slice(' + story[1] + '-' + that.starts[a] + ',' + story[0] + '-' + that.starts[a] + '))');
-                                ts.push(that.data[a >> 1].slice(story[1] - that.starts[a - 1], story[0] - that.starts[a]));
+                                data_next.push(that.data[a >> 1].slice(story[1] - that.starts[a - 1], story[0] - that.starts[a]));
                             }
-                            else {
-                                ts.push(Array(story[0] - story[1]).fill(0));
-                            }
+                            // else{
+                            //     ts.push(Array(story[0]-story[1]).fill(0))
+                            // }
                         }
                     }).bind(this)(i - 2, a - 2);
                     console.log('this.starts[' + n + '] === story[' + 0 + ']');
                     console.log('if' + this.starts[n] + ' === ' + story[0]);
                     while (this.starts[n] === story[0]) {
-                        console.log('ts.length: ' + ts.length);
+                        console.log('ts.length: ' + data_next.length);
                         if ((n & 1) === 1) {
                             const index = n >> 1;
-                            const rValue = Array.prototype.concat.apply([], ts);
+                            const rValue = Array.prototype.concat.apply([], data_next);
                             console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join() + '   [' + index + '] = ' + rValue);
-                            this.data[index] = Array.prototype.concat.apply([], ts);
-                            ts = [];
+                            this.data[index] = Array.prototype.concat.apply([], data_next);
+                            data_next = [];
                         }
                         n++;
                     }
                     story[1] = story[0]; // we care for all seams
                 }
-                else {
-                    if (gap !== 0) { // we record gaps
-                        story[1] = story[0]; // we looked back
+                else { // pass=0, but this belongs to the block outside below the while loops.
+                    if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
+                        // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
+                        start_next.concat(story);
                     }
-                    else {
-                        const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2);
-                        if (pointer[0] - pointer[1] > story[0] - story[1]) {
-                            gaps[i < 3 ? 0 : 1] = [i].concat(story);
-                        }
+                    else { // not a gap
+                        story[1] = story[0]; // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
                     }
+                    // // Special code for Tridagonal
+                    // if (gap !== 0) {
+                    //     story[1] = story[0] // we looked back
+                    // } else { // we record gaps
+                    //     const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
+                    //     if (pointer[0] - pointer[1] > story[0] - story[1]) {
+                    //         gaps[i < 3 ? 0 : 1] = [i].concat(story)
+                    //     }
+                    // }
                 }
-            } while (i < clone.length || a < that.starts.length);
-            if (pass === 0) {
-                // what to do if there are no gaps?
-                // main diagonal takes it!
-                // similar to constructor, but sadly not the same
-                this.starts = new Array(this.starts.length).
-                    fill(Math.min(this.starts[0], that.starts[0]), 0).
-                    fill(Math.max(this.starts[5], that.starts[5]), 3);
-                if (gaps) {
-                    for (let side = 0; side < 2; side++) {
-                        if (gaps[side] && gaps[side].length > 0) {
-                            this.starts.splice(1 + 3 * side, 0, ...gaps[side]);
-                        }
-                    }
-                }
-            }
+            } while (i < this.starts.length || a < that.starts.length);
+            // flip buffers
+            this.starts = start_next;
+            this.data = data_next;
+            // Not needed for RLE
+            // if (pass===0){
+            //     // what to do if there are no gaps?
+            //     // main diagonal takes it!
+            //     // similar to constructor, but sadly not the same
+            //     throw "now RLE"
+            //     this.starts= new Array(this.starts.length).
+            //     fill(Math.min(this.starts[0                     ],that.starts[0]),0).
+            //     fill(Math.max(this.starts[this.starts.length-1  ],that.starts[this.starts.length-1  ]),3)
+            //     if (gaps){
+            //         for(let side=0;side<2;side++){
+            //         if (gaps[side] && gaps[side].length>0){
+            //             this.starts.splice(1+3*side,0,...gaps[side])
+            //         }
+            //         }
+            //     }
+            // }
         }
     }
     // parent needs to add Matrix.length
