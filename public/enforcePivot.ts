@@ -312,7 +312,7 @@ export class Row{
                                     }
                                 }
                             }
-                            data_next.push(cut0);    
+                            data_next.push(cut0);           // todo: use start_next to  decide   .. until data is filled: splice 
                         }else{
                             if (pass1gap & 2){
                                 console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
@@ -336,15 +336,14 @@ export class Row{
                                 data_next=[]
                         }
                         n++                        
-                    }
-                    story[1] = story[0] // we care for all seams
+                    }                    
                 } else { // pass=0, but this belongs to the block outside below the while loops.
                     if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
                         // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
-                        start_next.concat(story)
-                    } else { // not a gap
-                        story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
-                    } 
+                        start_next=start_next.concat(story)
+                    } //else { // not a gap
+                    //     story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
+                    // } 
 
                     // // Special code for Tridagonal
                     // if (gap !== 0) {
@@ -356,11 +355,13 @@ export class Row{
                     //     }
                     // }
                 }
+                // if before was a gap, but now is no gap
+                if (pass1gap === 0 && gap !== 0) {
+                    story[1] = story[0] // the end of the gap becomes the start of the value-span
+                } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
             } while (i < this.starts.length || a < that.starts.length);
 
-            // flip buffers
-            this.starts=start_next
-            this.data=data_next
+
             // Not needed for RLE
             // if (pass===0){
             //     // what to do if there are no gaps?
@@ -380,6 +381,9 @@ export class Row{
             //     }
             // }
         }
+        // flip buffers
+        this.starts = start_next
+        this.data = data_next
     }
 
 
