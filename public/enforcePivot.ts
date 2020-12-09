@@ -250,7 +250,7 @@ export class Row{
         let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
         let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
         that.starts
-        let combinedStarts=[]
+        //let combinedStarts=[]
 
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
@@ -262,61 +262,63 @@ export class Row{
    
             let i = 0 // this  Mybe use .values instead?
             let a = 0 // that
-            let story=[]
+            let story:number[]=[]
             let gap=0
-
+            //let data_i=0
+            let concatter:number[][]=new Array<number[]>() //,cut1:number[];
             // inner join ( sparse version )
             do {
                 // console.log("i "+i+" a "+a)
                 const pass1gap=gap;
 
-                do{
+                /*do*/{
                     // trying to avoid infinity, null and undefined for better readability
                     let I:number=that.starts[that.starts.length-1]+1
                     let A:number=this.starts[this.starts.length-1]+1
                     if (i < this.starts.length){
                         I = this.starts[i]
                     }
-                    
                     if (a < that.starts.length){                    
                         A = that.starts[a]
                     }
 
                     if (I > A) {
-                        a++; gap ^= 2; story[0] = A              
+                        a++; gap ^= 2; story[0] = A
                     }else{
                         i++; gap ^= 1; story[0] = I
                         if (I === A) {
                             a++; gap ^= 2
                         }                          
                     }
-                }while(false)
-
-                if (pass === 1 && story.length===2 /* in pass=0."micro pass"=0 story is not filled.  This needs reversed story */) { // polymorphism?
+                }//while(false)
+                
+                //target value
+                if (pass === 1 && story.length===2 /* in pass=0."micro pass"=0 story is not completely filled because border swim in a soup.  This needs reversed story */) { // polymorphism?
                     console.log( 'story '+story[1]+' '+story[0] +' gap '+pass1gap);
 
-                    // what is this? Important: ts.push();this.data[index].concat(ts)
+                    // function construct only used to retard i and a by two and keep the names. Alternatively I could do a-- and start_next.reverse() or something. Important: ts.push();this.data[index].concat(ts)
                     (function trailing(i:number,a:number){
-                        let cut0:number[],cut1:number[];
+
                         if (pass1gap & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
                             console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
-                            cut0= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
+                            let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
                             if (pass1gap & 2){
-                                for(let b=0;b<cut0.length;b++){
+                                for(let b=0;b<cut.length;b++){
                                     console.log("b "+b)
                                     const t=that.data[a>>1][b+(story[1]-that.starts[a])]
                                     if (factor){
-                                        cut0[b] -= factor*t
+                                        cut[b] -= factor*t
                                     }else{
-                                        cut0[b] += t  // used for swapping columns
+                                        cut[b] += t  // used for swapping columns
                                     }
                                 }
                             }
-                            data_next.push(cut0);           // todo: use start_next to  decide   .. until data is filled: splice 
+                            concatter.push(cut)
+                            // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice 
                         }else{
                             if (pass1gap & 2){
                                 console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
-                                data_next.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
+                                concatter.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
                             }
                             // else{
                             //     ts.push(Array(story[0]-story[1]).fill(0))
@@ -337,28 +339,52 @@ export class Row{
                         }
                         n++                        
                     }                    
-                } else { // pass=0, but this belongs to the block outside below the while loops.
-                    if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
-                        // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
-                        start_next=start_next.concat(story)
-                    } //else { // not a gap
-                    //     story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
-                    // } 
-
-                    // // Special code for Tridagonal
-                    // if (gap !== 0) {
-                    //     story[1] = story[0] // we looked back
-                    // } else { // we record gaps
-                    //     const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
-                    //     if (pointer[0] - pointer[1] > story[0] - story[1]) {
-                    //         gaps[i < 3 ? 0 : 1] = [i].concat(story)
-                    //     }
-                    // }
                 }
-                // if before was a gap, but now is no gap
-                if (pass1gap === 0 && gap !== 0) {
-                    story[1] = story[0] // the end of the gap becomes the start of the value-span
+
+                // target address. Mostly runs first, but data_next.push runs later
+                if ( (pass1gap === 0 ) !== (gap === 0) ) { // switching from gap mode to filled values mode and back                   
+                    if (pass===0){
+                        start_next.push(story[0]) // note border
+                    }else{
+                        if (gap===0){ // target value needs to process the end of the span and thus be in a gap. We do a trick here: first initialization of concatter
+                            //if (pass===0){
+                                //data_next.push(new Array<number>(story[0] - start_next[start_next.length-1])) // create scratchpad to avoid creation of new arrays by concat()
+                                //Todo: combine data and start in class span for a single push?
+                            //}else{
+                                data_next.push(Array.prototype.concat.apply([],concatter)) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                                /*  var buffer = new ArrayBuffer(24);
+                                    var idView = new Float64Array(buffer, byte offset=0*8, length=1*8); // instead of slice
+                                    target.set(idView)
+                                */
+                                concatter=new Array<number[]>()     
+                            //}
+                        }
+                    }
                 } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+                story[1] = story[0] // the end of the gap becomes the start of the value-span                
+
+                //  else { // pass=0, but this belongs to the block outside below the while loops.
+                //     if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
+                //         // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
+                //         start_next=start_next.concat(story)
+                //     } //else { // not a gap
+                //     //     story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
+                //     // } 
+
+                //     // // Special code for Tridagonal
+                //     // if (gap !== 0) {
+                //     //     story[1] = story[0] // we looked back
+                //     // } else { // we record gaps
+                //     //     const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
+                //     //     if (pointer[0] - pointer[1] > story[0] - story[1]) {
+                //     //         gaps[i < 3 ? 0 : 1] = [i].concat(story)
+                //     //     }
+                //     // }
+                // }
+                // // if before was a gap, but now is no gap
+                // if (pass1gap === 0 && gap !== 0) {
+
+                // } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
             } while (i < this.starts.length || a < that.starts.length);
 
 
@@ -380,6 +406,8 @@ export class Row{
             //         }
             //     }
             // }
+
+       
         }
         // flip buffers
         this.starts = start_next

@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Program",
+            "name": "Launch app.js",
             "program": "${workspaceFolder}/app.js",
             "request": "launch",
             "skipFiles": [
@@ -45,7 +45,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Launch Program generic",
             "skipFiles": [
                 "<node_internals>/**"
             ],
