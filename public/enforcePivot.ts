@@ -20,7 +20,7 @@ import {SimpleImage} from './GL'
 export class Span<T>{
     extends: Array<T>  // we duplicate part of the interface in order to never need to copy the items
     start:number
-    length:number
+    // doesn't work length:number
     unshift(...items: T[]): number{
         if (this.start){
             if (--this.start<0) {throw "below bounds" }
@@ -31,7 +31,7 @@ export class Span<T>{
     constructor(len:number,s:number) { //start:number, data:Arry<T>){
         this.extends=new Array<T>(len)        
         this.start=s
-        this.length=len
+        //this.length=len
     }
 
     forEach(callbackfn: (value: T, index: number, array: T[]) => void, thisArg?: any): void {
@@ -76,7 +76,7 @@ export class Row{
         for(let pass=0;;pass++){
             let counter=0
             start.forEach(s=>{
-                const range=[s.length,0]
+                const range=[s.extends.length,0]
                 //const ranpe=ranpe.slice(0,ranpe.length)
                 // only string has trim(). And it can't even return the number of trimmed items  
                 s.forEach((t,i)=>{
@@ -474,7 +474,7 @@ export class Row{
             let a=new Array<Span<number>>(3) //=[[],[],[]];
             a[0]=new Span<number>(0,0) //.start=0)
             a[1]=accs
-            a[2]=new Span<number>(0,accs.length)
+            a[2]=new Span<number>(0,accs.extends.length)
             const row=new Row(a) //0,0,[[],[],[]])
             //row.data[1]=accs
             return row

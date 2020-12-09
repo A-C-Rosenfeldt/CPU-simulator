@@ -16,8 +16,9 @@ export class Span {
     constructor(len, s) {
         this.extends = new Array(len);
         this.start = s;
-        this.length = len;
+        //this.length=len
     }
+    // doesn't work length:number
     unshift(...items) {
         if (this.start) {
             if (--this.start < 0) {
@@ -52,7 +53,7 @@ export class Row {
         for (let pass = 0;; pass++) {
             let counter = 0;
             start.forEach(s => {
-                const range = [s.length, 0];
+                const range = [s.extends.length, 0];
                 //const ranpe=ranpe.slice(0,ranpe.length)
                 // only string has trim(). And it can't even return the number of trimmed items  
                 s.forEach((t, i) => {
@@ -421,7 +422,7 @@ export class Row {
             let a = new Array(3); //=[[],[],[]];
             a[0] = new Span(0, 0); //.start=0)
             a[1] = accs;
-            a[2] = new Span(0, accs.length);
+            a[2] = new Span(0, accs.extends.length);
             const row = new Row(a); //0,0,[[],[],[]])
             //row.data[1]=accs
             return row;

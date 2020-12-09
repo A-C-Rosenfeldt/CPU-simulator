@@ -425,17 +425,17 @@ export class Field extends FieldToDiagonal {
                     // Laplace 4x4 from the end of this file
                     {
                         if (k < str.length - 1) {
-                            span[1][2] = -1; //.push(-1)
+                            span[1].extends[2] = -1; //.push(-1)
                             rle[1]--;
                         }
                         if (k > 0) {
-                            span[1][0] = -1; //.unshift(-1)
+                            span[1].extends[0] = -1; //.unshift(-1)
                             k_mat--;
                             rle[0]--;
                         }
                         // Jagged ( symmetry or later: wired-or  )
                         if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
-                            span[0][0] = -1; //.push(-1)
+                            span[0].extends[0] = -1; //.push(-1)
                             rle[0]--;
                         }
                         else {
@@ -443,10 +443,10 @@ export class Field extends FieldToDiagonal {
                             rle[0] = 0;
                         }
                         if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
-                            span[2][0] = -1; //.push(-1)
+                            span[2].extends[0] = -1; //.push(-1)
                         }
                         else {
-                            span[2].start = span[1].start + span[1].length; //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
+                            span[2].start = span[1].start + span[1].extends.length; //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
                             rle[1] = 0;
                         }
                     }
