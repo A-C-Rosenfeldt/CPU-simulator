@@ -415,7 +415,7 @@ export class Field extends FieldToDiagonal {
                 const c = str[k];
                 let k_mat = i_mat; // Start with diagonal // Tridiagonal is not yet tested. Maybe I need a second trick to tackle all shapes of sparseness:  this.Interlace(x,y)
                 // ToDo: Move behind the solver: Repeat this verschachtelter loop to multiply vector with matrix and to convert vector back to field:  flat[flatIndex]=this.field[x][y];
-                span[1][1] = 4; //const proto:Span<number>[]=[[], [4], []]
+                span[1].extends[1] = 4; //const proto:Span<number>[]=[[], [4], []]
                 //const build_h=new Span<number>(0,i_mat)
                 // Laplace will source all fields. Only target is XOR ChargeDensity.
                 // I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
