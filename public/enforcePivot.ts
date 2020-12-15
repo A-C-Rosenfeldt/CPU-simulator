@@ -62,21 +62,22 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
 // Todo: swap uses this
 class JoinOperatorIterator{
     s:number[][]
-    i=[0,0]
+    i:number[] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     gap=0
+    last:number
     constructor(...s:number[][]){
-        let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
+        //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
         //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
         this.s=s
-
+        this.last=Math.max(...this.s.map(s=>s[s.length-1]))
             //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
-            let i = 0 // this  Mybe use .values instead?
-            let a = 0 // that
-            let story:number[]=[]
-            //let data_i=0
-            let concatter:number[][]=new Array<number[]>() //,cut1:number[];
+            this.i = new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
+            
+            //let story:number[]=[]
+            // ? let data_i=0
+            //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
             // inner join ( sparse version )
     }
 
@@ -90,27 +91,54 @@ class JoinOperatorIterator{
 
                 /*do*/{
                     // trying to avoid infinity, null and undefined for better readability
-                    let I:number=this.s[1][this.s[1].length-1]+1
-                    let A:number=this.s[0][this.s[0].length-1]+1
-                    if (this.i[0] < this.s[0].length){
-                        I = this.s[0][this.i[0]]
-                    }
-                    if (this.i[1] < this.s[1].length){                    
-                        A = this.s[1][this.i[1]]
-                    }
+                    
+                    let cursor=this.s.map(s=>[this.last,s.length])
+                    //new Array<[number,number]>(this.i.length).fill([),s.length])
+                    // let I:number=this.s[1][this.s[1].length-1]+1
+                    // let A:number=this.s[0][this.s[0].length-1]+1
 
-                    if (I > A) {
-                        this.i[0]++; this.gap ^= 2; return A
-                    }else{
-                        this.i[0]++; this.gap ^= 1;
-                        if (I === A) {
-                            this.i[1]++; this.gap ^= 2
+                    let min=this.last
+                    cursor.forEach((c,i)=>{
+                        const k=this.i[i]
+                        if (k < c[1]){
+                            c[0]=this.s[i][k]
                         }
-                        return I                    
+                        if (min>c[0]){
+                            min=c[0]
+                        }
+                    })
+
+                    // if (this.i[0] < this.s[0].length){
+                    //     I = this.s[0][this.i[0]]
+                    // }
+                    // if (this.i[1] < this.s[1].length){                    
+                    //     A = this.s[1][this.i[1]]
+                    // }
+
+                    {
+                        let R:number
+                        cursor.forEach((c,i)=>{
+                            if (min===c[0]){
+                                this.i[i]++
+                                this.gap ^= 1 << i
+                                R=c[0]
+                            }
+                        })
+                        return R
                     }
+                    
+                    // if (I > A) {
+                    //     this.i[0]++; this.gap ^= 2; return A
+                    // }else{
+                    //     this.i[0]++; this.gap ^= 1;
+                    //     if (I === A) {
+                    //         this.i[1]++; this.gap ^= 2
+                    //     }
+                    //     return I                    
+                    // }
                 }//while(false)
             }
-            return null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
+            return this.last+1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
 
@@ -578,21 +606,33 @@ export class Tridiagonal{
     }
 
     public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */){
-        let adapter=[]
-        if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
-            adapter=swapHalf // Maybe move this code to field? Where is "augment" ?
-        }
+        let //adapter=[]
+        // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
+            adapter=[swapHalf.length] // Maybe move this code to field? Where is "augment" ?
+        //}
         const swap=swapHalf.concat(adapter,swapHalf.map(pos=>pos+swapHalf.length)) // "mirror"
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
+        let last_Cut=0
         this.row.forEach(row=>{ // the block clearly separates singular and plural
             //join starts and swap
-            let jop=new JoinOperatorIterator(row.starts,swap)
+            const l=row.starts.length >> 1
+            //for(let half=0;half<l;half+=l>>1){
+            let jop=new JoinOperatorIterator(row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
             let pos:number
-            while((pos=jop.next()) !== null){
-throw "not implemented"
-            }
+            const starts_new=new Array<number>()
+            const values_new=new Array<number[]>()
+            let last_gap=jop.gap
+            while((pos=jop.next()) <= jop.last /* could be replaced by < Matrix.width */){
+                starts_new.push(pos)
+                if ( (jop.gap & 4 ) ===0){
+                    if ((jop.gap & 1) === 0 ){
+                        last_gap=jop.gap
+                        last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
+                    }
 
+                }
+            }
         })
     }
 
