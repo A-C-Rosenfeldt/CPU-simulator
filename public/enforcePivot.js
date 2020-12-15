@@ -41,6 +41,58 @@ export function FromRaw(...b) {
     }
     return s;
 }
+// What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
+// Todo: sub uses this
+// Todo: swap uses this
+class JoinOperatorIterator {
+    constructor(...s) {
+        this.i = [0, 0];
+        this.gap = 0;
+        let start_next = new Array(); //        =this.starts.slice() // copy all elements
+        //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
+        this.s = s;
+        //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
+        // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
+        let i = 0; // this  Mybe use .values instead?
+        let a = 0; // that
+        let story = [];
+        //let data_i=0
+        let concatter = new Array(); //,cut1:number[];
+        // inner join ( sparse version )
+    }
+    next() {
+        if ((this.i[0] < this.s[0].length || this.i[1] < this.s[1].length)) {
+            // console.log("i "+i+" a "+a)
+            const pass1gap = this.gap;
+            /*do*/ {
+                // trying to avoid infinity, null and undefined for better readability
+                let I = this.s[1][this.s[1].length - 1] + 1;
+                let A = this.s[0][this.s[0].length - 1] + 1;
+                if (this.i[0] < this.s[0].length) {
+                    I = this.s[0][this.i[0]];
+                }
+                if (this.i[1] < this.s[1].length) {
+                    A = this.s[1][this.i[1]];
+                }
+                if (I > A) {
+                    this.i[0]++;
+                    this.gap ^= 2;
+                    return A;
+                }
+                else {
+                    this.i[0]++;
+                    this.gap ^= 1;
+                    if (I === A) {
+                        this.i[1]++;
+                        this.gap ^= 2;
+                    }
+                    return I;
+                }
+            } //while(false)
+        }
+        return null; // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
+    }
+}
 export class Row {
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
@@ -146,7 +198,7 @@ export class Row {
     }
     set(value, at) {
         const tupel = this.find(at);
-        if (value === 0) { // used by field.swap
+        if (value === 0) { // used by field.group* (it does swaps)
             this.clear(tupel, at);
         }
         else {
@@ -219,6 +271,7 @@ export class Row {
         for (let pass = 0; pass < 2; pass++) {
             console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join());
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
+            const jop = new JoinOperatorIterator(this.starts, that.starts);
             let i = 0; // this  Mybe use .values instead?
             let a = 0; // that
             let story = [];
@@ -270,7 +323,8 @@ export class Row {
                                         cut[b] -= factor * t;
                                     }
                                     else {
-                                        cut[b] += t; // used for swapping columns
+                                        //throw "use [get;set;trim] instead"
+                                        cut[b] += t; // field.group, field.swap, matrix.set
                                     }
                                 }
                             }
@@ -460,6 +514,23 @@ export class Tridiagonal {
     }
     getAt(row, column) {
         return this.row[row].get(column);
+    }
+    swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */) {
+        let adapter = [];
+        if (swapHalf.length & 1 && swapHalf[0] > 0) { // match boolean on both sides. It starts globally with swap=false
+            adapter = swapHalf; // Maybe move this code to field? Where is "augment" ?
+        }
+        const swap = swapHalf.concat(adapter, swapHalf.map(pos => pos + swapHalf.length)); // "mirror"
+        // ToDo: three way join? Now I understand why other people use indirection instead of RLE
+        // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
+        this.row.forEach(row => {
+            //join starts and swap
+            let jop = new JoinOperatorIterator(row.starts, swap);
+            let pos;
+            while ((pos = jop.next()) !== null) {
+                throw "not implemented";
+            }
+        });
     }
     PrintGl() {
         const s = this.row.length;
