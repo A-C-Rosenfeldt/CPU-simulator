@@ -110,6 +110,42 @@ class JoinOperatorIterator {
         return this.last + 1; //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
+class Seamless {
+    // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
+    //. Todo: Try both ways
+    removeSeams(criterium, fillValues, pass, pos_, gap_) {
+        // properties? With delegates I get to use Arrays!
+        let gap = [false, false];
+        let pos = [0, 0];
+        let concatter = new Array();
+        gap[0] = criterium(3); // ToDo: No source gap in this class please! JoinOperatorIterator is accessed via  closure or bind  by the delegates
+        if (pass === 1 && gap[1]) {
+            concatter.push(fillValues(pos));
+        }
+        //}).bind(this)(i-2,a-2)
+        if (gap[0] !== gap[1]) { // switching from gap mode to filled values mode and back                   
+            if (pass === 0) {
+                this.start_next.push(pos[0]); // note border
+            }
+            else {
+                if (!gap[0]) {
+                    this.data_next.push(Array.prototype.concat.apply([], concatter)); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                    concatter = new Array();
+                }
+            }
+        } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+        gap[1] = gap[0];
+        pos[1] = pos[0];
+    }
+}
+class Passes {
+    // clearly different signatur => no function array or overloading!
+    pass_pos() {
+    }
+    pass_value() {
+        // fills concater
+    }
+}
 export class Row {
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
@@ -119,20 +155,25 @@ export class Row {
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
         // Basically we could deal with 0 in data and 0 in range, but then we could just go back to full matrix
         // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
+        // check for bounds
+        // todo: remove zero length
+        // fuse spans
         for (let pass = 0;; pass++) {
             let counter = 0;
             start.forEach(s => {
                 const range = [s.extends.length, 0];
                 //const ranpe=ranpe.slice(0,ranpe.length)
-                // only string has trim(). And it can't even return the number of trimmed items  
+                // only string has trim(). And it can't even return the number of trimmed items
+                // trim 0 values
                 s.forEach((t, i) => {
                     if (t !== 0) {
                         for (let d = 0; d < 2; d++) {
-                            range[d] = Math.min(range[d], i);
+                            range[d] = Math.min(range[d], i); // what is this?
                             i = -i;
                         }
                     }
                 });
+                // if after trim length still > 0 ( range is a closed interval)
                 if (range[0] <= -range[1]) {
                     if (pass === 1) {
                         this.starts.splice(counter << 1, 2, s.start + range[0], s.start + 1 - range[1]); // should be  in placw
@@ -288,7 +329,7 @@ export class Row {
         for (let pass = 0; pass < 2; pass++) {
             console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join());
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-            const jop = new JoinOperatorIterator(this.starts, that.starts);
+            const jop = new JoinOperatorIterator(this.starts, that.starts); // ToDo use this instead of code below
             let i = 0; // this  Mybe use .values instead?
             let a = 0; // that
             let story = [];
@@ -341,7 +382,7 @@ export class Row {
                                     }
                                     else {
                                         //throw "use [get;set;trim] instead"
-                                        cut[b] += t; // field.group, field.swap, matrix.set
+                                        cut[b] += t; // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
                                     }
                                 }
                             }
@@ -547,18 +588,28 @@ export class Tridiagonal {
             //for(let half=0;half<l;half+=l>>1){
             let jop = new JoinOperatorIterator(row.starts.slice(0, l), row.starts.slice(l, l << 1), swapHalf);
             let pos;
-            const starts_new = new Array();
-            const values_new = new Array();
-            let last_gap = jop.gap;
+            const spans_new = new Array();
+            let last_gap = 0; //jop.gap
             while ((pos = jop.next()) <= jop.last /* could be replaced by < Matrix.width */) {
-                starts_new.push(pos);
-                if ((jop.gap & 4) === 0) {
-                    if ((jop.gap & 1) === 0) {
-                        last_gap = jop.gap;
-                        last_Cut = pos; // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
-                    }
+                // sub uses job.gap&3 !==0
+                // swap uses (not sure about all the brackets):
+                if (((jop.gap >> (jop.gap >> 2)) & 1) === 0) {
+                    let t = new Span(pos - last_Cut, last_Cut);
+                    const relative = [pos, last_Cut];
+                    const i = jop.i[jop.gap >> 2];
+                    t.extends = row.data[i].slice(...relative.map(x => x - row.starts[i]));
+                    spans_new.push(t);
+                    // sub uses concatter and (pass1gap === 0 ) ! to remove seams
+                    // if ((jop.gap & 1) === 0 ){
+                    //     last_gap=jop.gap
+                    //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
+                    // }
+                }
+                else {
+                    last_Cut = pos;
                 }
             }
+            const row_new = new Row(spans_new); // does trim 0 valus, but cannot fuse spans
         });
     }
     PrintGl() {
