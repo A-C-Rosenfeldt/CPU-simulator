@@ -141,44 +141,63 @@ class JoinOperatorIterator{
             return this.last+1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
-class Seamless{
+class Seamless {
     data_next: number[][]
     start_next: number[]
+    starts = 0 // whatIf
+    length = 0 // whatIf  .. basically needs 3 passes for tight malloc =>  WhatIf:number
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
     //. Todo: Try both ways
-    removeSeams(criterium: (  (a:number) => boolean) ,
-    fillValues: (pos:number[]) => number[],
+    // two passes where motivated by memory allocation, but mess with the OOP structure
+    gap = [false, false]
+    pos = [0, 0]
+    concatter = new Array<number[]>()
 
-      pass:number,
-      pos_:number, gap_:boolean )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
+    removeSeams(criterium: ((a: number) => boolean),
+        fillValues: number[], sourceStart: number,
+        pos: number, gap: boolean,
+        whatIf = false // expose the triviality of this premature optimization
+    )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
-        // properties? With delegates I get to use Arrays!
-        let gap=[false,false]
-        let pos=[0,0]
+        if (this.pos[0] < pos ) { // eat zero length  ( Row constructor does this too, but it is only one line )
+            this.pos[0]=pos
+            this.gap[0]=gap
+            // properties? With delegates I get to use Arrays!
 
-        let concatter:number[][]=new Array<number[]>()
-
-        gap[0]=criterium(3) // ToDo: No source gap in this class please! JoinOperatorIterator is accessed via  closure or bind  by the delegates
-        if (pass===1 && gap[1]){
-            concatter.push(fillValues(pos))
-        }
-            //}).bind(this)(i-2,a-2)
-            
-        if ( gap[0] !== gap[1]  ) { // switching from gap mode to filled values mode and back                   
-            if (pass===0){
-                this.start_next.push(pos[0]) // note border
-            }else{
-                if (!gap[0]){
-                    this.data_next.push(Array.prototype.concat.apply([],concatter)) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                    concatter=new Array<number[]>()
-                }
+            //!whatIf &&
+            if ( !gap ) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+                this.concatter.push(fillValues.slice(this.pos[1] - sourceStart, pos - sourceStart))
+            }else{ // flush buffer. Be sure to call before closing stream!
+                if (!gap[1]) { // switching from filled to gap 
+                if (whatIf) {
+                    this.starts++
+                } else {
+                     {
+                        this.start_next.push(pos[1]) // note border
+                    }  {
+                       { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
+                            const t = Array.prototype.concat.apply([], this.concatter)
+                            this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            this.concatter = new Array<number[]>()
+                        }
+                    }
+                } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+                this.gap[1] = this.gap[0]
+                this.pos[1] = this.pos[0]
             }
-        } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-        gap[1] = gap[0]
-        pos[1]=pos[0]
+        }
+        }
+    }
+
+    // better be sure to end with gap=true (from span end .. test?) or else call this
+    flush(){
+        this.start_next.push(this.pos[0])
+        const t = Array.prototype.concat.apply([], this.concatter)
+                            this.data_next.push(t)
     }
 }
 
+// speed optimization ( premature? )
 class Passes{
     jop:JoinOperatorIterator
     // clearly different signatur => no function array or overloading!
