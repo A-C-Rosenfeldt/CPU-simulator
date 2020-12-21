@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <title>
+            Audio &amp; Video
+        </title>
+    </head>
+    <body>
+        <h2>Video</h2>
+        <p> 320x240px. 
+            DAC: RGB 444 ( period correct for CGA sort of )
+            8x8 tiles with 1 or 2 colors.
+            Smooth scroll 0..7px ( push; delay buffer ). Rough scroll ( pull; memory start address, pitch, wrap bit depth;).
+            Rough is bufferd: Atomic write for all by setting smooth 0XXX0YYY reg. 
+            4 layers aka z-values.
+            1 byte/px (1 byte RLE for transparency) sprite overlay with these
+            color formats: RGBI 2222 + 3 cycles of 223
+            Also possible: combine with background to generate RGB 333.
+            16 sprites per scanline. Unlimited height and width due to realtime data loading into 9bit/pixel FIFO
+        </p>
+           <p>
+                I would love to have affine texture mapped, gouraud triangles for 3d racing games: subpixel precise floor texture, copper like color bars. Bildboards.
+           </p>
+        <h2>Audio</h2>
+        floating point matrix rotation for sine tones. The floating point is implemented
+        by only acting every 1,2,4,8 cycle.
+        Matrix multiplication is even done less times.
+        Overtones drown in noise of 1% noise of PWM + edge shifter (diagonal)
+    </body>
+</html>
