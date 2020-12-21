@@ -1,0 +1,178 @@
+<html>
+    <head>
+        <title>6502 ISA converted to load-store</title>
+        <style>
+            table,th,td{
+                border: 1px blue solid;
+                border-collapse: collapse;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>registers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Lo</th><th>Hi</th><th>long</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>P</td><td>P</td><td>Programm counter</td></tr>
+                <tr><td>B</td><td>C</td><td>Accumulator { Buffer:Counter } </td></tr>
+                <tr><td>X</td><td>X</td><td>IndeX</td></tr>
+                <tr><td>Y</td><td>Y</td><td>another Index</td></tr>
+                <tr><td>S</td><td>S</td><td>Stack Pointer</td></tr>
+                <tr><td>F</td><td></td><td>Status Flags: ZNCVID  (oVerflow)</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Instruction encoding</h2>
+        Instructions with two source registers use each bit to select between two possible source for each input of the ALU. Default accesible register (general purpose) are BCXY.
+        Abbreviations: Immediate. Cnd=Condition. Function "Lambda" L. D is direction, 0: towards GeneralPuroposeReg, towards Flags, towards Registers (first wins)
+        <table>
+            <thead>
+                <tr>
+                    <th>OP Code</th><th>Function (SubOp)</th><th>source Register(s)</th><th>Direction</th><th>Target Register</th><th>Immediate</th><th>Explaination</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>LLL&lt;110</td><td>RR</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation</td></tr>
+                <tr><td>1110</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
+                <tr><td>1111</td><td></td><td>L</td><td>D</td><td>TT</td><td></td><td>Rotation through carry in Direction, AS</td></tr>
+                <tr><td>01</td><td>LL</td><td>R</td><td>D</td><td>T</td><td>0</td><td>Pointer Operation. R={X,Y}, T={B,BC}  </td></tr>
+                <tr><td>01</td><td>LL</td><td>R</td><td>D</td><td>T</td><td>1</td><td>Index Operation</td></tr>
+                <tr><td>001</td><td></td><td></td><td>RR</td><td>TT</td><td>0</td><td>Copy to register</td></tr>
+                <tr><td>001</td><td></td><td></td><td>LL</td><td>TT</td><td>1</td><td>immediate value</td></tr>
+                <tr><td>0001</td><td></td><td></td><td>D</td><td>FF</td><td>0</td><td>Set Flag FF={CVDI} to value/Data</td></tr>
+                <tr><td>0001</td><td></td><td></td><td colspan="2">Cnd</td><td>1</td><td>Branch</td></tr>
+                <tr><td>0000</td><td></td><td></td><td>D</td><td>PS</td><td>I</td><td>See next table</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Details</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>P involved</th><th>Stack Involved</th><th>Direction (to GP:0)</th><th>Immediate</th><th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>TSX</td></tr>
+                <tr><td>0</td><td>0</td><td>1</td><td>0</td><td>TXS</td></tr>
+                <tr><td>0</td><td>1</td><td>0</td><td>0</td><td>PLP</td></tr>
+                <tr><td>0</td><td>1</td><td>1</td><td>0</td><td>PHP</td></tr>
+
+                <tr><td>1</td><td>0</td><td>0</td><td>0</td><td>NOP (where else?)</td></tr>
+                <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>RTS (shifted from below)</td></tr>
+                <tr><td>1</td><td>1</td><td>0</td><td>0</td><td>RTI,(Flags are GP, so this is more specific) </td></tr>
+                <tr><td>1</td><td>1</td><td>1</td><td>0</td><td>BRK (where else?)</td></tr>
+
+                <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>JMP</td></tr>
+                <tr><td>1</td><td>0</td><td>1</td><td>1</td><td></td></tr>
+                <tr><td>1</td><td>1</td><td>0</td><td>1</td><td>JSR </td></tr>
+                <tr><td>1</td><td>1</td><td>1</td><td>1</td><td></td></tr>
+
+                <tr><td>0</td><td>0</td><td>0</td><td>1</td><td></td></tr>
+                <tr><td>0</td><td>0</td><td>1</td><td>1</td><td></td></tr>
+                <tr><td>0</td><td>1</td><td>0</td><td>1</td><td></td></tr>
+                <tr><td>0</td><td>1</td><td>1</td><td>1</td><td></td></tr>
+
+            </tbody>
+        </table>        
+        <h3>8 Register-Register Functions</h3>
+        ADC, SBC, SBC with operands swapped, CMP == 111.
+        BIT==110, AND, OR, EOR.
+        <h3> Pointer </h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>LL</th><th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td> 00 </td><td> plain </td></tr>
+                <tr><td> 01 </td><td> ++/-- only, no actual data access (T is unused )</td></tr>
+                <tr><td> 10 </td><td> ++/-- </td></tr>
+                <tr><td> 11 </td><td> ++/-- X becomes S for PHA and PLA, while Y Stack becomes reversed for memcopy</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Index</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>LL</th><th>Addressing mode</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td> 00 </td><td> I16 </td></tr>
+                <tr><td> 01 </td><td> I16 + RL  ( register Lo byte ) </td></tr>
+                <tr><td> 10 </td><td> I16 + RH </td></tr>
+                <tr><td> 11 </td><td> I8 + R  ( or better: R + I8)</td></tr>
+            </tbody>
+        </table>        
+
+        <h3> Copy to register</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>RR==TT</th><th>Function</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td> 00=B </td><td> NOT </td></tr>
+                <tr><td> 01=C </td><td> DEC </td></tr>
+                <tr><td> 10=X </td><td> NOT </td></tr>
+                <tr><td> 11=Y </td><td> NEG </td></tr>
+            </tbody>
+        </table>        
+
+        <h3> Immediate Value</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>LL</th><th>Function</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td> 00 </td><td> Load </td></tr>
+                <tr><td> 01 </td><td> ADC </td></tr>
+                <tr><td> 10 </td><td> AND </td></tr>
+                <tr><td> 11 </td><td> BIT for B and CMP for C </td></tr>
+            </tbody>
+        </table>
+
+        <h3> 8 Branch Conditions from 6502</h3>
+        <p style="white-space: pre-wrap;">
+        = &lt;&gt;
+        &gt;= &lt;
+        C NC
+        V NV
+        </p>
+
+        <h2>not ISA, but µ-Architecture taken from 8510</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Lo</th><th>Hi</th><th>long</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>A</td><td>A</td><td>Address Register</td></tr>
+                <tr><td>DI</td><td></td><td>Data in</td></tr>
+                <tr><td>DO</td><td></td><td>Data out with Tristate buffer</td></tr>
+                <tr><td>PD</td><td></td><td>Pre-decode register</td></tr>
+                <tr><td>I</td><td></td><td>Instruction register</td></tr>
+                <tr><td>Q</td><td>Q</td><td>Programm counter WriteBack</td></tr>
+                <tr><td>W</td><td>W</td><td>ALU WriteBack</td>
+                <tr><td>M</td><td>Micro-Code instruciton counter (per cylce, each cylce has 4 (or 8?) phases)</td></tr>
+            </tbody>
+        </table>
+<p>
+        The Lo ALU has to inputs connected to XL, B , P  and YL, C, D, S.
+
+    The high ALU can only do ++ and -- . It uses inverters on odd and even bits and has a flat carray with alternated inverted bits. Inputs are: S,X,Y,P
+
+</p>
+    </body>
+</html>
