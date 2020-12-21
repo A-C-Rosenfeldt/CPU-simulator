@@ -6,20 +6,27 @@
     </head>
     <body>
         <h2>Video</h2>
-        <p> 320x240px. 
+        <p> 320x240px.
             DAC: RGB 444 ( period correct for CGA sort of )
             8x8 tiles with 1 or 2 colors.
             Smooth scroll 0..7px ( push; delay buffer ). Rough scroll ( pull; memory start address, pitch, wrap bit depth;).
-            Rough is bufferd: Atomic write for all by setting smooth 0XXX0YYY reg. 
+            Rough is bufferd: Atomic write for all by setting smooth 0XXX0YYY reg.
             4 layers aka z-values.
-            1 byte/px (1 byte RLE for transparency) sprite overlay with these
+            1 byte/px (1 byte RLE for transparency / Color Keying) sprite overlay with these
             color formats: RGBI 2222 + 3 cycles of 223
             Also possible: combine with background to generate RGB 333.
             16 sprites per scanline. Unlimited height and width due to realtime data loading into 9bit/pixel FIFO
         </p>
-           <p>
-                I would love to have affine texture mapped, gouraud triangles for 3d racing games: subpixel precise floor texture, copper like color bars. Bildboards.
-           </p>
+        <p>
+            Integer zoom is used to create large bosses within the memory bandwidth limit. Fractional zoom using Bresenham is
+            used for Hang Out billboards. Also the street is created using zoomed horizontal spans. With the camera fixed on the track, texture is mostly aligned to the scanlines, but does not need to be rigidly.
+            The X-positions of texture V ordinate crossings can be calculated on the CPU and with all sprites zoom-able, like 4 crossings are realistic. So the street need not be pinned,
+            but true 3d calculation can be used.  
+        </p>
+        <p>
+            In this kind of game all sprites overlap on a scanline. 16 sprites suffices already for hangout, but not out run.
+            Anyway, the simple byte buffer format allows the CPU to software render the far away spot into a frame buffer. Scenery in these old games clung to the street.
+        </p>
         <h2>Audio</h2>
         floating point matrix rotation for sine tones. The floating point is implemented
         by only acting every 1,2,4,8 cycle.

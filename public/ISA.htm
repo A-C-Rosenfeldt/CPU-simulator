@@ -27,7 +27,7 @@
         </table>
 
         <h2>Instruction encoding</h2>
-        Instructions with two source registers use each bit to select between two possible source for each input of the ALU. Default accesible register (general purpose) are BCXY.
+        Instructions with two source registers use each bit to select between two possible source for each input of the ALU.  Default accessible register (general purpose) are BCXY.
         Abbreviations: Immediate. Cnd=Condition. Function "Lambda" L. D is direction, 0: towards GeneralPuroposeReg, towards Flags, towards Registers (first wins)
         <table>
             <thead>
@@ -165,13 +165,13 @@
                 <tr><td>I</td><td></td><td>Instruction register</td></tr>
                 <tr><td>Q</td><td>Q</td><td>Programm counter WriteBack</td></tr>
                 <tr><td>W</td><td>W</td><td>ALU WriteBack</td>
-                <tr><td>M</td><td>Micro-Code instruciton counter (per cylce, each cylce has 4 (or 8?) phases)</td></tr>
+                <tr><td>M</td><td></td><td>Micro-Code instruction counter (per cycle, each cycle has 4 (or 8?) phases)</td></tr>
             </tbody>
         </table>
 <p>
-        The Lo ALU has to inputs connected to XL, B , P  and YL, C, D, S.
+        The Lo ALU has to inputs connected to XL, B , P  and YL, C, D, S. It has Carry look ahead. AND, OR, EOR, ROR is implemented per bit with some circuitry just as in 8080.
 
-    The high ALU can only do ++ and -- . It uses inverters on odd and even bits and has a flat carray with alternated inverted bits. Inputs are: S,X,Y,P
+    The high ALU can only do ++ and -- . It uses inverters on odd and even bits and has a flat carry with alternated inverted bits. Inputs are: S,X,Y,P
 
 </p>
     </body>
