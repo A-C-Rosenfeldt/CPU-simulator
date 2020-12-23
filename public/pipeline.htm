@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <title>Simple Pipeline</title>
+        <style>
+            table,th,td{
+                border: 1px blue solid;
+                border-collapse: collapse;
+            }
+        </style>
+    </head>
+    <body>
+		<h2>registers</h2>
+		<p>
+At least 4 phases per cycle are needed. I need to store values in each phase (for a static design). Storage is called register, latch or D-flip flop. It is all the same:
+Input is either ignored, or transparently forwarded. On falling edge, the value is captured.
+</p><p>
+Next latch needs to block intput before the latch before that opens each own. Sketching a graph with phases on Y and latches on X.
+Different cycles are white diagonal lines with height 2 px / widht 2 px. They are separeted by black lines of 2px height and width.
+</p><p>
+It would be cool to have a higher duty cycle. So maybe I can have 6 or 8 cycles ( with 2px separators ). Problem is that I need a latch for each phase, so like 6 transistors.
+Lets recount: Register file is part of the (spiraling data path). Then there is the write-back register. SAP and 6502 have registers on ALU inputs ( so maybe before Carry? ).
+I mean I would love to double buffer some paths of the carry look ahead and thus put 3 latches into this path. I may need a double buffer anyway to extract the carry
+and provide it for the next instruction.
+</p><p>
+Double buffering is made possible by a counter to toggle between them. The instruction word is decoded by random logic for the ISA. The address is decoded already from the start
+because I only address 8 registers and this is just a byte. Writeback is decoded while ALU works.
+</p>
+
+</body>
+</html>

@@ -91,6 +91,12 @@ Note that for most of these the order of R and S is arbitrary, so can encode two
         V NV
         </p>
 
+        The Programm counter runs on it own. Only for branches, the main ALU is used. For this, the microcode can address it like a general purpose register.
+        Microcode can alos access Stackpointer. Microcode has only BRK at the end, but no branches. Each Microcode instruction takes one cycle.
+
+        Microcode has a bit to trigger loading the Instruction Register. This is important to switche between pre-decrement and post-increment.
+        Also needed to schedule Memory access differently for Load and Store and Immediate.
+
         <h2>not ISA, but µ-Architecture taken from 8510</h2>
         <table>
             <thead>
@@ -115,5 +121,6 @@ Note that for most of these the order of R and S is arbitrary, so can encode two
     The high ALU can only do ++ and -- . It uses inverters on odd and even bits and has a flat carry with alternated inverted bits. Inputs are: S,X,Y,P
 
 </p>
+<a href="pipeline.htm">Pipeline</a>
     </body>
 </html>
