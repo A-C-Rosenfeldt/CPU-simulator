@@ -153,7 +153,7 @@ class Seamless {
     pos = [0, 0]
     concatter = new Array<number[]>()
 
-    removeSeams(criterium: ((a: number) => boolean),
+    removeSeams(//criterium: ((a: number) => boolean),
         fillValues: number[], sourceStart: number,
         pos: number, gap: boolean,
         whatIf = false // expose the triviality of this premature optimization
@@ -421,6 +421,13 @@ export class Row{
             let gap=0
             //let data_i=0
             let concatter:number[][]=new Array<number[]>() //,cut1:number[];
+
+            let pos:number
+            while((pos=jop.next()) <= jop.last){
+                if (  (jop.gap & 2 ) ===0){
+                }
+            }
+
             // inner join ( sparse version )
             do {
                 // console.log("i "+i+" a "+a)
@@ -685,13 +692,14 @@ export class Tridiagonal{
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
         let last_Cut=0
-        this.row.forEach(row=>{ // the block clearly separates singular and plural
+        this.row=this.row.map(row=>{ // the block clearly separates singular and plural
             //join starts and swap
             const l=row.starts.length >> 1
             //for(let half=0;half<l;half+=l>>1){
             let jop=new JoinOperatorIterator(row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
             let pos:number
             const spans_new=new Array<Span<number>>()
+            const spans_new_Stream=new Seamless()
             let last_gap=0 //jop.gap
             while((pos=jop.next()) <= jop.last /* could be replaced by < Matrix.width */){
                 
@@ -704,6 +712,7 @@ export class Tridiagonal{
                     const i=jop.i[jop.gap >> 2]
                     t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                     spans_new.push(t)
+                    spans_new_Stream.removeSeams(row.data[i],row.starts[i],pos,jop.gap===0)
 
                     // sub uses concatter and (pass1gap === 0 ) ! to remove seams
                     // if ((jop.gap & 1) === 0 ){
@@ -714,7 +723,8 @@ export class Tridiagonal{
                     last_Cut=pos
                 }
             }
-            const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans
+            const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
+            return row_new
         })
     }
 
