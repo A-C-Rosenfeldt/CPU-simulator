@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>Multiplikation</title>
+        <style>
+            table,th,td{
+                border: 1px blue solid;
+                border-collapse: collapse;
+            }
+        </style>
+    </head>
+    <body>
+		<h2>registers</h2>
+		<p>
+			4 bit µ-code counter ( 3 bit alreadey needed for JSR ). Address decoding to bit Address in M Register16 is worth it because the counter needs double buffer.
+		</p>
+		<p>
+			Both Div and Mul utilize shift ( with either SX or ZX) and ADD/SUB per cycle. One bit is read from M and one bit is written back. Address application is different for read and write,
+			so why not have 2 registers and not trash the parameter?
+		</p>
+	</body>
+</html>
