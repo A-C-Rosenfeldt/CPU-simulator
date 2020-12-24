@@ -425,6 +425,33 @@ export class Row{
             let pos:number
             while((pos=jop.next()) <= jop.last){
                 if (  (jop.gap & 2 ) ===0){
+                    if (jop.gap & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
+                    console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
+                    let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
+                    if (jop.gap & 2){
+                        for(let b=0;b<cut.length;b++){
+                            console.log("b "+b)
+                            const t=that.data[a>>1][b+(story[1]-that.starts[a])]
+                            if (factor){
+                                cut[b] -= factor*t
+                            }else{
+                                //throw "use [get;set;trim] instead"
+                                cut[b] += t  // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
+                            }
+                        }
+                    }
+                    concatter.push(cut)
+                    // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice 
+                }else{
+                    if (pass1gap & 2){
+                        console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
+                        concatter.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
+                    }
+                    // else{
+                    //     ts.push(Array(story[0]-story[1]).fill(0))
+                    // }
+                }
+            }).bind(this)(i-2,a-2)                    
                 }
             }
 
