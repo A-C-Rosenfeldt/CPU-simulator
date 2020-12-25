@@ -17,12 +17,68 @@ Input is either ignored, or transparently forwarded. On falling edge, the value 
 Next latch needs to block intput before the latch before that opens each own. Sketching a graph with phases on Y and latches on X.
 Different cycles are white diagonal lines with height 2 px / widht 2 px. They are separeted by black lines of 2px height and width.
 </p><p>
-It would be cool to have a higher duty cycle. So maybe I can have 6 or 8 cycles ( with 2px separators ). Problem is that I need a latch for each phase, so like 6 transistors.
+    It would be cool to have a higher duty cycle. I can only imagin latches as SRAM memory cell .. in this case as n-fet. These cell have a resistors with a high resistance to reduce current while storing.
+    Additional write current can easily flood this resistor. Write Enable is the power source of the write circuit.
+</p>
+<h3> Akkumulation in an 8 phase clock with 2 stages of pipeline shown: Execute and WriteBack </h3>
+<table>
+    <thead>
+        <tr>
+            <th>register file</th> </th><th>Processing (incl. read select)</th><th>WE</th><th>Writeback Register</th><th>Processing (incl. write select) </th><th>WE</th><th>register file</th><th>duty cycle</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>A</td>               <td> hold   </td><td>   </td><td> </td>               <td> --->    </td><td>  </td><td> </td>  <td>  </td>  </tr>
+        <tr><td>A</td>               <td> -->    </td><td>   </td><td>B</td>               <td> ---->   </td><td>  </td><td>A</td> <td> </td>  </tr>  
+        <tr><td>A</td>               <td> --->   </td><td>   </td><td>B</td>               <td> hold    </td><td>  </td><td>A</td>  <td>  </td>  </tr>
+        <tr><td>A</td>               <td> ---->  </td><td> -></td><td>B</td>               <td> -->     </td><td>  </td><td>A</td>  <td> both processing => 5 phases </td>  </tr>
+        <tr><td>A</td>               <td> hold   </td><td>   </td><td>B</td>               <td> --->    </td><td>  </td><td>A</td>  <td>  </td>  </tr>
+        <tr><td>AC</td>              <td> -->    </td><td>   </td><td>B</td>               <td> ---->   </td><td>-></td><td>AC</td> <td> </td>  </tr>
+        <tr><td>C</td>               <td> --->   </td><td>   </td><td>B</td>               <td> hold    </td><td>  </td><td>C</td>  <td> </td> </tr>
+        <tr><td>C</td>               <td> ---->  </td><td> -></td><td>B</td>               <td> -->     </td><td>  </td><td>C</td>  <td> both processing => 5 phases </td> </tr>
+      
+    </tbody>
+</table>
+
+<h3> What happens with an additional hidden register ( ALU input or carry look ahead apex register ) ? </h3>
+<table>
+    <thead>
+        <tr>
+            <th>register file</th> </th><th>Processing (incl. read select)</th><th>WE</th><th>intermediage stage Register</th><th>Processing </th><th>WE</th><th>Writeback Register</th><th>Processing (incl. write select) </th><th>WE</th><th>register file</th><th>duty cycle</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>A</td>               <td> ->           </td><td>   </td><td> </td>          <td>           </td><td>-></td><td> </td> <td>         </td><td>  </td><td> </td> <td> switching. Make this 5 times as long to create good duty cycle. </td>  </tr>        
+        <tr><td>A</td>               <td> -->          </td><td>   </td><td> </td>          <td>           </td><td>  </td><td> </td> <td>         </td><td>  </td><td> </td>  <td> two switch blockade</td> </tr>
+        <tr><td>A</td>               <td> --->         </td><td>-> </td><td>B</td>          <td> ->        </td><td>  </td><td> </td> <td>         </td><td>  </td><td> </td>  <td> first two parts are processing </td> </tr>
+        <tr><td>A</td>               <td> ---->        </td><td> -></td><td>B</td>          <td> -->       </td><td>  </td><td> </td> <td>         </td><td>  </td><td> </td>  <td> source register is still protected </td>  </tr>
+        <tr><td>A</td>               <td> ----->       </td><td> -></td><td>B</td>          <td> --->      </td><td>-></td><td>C</td> <td> ->      </td><td>  </td><td> </td> <td> All three parts are processing => 3 phases </td>  </tr>
+        <tr><td>A</td>               <td> hold         </td><td>   </td><td>B</td>          <td> ---->     </td><td>-></td><td>C</td> <td> -->     </td><td>  </td><td> </td>  <td> two switch blockade </td> </tr>
+        <tr><td>AD</td>              <td>              </td><td>   </td><td>B</td>          <td> ----->    </td><td>-></td><td>C</td> <td> --->    </td><td>-></td><td>AD</td>  <td> storing in target </td> </tr>
+        <tr><td> </td>               <td>              </td><td>   </td><td>B</td>          <td> hold      </td><td>  </td><td>C</td> <td> ---->   </td><td>-></td><td>D</td>  <td> two switch blockade  </td>  </tr>
+        <tr><td> </td>               <td>              </td><td>-> </td><td>B</td>          <td>           </td><td>  </td><td>C</td> <td> ----->  </td><td>-></td><td>D</td> <td> Next instruction  </td>  </tr>  
+        <tr><td> </td>               <td>              </td><td>-> </td><td>B</td>          <td>           </td><td>  </td><td>C</td> <td> hold    </td><td>  </td><td>D</td>  <td> processing </td>  </tr>
+        <tr><td> </td>               <td>              </td><td>-> </td><td>B</td>          <td>           </td><td>-></td><td>C</td> <td>         </td><td>  </td><td>D</td>  <td> All three parts are processing => 3 phases </td>  </tr>
+        <tr><td> </td>               <td>              </td><td>   </td><td>B</td>          <td>           </td><td>-></td><td>C</td> <td>         </td><td>  </td><td>D</td>  <td> switch off </td>  </tr>      
+    </tbody>
+</table>
+<p>
+    So, the processing ciruitry is stable (not doing work) for one phase, same as with 2 regs. Work is split accross three ciruits instead of two. 5 phase overlap like the case above.
+    The most important difference seems to be that I now always have at least 3 cycles to securely overwrite an old value in a SRAM cell. Though at the beginning there may be some switching noise and settling.
+    It sure does not make sense to use more stages in a  Register - Operation -> Register  if the result is needed for the next instruction.
+</p>
+
+<p>
+So the signal needs some time to pass through the processing circuits. With a second write-back register
+
+Problem is that I need a latch for each phase, so like 6 transistors.
 Lets recount: Register file is part of the (spiraling data path). Then there is the write-back register. SAP and 6502 have registers on ALU inputs ( so maybe before Carry? ).
 I mean I would love to double buffer some paths of the carry look ahead and thus put 3 latches into this path. I may need a double buffer anyway to extract the carry
 and provide it for the next instruction.
 </p><p>
-Double buffering is made possible by a counter to toggle between them. The instruction word is decoded by random logic for the ISA. The address is decoded already from the start
+Double buffering is not needed because in 3 phases ( or 5), the circuit are all connected up to the last gate before the target register. Any fast paths just already pass through.
+Hopefully the two register slow down the fast path to reduce some switching noise. Maybe overcompensate speed by late WE? Does this improve hold of previous cycle?
+    Double buffering is made possible by a counter to toggle between them. The instruction word is decoded by random logic for the ISA. The address is decoded already from the start
 because I only address 8 registers and this is just a byte. Writeback is decoded while ALU works.
 </p>
 
