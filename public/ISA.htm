@@ -26,7 +26,7 @@
             </tbody>
         </table>
 
-        <h2>Instruction encoding</h2>
+        <h1>Instruction encoding</h1>
         Instructions with two source registers use each bit to select between two possible source for each input of the ALU.  Default accessible register (general purpose) are BCXY.
         Abbreviations: Immediate. Cnd=Condition. Function "Lambda" L. D is direction, 0: towards GeneralPuroposeReg, towards Flags, towards Registers (first wins)
         <table>
@@ -48,7 +48,54 @@
                 <tr><td>0000</td><td></td><td></td><td>D</td><td>PS</td><td>I</td><td>See next table</td></tr>
             </tbody>
         </table>
-        <h3> trying to unify S with X and Y</h3>
+        <h2> trying to unify S with X and Y</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>OP Code</th><th>Function (SubOp)</th><th>source Register(s)</th><th>Direction</th><th>Function2</th><th>Target Register</th><th>Explaination</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>LLL&gt;010</td><td>RR</td><td></td><td></td><td>TT</td><td>Register, Register => (Register) Operation</td></tr>
+                <tr><td>1010     </td><td></td><td></td> <td></td><td>LL=++ -- not neg</td> <td>TT</td><td>Typical in place operations. +=2 and -=2 maybe also</td></tr>
+                <tr><td>1000</td><td></td><td></td><td>D</td><td>L</td><td>TT</td><td>Rotation through carry in Direction, Arithmetic Shift</td></tr>
+
+                <tr><td>0111</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
+                <tr style="border-bottom: 2px solid black;">    </tr><td>0110</td><td> </td><td>RR   </td><td></td><td></td><td>TT</td><td>Copy to register (RR==TT?immediate) </td></tr>
+                
+
+                
+                <tr><td>0101=Immediate   </td> <td></td> <td></td><td></td> <td>LLL</td> <td>T=B,Y</td> <td>L like Opcode 1 & CMP & BIT</td></tr>
+                <tr><td>0100=Displacement</td> <td></td><td>R=X,Y</td> <td>D</td><td>8bit|16bit displacement</td> <td>T=B|other index</td><td></td></tr>
+                <tr><td>0011=Stream      </td> <td></td><td>R=X,Y</td> <td>D</td><td>++ --</td> <td>T=B|other index</td><td></td></tr>
+                <tr><td>0010=Stack       </td> <td></td><td>R=S  </td> <td>D</td><td>++ --</td> <td>TT={B,X,PStatus,PCounter}</td><td> wrong combination of D and ++ --  changes  JSR to BRK and RTS to RTI </td></tr>
+                <tr><td>0001=Absolute    </td> <td></td> <td>8bit|16bit address</td>  <td>D</td><td></td><td>TT = B C X </td></tr>
+                <tr><td>0001=Absolute    </td> <td></td><td>8bit|16bit address</td><td>Indirect?</td><td></td> <td>TT = PC</td><td>JMP</td></tr>
+                
+                <tr style="border-top: 2px solid black;"><td>0000</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
+                <tr><td>0000</td><td></td><td></td><td>D=0</td><td>FF</td><td>V</td><td>Get Flag aka If FFlag==Value? Branch!</td></tr>
+            </tbody>
+
+        </table>     
+        
+        <h3>Details about stack based Instructions: Wrong combination of ++ and D is reversed and second function activated</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Original function</th><th>reversed</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <tr><td>JSR</td><td>BRK</td></tr>
+                    <tr><td>RTS</td><td>RTI</td></tr>
+                    <tr><td>PHX</td><td>TXS</td></tr>
+                    <tr><td>PLX</td><td>TSX</td></tr>                    
+                </tr>
+            </tbody>
+        </table> 
+
+        <h3> trying to unify S with X and Y (old version)</h3>
         <table>
             <thead>
                 <tr>
