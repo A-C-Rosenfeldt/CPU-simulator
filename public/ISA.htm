@@ -48,7 +48,26 @@
                 <tr><td>0000</td><td></td><td></td><td>D</td><td>PS</td><td>I</td><td>See next table</td></tr>
             </tbody>
         </table>
+        <h3> trying to unify S with X and Y</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>OP Code</th><th>Function (SubOp)</th><th>source Register(s)</th><th>Direction</th><th>Target Register</th><th>Immediate</th><th>Explaination</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>LLL&lt;110</td><td>RR</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation</td></tr>
+                <tr ><td>1110</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
+                <tr style="border-bottom: 2px solid black;"><td>1111</td><td></td><td>L</td><td>D</td><td>TT</td><td></td><td>Rotation through carry in Direction, AS</td></tr>
+                <tr><td>0</td><td>LL=010..100 </td><td>R=X,Y</td><td>D</td><td>T</td><td></td><td>Pointer Operation, reverse stack. R={X,Y}, T={B,BC}. {LL=010 & T=1 ? TSX }  </td></tr>
+                <tr><td>0</td><td>LL={101=BRK-RTI,110=JSR-RTS} for progamm counter, LL={R=S instead of Y} for B</td><td>R=Y,S  </td><td>D</td><td>T</td><td></td><td>Pointer Operation. stack , T={B ,Processor status,Program-Counter}  </td></tr>
+                <tr><td>0</td><td>LL=111 </td><td>R=X,Y   </td><td>L</td><td>TT</td><td></td><td>Index Operation with immediate / Addressing mode {I16, I16+Y8, X16+I8, Y16+I8</td></tr>
 
+                <tr style="border-top: 2px solid black;" ><td>0001</td><td> </td><td>RR   </td><td></td><td>TT</td><td></td><td>Copy to register (RR==TT?immediate) </td></tr>
+                <tr><td>0000</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
+                <tr><td>0000</td><td></td><td></td><td>D=0</td><td>FF</td><td>V</td><td>Get Flag aka If FFlag==Voume? Branch!</td></tr>
+            </tbody>
+        </table>        
         <h3>Details</h3>
         <table>
             <thead>
@@ -74,8 +93,8 @@
 
                 <tr><td>0</td><td>0</td><td>0</td><td>1</td><td></td></tr>
                 <tr><td>0</td><td>0</td><td>1</td><td>1</td><td></td></tr>
-                <tr><td>0</td><td>1</td><td>0</td><td>1</td><td></td></tr>
-                <tr><td>0</td><td>1</td><td>1</td><td>1</td><td></td></tr>
+                <tr><td>0</td><td>1</td><td>0</td><td>1</td><td>?PHA</td></tr>
+                <tr><td>0</td><td>1</td><td>1</td><td>1</td><td>?PLA</td></tr>
 
             </tbody>
         </table>        
@@ -91,7 +110,7 @@
             </thead>
             <tbody>
                 <tr><td> 00 </td><td> plain </td></tr>
-                <tr><td> 01 </td><td> ++/-- only, no actual data access (T is unused )</td></tr>
+                <tr><td> 01 </td><td> ++/-- only, no actual data access (T is not used, Direction is used )</td></tr>
                 <tr><td> 10 </td><td> ++/-- </td></tr>
                 <tr><td> 11 </td><td> ++/-- X becomes S for PHA and PLA, while Y Stack becomes reversed for memcopy</td></tr>
             </tbody>
