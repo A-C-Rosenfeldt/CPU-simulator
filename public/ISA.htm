@@ -61,7 +61,7 @@
                 <tr style="border-bottom: 2px solid black;"><td>1111</td><td></td><td>L</td><td>D</td><td>TT</td><td></td><td>Rotation through carry in Direction, AS</td></tr>
                 <tr><td>0</td><td>LL=010..100 </td><td>R=X,Y</td><td>D</td><td>T</td><td></td><td>Pointer Operation, reverse stack. R={X,Y}, T={B,BC}. {LL=010 & T=1 ? TSX }  </td></tr>
                 <tr><td>0</td><td>LL={101=BRK-RTI,110=JSR-RTS} for progamm counter, LL={R=S instead of Y} for B</td><td>R=Y,S  </td><td>D</td><td>T</td><td></td><td>Pointer Operation. stack , T={B ,Processor status,Program-Counter}  </td></tr>
-                <tr><td>0</td><td>LL=111 </td><td>R=X,Y   </td><td>L</td><td>TT</td><td></td><td>Index Operation with immediate / Addressing mode {I16, I16+Y8, X16+I8, Y16+I8</td></tr>
+                <tr><td>0</td><td>LL=111A </td><td>R=X,Y   </td><td>D</td><td>T</td><td></td><td>Index Operation with immediate / Addressing mode {I16, I16+Y8, X16+I8, Y16+I8</td></tr>
 
                 <tr style="border-top: 2px solid black;" ><td>0001</td><td> </td><td>RR   </td><td></td><td>TT</td><td></td><td>Copy to register (RR==TT?immediate) </td></tr>
                 <tr><td>0000</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
