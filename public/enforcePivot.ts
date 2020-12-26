@@ -57,13 +57,19 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
     return s
 }
 
+class FilledFrom{
+    filled:false
+    from:number
+}
+
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
 // Todo: sub uses this
 // Todo: swap uses this
 class JoinOperatorIterator{
     s:number[][]
-    i:number[] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
-    gap=0
+    i:FilledFrom[] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+    filled=0
+    filled_last:number
     last:number
     constructor(...s:number[][]){
         //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
@@ -83,11 +89,12 @@ class JoinOperatorIterator{
 
     next():number{
 
+        this.filled_last=this.filled_last
             if ((this.i[0] < this.s[0].length || this.i[1] < this.s[1].length) ){
                 
             
                     // console.log("i "+i+" a "+a)
-                const pass1gap=this.gap;
+                const pass1gap=this.filled;
 
                 /*do*/{
                     // trying to avoid infinity, null and undefined for better readability
@@ -120,7 +127,7 @@ class JoinOperatorIterator{
                         cursor.forEach((c,i)=>{
                             if (min===c[0]){
                                 this.i[i]++
-                                this.gap ^= 1 << i
+                                this.filled ^= 1 << i
                                 R=c[0]
                             }
                         })
@@ -149,26 +156,43 @@ class Seamless {
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
-    gap = [false, false]
+    filled = [false, false]
     pos = [0, 0]
     concatter = new Array<number[]>()
 
     removeSeams(//criterium: ((a: number) => boolean),
-        fillValues: number[], sourceStart: number,
-        pos: number, gap: boolean,
+        fillValues: Span<number>[] , // sourceStart: number[],
+        pos: number, filled: boolean,
+        t=0,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
         if (this.pos[0] < pos ) { // eat zero length  ( Row constructor does this too, but it is only one line )
             this.pos[0]=pos
-            this.gap[0]=gap
+            this.filled[0]=filled
             // properties? With delegates I get to use Arrays!
 
             //!whatIf &&
-            if ( !gap ) { // fuse spans   // maybe invert meaning   =>  gap -> filled
-                this.concatter.push(fillValues.slice(this.pos[1] - sourceStart, pos - sourceStart))
+            if ( filled ) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+                const cut=fillValues.map( fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
+                if (t===0){
+                    this.concatter.push(cut[0])
+                }else{
+                    // Violation of  Single Responsibility Principle for  Sub
+                    // ToDo: Trouble is, I do not really need the slices
+                    const result=new Array<number>(pos-pos[1])
+                    for(let k=pos[1];k<pos;k++){
+                        let sum=0
+                        const retards=fillValues.map(fv=> fv.extends[k-fv.start]                        )
+                        if (t!==0){
+                            retards[retards.length-1]*=t    
+                        }
+                        result.push( retards.reduce((p,c)=>p+c))
+                    }
+                    this.concatter.push(result)
+                }
             }else{ // flush buffer. Be sure to call before closing stream!
-                if (!gap[1]) { // switching from filled to gap 
+                if (filled[1]) { // switching from filled to gap 
                 if (whatIf) {
                     this.starts++
                 } else {
@@ -182,7 +206,7 @@ class Seamless {
                         }
                     }
                 } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                this.gap[1] = this.gap[0]
+                this.filled[1] = this.filled[0]
                 this.pos[1] = this.pos[0]
             }
         }
@@ -413,7 +437,8 @@ export class Row{
             console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
-            const jop=new JoinOperatorIterator(this.starts,that.starts) // ToDo use this instead of code below
+            const jop=new JoinOperatorIterator(this.starts,that.starts) // source stream  ToDo use this instead of code below
+            const drain=new Seamless() // target stream
 
             let i = 0 // this  Mybe use .values instead?
             let a = 0 // that
@@ -423,12 +448,33 @@ export class Row{
             let concatter:number[][]=new Array<number[]>() //,cut1:number[];
 
             let pos:number
+            const these=new Array<Span<number>>()
+            {
+                let pointer:Row=this
+                for(let j=1;j>=0;j--){
+                    if ( (jop.filled_last >>j) & 1){
+                        const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
+                        thi.extends=pointer.data[jop.i[j]>>1]
+                        these.push(thi)
+                    }
+                    pointer=that
+                }
+            }
+
+            drain.removeSeams(these,pos, jop.filled !== 0 );
+
             while((pos=jop.next()) <= jop.last){
-                if (  (jop.gap & 2 ) ===0){
-                    if (jop.gap & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
+                switch( jop.filled_last & 3){
+                    case 1:drain.removeSeams(this.data[jop.i[0]>>1],this.starts[i],pos, jop.filled !== 0 ); break;
+                    case 2:drain.removeSeams(that.data[jop.i[1]>>1],that.starts[a],pos,jop.filled !== 0 );break;
+                    case 3:break;
+                    //default: drain.removeSeams([],0,pos,jop.filled !== 0 );break; // Todo: reorder parameters
+                }
+                if (  (jop.filled & 3 ) ){
+                    if (jop.filled & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
                     console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
                     let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
-                    if (jop.gap & 2){
+                    if (jop.filled & 2){
                         for(let b=0;b<cut.length;b++){
                             console.log("b "+b)
                             const t=that.data[a>>1][b+(story[1]-that.starts[a])]
@@ -440,12 +486,14 @@ export class Row{
                             }
                         }
                     }
+                    drain.removeSeams(cut, pos,pos, jop.filled !== 0 )
                     concatter.push(cut)
                     // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice 
                 }else{
+                    
                     if (pass1gap & 2){
                         console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
-                        concatter.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
+                        concatter.push(that.data[a>>1].slice(story[1]-that.starts[a],story[0]-that.starts[a]))
                     }
                     // else{
                     //     ts.push(Array(story[0]-story[1]).fill(0))
@@ -733,13 +781,13 @@ export class Tridiagonal{
                 
                 // sub uses job.gap&3 !==0
                 // swap uses (not sure about all the brackets):
-                if ( ( (jop.gap >> (jop.gap >> 2 )) & 1 ) ===0){
+                if ( ( (jop.filled >> (jop.filled >> 2 )) & 1 ) ===0){
                     let t=new Span<number>(pos-last_Cut, last_Cut)
                     const relative=[pos, last_Cut]
-                    const i=jop.i[jop.gap >> 2]
+                    const i=jop.i[jop.filled >> 2]
                     t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                     spans_new.push(t)
-                    spans_new_Stream.removeSeams(row.data[i],row.starts[i],pos,jop.gap===0)
+                    spans_new_Stream.removeSeams(row.data[i],row.starts[i],pos,jop.filled===0)
 
                     // sub uses concatter and (pass1gap === 0 ) ! to remove seams
                     // if ((jop.gap & 1) === 0 ){
