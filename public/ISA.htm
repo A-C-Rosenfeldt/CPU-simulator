@@ -67,7 +67,11 @@
                 <tr><td>0000</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
                 <tr><td>0000</td><td></td><td></td><td>D=0</td><td>FF</td><td>V</td><td>Get Flag aka If FFlag==Voume? Branch!</td></tr>
             </tbody>
-        </table>        
+
+        </table>      
+        Okay, I can see why MIPS did away with the stack. So I could -- like 6502 and MIPS -- have DEX extra and JumpAndLink via register.
+        Even with inner loops, immediate is just too nice to not have all reg-reg also with immediate.
+        That would mean as many immediate as reg reg because the format is the same ( reg reg as two separate input groups).  
         <h3>Details</h3>
         <table>
             <thead>
