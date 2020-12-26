@@ -58,8 +58,8 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
 }
 
 class FilledFrom{
-    filled:false
-    from:number
+    filled=false;
+    from=0;
 }
 
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
@@ -90,7 +90,7 @@ class JoinOperatorIterator{
     next():number{
 
         this.filled_last=this.filled_last
-            if ((this.i[0] < this.s[0].length || this.i[1] < this.s[1].length) ){
+            if ((this.i[0].from < this.s[0].length || this.i[1] < this.s[1].length) ){
                 
             
                     // console.log("i "+i+" a "+a)
@@ -126,8 +126,8 @@ class JoinOperatorIterator{
                         let R:number
                         cursor.forEach((c,i)=>{
                             if (min===c[0]){
-                                this.i[i]++
-                                this.filled ^= 1 << i
+                                this.i[i].from++ ; 
+                                this.i[i].filled =  !this.i[i].filled  ; // ^= 1 << i
                                 R=c[0]
                             }
                         })
