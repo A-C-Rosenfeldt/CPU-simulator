@@ -36,7 +36,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>1</td><td>LLL&lt;110</td><td>RR</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation</td></tr>
+                <tr><td>1</td><td>LLL&lt;110</td><td>R={B C} R={X Y}</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation. 8:16 bit limitation is motivated by relative addressing</td></tr>
                 <tr><td>1110</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
                 <tr><td>1111</td><td></td><td>L</td><td>D</td><td>TT</td><td></td><td>Rotation through carry in Direction, AS</td></tr>
                 <tr><td>01</td><td>LL</td><td>R</td><td>D</td><td>T</td><td>0</td><td>Pointer Operation. R={X,Y}, T={B,BC}  </td></tr>
@@ -56,11 +56,11 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>1</td><td>LLL&gt;010</td><td>RR</td><td></td><td></td><td>TT</td><td>Register, Register => (Register) Operation</td></tr>
+                <tr><td>1</td><td>LLL&lt;110</td><td>R={B C} R={X Y}</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation. 8:16 bit limitation is motivated by relative addressing</td></tr>
                 <tr><td>1010     </td><td></td><td></td> <td></td><td>LL=++ -- not neg</td> <td>TT</td><td>Typical in place operations. +=2 and -=2 maybe also</td></tr>
                 <tr><td>1000</td><td></td><td></td><td>D</td><td>L</td><td>TT</td><td>Rotation through carry in Direction, Arithmetic Shift</td></tr>
 
-                <tr><td>0111</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
+                <tr><td>0111</td><td></td><td>R={B C} R={X Y}</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only ... Uh, no 9bit sprite collision for C64? </td></tr>
                 <tr style="border-bottom: 2px solid black;">    </tr><td>0110</td><td> </td><td>RR   </td><td></td><td></td><td>TT</td><td>Copy to register (RR==TT?immediate) </td></tr>
                 
 
@@ -103,7 +103,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>1</td><td>LLL&lt;110</td><td>RR</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation</td></tr>
+                <tr><td>1</td><td>LLL&lt;110</td><td>R={B C} R={X Y}</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation. 8:16 bit limitation is motivated by relative addressing</td></tr>
                 <tr ><td>1110</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
                 <tr style="border-bottom: 2px solid black;"><td>1111</td><td></td><td>L</td><td>D</td><td>TT</td><td></td><td>Rotation through carry in Direction, AS</td></tr>
                 <tr><td>0</td><td>LL=010..100 </td><td>R=X,Y</td><td>D</td><td>T</td><td></td><td>Pointer Operation, reverse stack. R={X,Y}, T={B,BC}. {LL=010 & T=1 ? TSX }  </td></tr>
