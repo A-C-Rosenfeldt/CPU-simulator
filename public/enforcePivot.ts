@@ -59,7 +59,12 @@ export function FromRaw<T>(...b:Array<T>):Span<T>{
 
 class FilledFrom{
     filled=false;
-    from=0;
+    from=0;     // position in starts
+    fromfrom=0; // position in Matrix
+    max=0
+    constructor(max:number){
+        this.max=max
+    }
 }
 
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
@@ -67,7 +72,7 @@ class FilledFrom{
 // Todo: swap uses this
 class JoinOperatorIterator{
     s:number[][]
-    i:FilledFrom[] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+    i:FilledFrom[][] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     filled=0
     filled_last:number
     last:number
@@ -79,7 +84,8 @@ class JoinOperatorIterator{
             //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
-            this.i = new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
+            this.i = [this.s.map(starts=> new FilledFrom(s.length) )]
+            //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
             
             //let story:number[]=[]
             // ? let data_i=0
@@ -89,8 +95,26 @@ class JoinOperatorIterator{
 
     next():number{
 
+        // on the one hand: state is my enemy
+        // on the other hand: JS does not like joins (needed in Seams). NoSQL does not like joins. We cannot use a join to code a join, or can we?
+        // Maybe I should start with an equi-join
+        this.i[1]=this.i[0] // this sets the order of indices. Feels okay
         this.filled_last=this.filled_last
-            if ((this.i[0].from < this.s[0].length || this.i[1] < this.s[1].length) ){
+        const min = this.i[0].reduce((p,v) => (v.from < v.max && v.fromfrom < p) ? v.fromfrom : p ,this.last) // uh. again a join
+
+        if (min<this.last){
+            this.i[0].forEach((c)=>{
+                            if (min===c.fromfrom){ // not while because Seamless removes zero length spans ( degenerated )
+                                c.from++ ; 
+                                c.filled =  !c.filled  ; // ^= 1 << i
+
+                            }
+                        })
+                        
+        }
+ return min
+            //if ((this.i[0][0].from < this.s[0].length || this.i[0][1] < this.s[1].length) )
+            {
                 
             
                     // console.log("i "+i+" a "+a)
@@ -106,7 +130,7 @@ class JoinOperatorIterator{
 
                     let min=this.last
                     cursor.forEach((c,i)=>{
-                        const k=this.i[i]
+                        const k=this.i[0][i].from
                         if (k < c[1]){
                             c[0]=this.s[i][k]
                         }
@@ -126,8 +150,8 @@ class JoinOperatorIterator{
                         let R:number
                         cursor.forEach((c,i)=>{
                             if (min===c[0]){
-                                this.i[i].from++ ; 
-                                this.i[i].filled =  !this.i[i].filled  ; // ^= 1 << i
+                                // this.i[i].from++ ; 
+                                // this.i[i].filled =  !this.i[i].filled  ; // ^= 1 << i
                                 R=c[0]
                             }
                         })
@@ -163,7 +187,7 @@ class Seamless {
     removeSeams(//criterium: ((a: number) => boolean),
         fillValues: Span<number>[] , // sourceStart: number[],
         pos: number, filled: boolean,
-        t=0,
+        factor=0,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
@@ -175,7 +199,7 @@ class Seamless {
             //!whatIf &&
             if ( filled ) { // fuse spans   // maybe invert meaning   =>  gap -> filled
                 const cut=fillValues.map( fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
-                if (t===0){
+                if (factor===0){
                     this.concatter.push(cut[0])
                 }else{
                     // Violation of  Single Responsibility Principle for  Sub
@@ -184,8 +208,8 @@ class Seamless {
                     for(let k=pos[1];k<pos;k++){
                         let sum=0
                         const retards=fillValues.map(fv=> fv.extends[k-fv.start]                        )
-                        if (t!==0){
-                            retards[retards.length-1]*=t    
+                        if (factor!==0){
+                            retards[retards.length-1]*=factor    
                         }
                         result.push( retards.reduce((p,c)=>p+c))
                     }
@@ -433,8 +457,8 @@ export class Row{
         /*for (let side = -1; side <= +1; side += 2)*/ //{
         let n= 0 //: number /// for pass=2
 
-        for (let pass = 0; pass < 2; pass++) {
-            console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
+        // not using passes right now. Maybe need to add aflush . for (let pass = 0; pass < 2; pass++) {
+            //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
             const jop=new JoinOperatorIterator(this.starts,that.starts) // source stream  ToDo use this instead of code below
@@ -448,22 +472,31 @@ export class Row{
             let concatter:number[][]=new Array<number[]>() //,cut1:number[];
 
             let pos:number
-            const these=new Array<Span<number>>()
-            {
-                let pointer:Row=this
-                for(let j=1;j>=0;j--){
-                    if ( (jop.filled_last >>j) & 1){
-                        const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
-                        thi.extends=pointer.data[jop.i[j]>>1]
-                        these.push(thi)
-                    }
-                    pointer=that
-                }
+            //=new Array<Span<number>>()
+            
+            while ((pos = jop.next()) <= jop.last) {
+                let pointer = this.data
+                // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
+                if (jop.i[1].length != 2) throw "This is a binary operator!"
+                const these = jop.i[1].map(ii => {
+                    //  const ii=jop.i[1][j]
+                    const thi = new Span<number>(0, ii.fromfrom)
+                    thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                    pointer = that.data
+                    return thi
+                })
+                // if ( jop.i[1][j] ){
+                //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
+                //     thi.extends=pointer.data[jop.i[j]>>1]
+                //     these.push(thi)
+                // }
+
+                drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */);
             }
 
-            drain.removeSeams(these,pos, jop.filled !== 0 );
-
-            while((pos=jop.next()) <= jop.last){
+            if (jop.i[0].every(v => v.filled === false) ) throw "last boundary should be a closing one"
+/*
+            
                 switch( jop.filled_last & 3){
                     case 1:drain.removeSeams(this.data[jop.i[0]>>1],this.starts[i],pos, jop.filled !== 0 ); break;
                     case 2:drain.removeSeams(that.data[jop.i[1]>>1],that.starts[a],pos,jop.filled !== 0 );break;
@@ -508,7 +541,8 @@ export class Row{
                 // console.log("i "+i+" a "+a)
                 const pass1gap=gap;
 
-                /*do*/{
+                //do
+                {
                     // trying to avoid infinity, null and undefined for better readability
                     let I:number=that.starts[that.starts.length-1]+1
                     let A:number=this.starts[this.starts.length-1]+1
@@ -530,7 +564,7 @@ export class Row{
                 }//while(false)
                 
                 //target value
-                if (pass === 1 && story.length===2 /* in pass=0."micro pass"=0 story is not completely filled because border swim in a soup.  This needs reversed story */) { // polymorphism?
+                if (pass === 1 && story.length===2 /* in pass=0."micro pass"=0 story is not completely filled because border swim in a soup.  This needs reversed story ) { // polymorphism?
                     console.log( 'story '+story[1]+' '+story[0] +' gap '+pass1gap);
 
                     // function construct only used to retard i and a by two and keep the names. Alternatively I could do a-- and start_next.reverse() or something. Important: ts.push();this.data[index].concat(ts)
@@ -590,10 +624,7 @@ export class Row{
                                 //Todo: combine data and start in class span for a single push?
                             //}else{
                                 data_next.push(Array.prototype.concat.apply([],concatter)) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                                /*  var buffer = new ArrayBuffer(24);
-                                    var idView = new Float64Array(buffer, byte offset=0*8, length=1*8); // instead of slice
-                                    target.set(idView)
-                                */
+
                                 concatter=new Array<number[]>()     
                             //}
                         }
@@ -644,12 +675,12 @@ export class Row{
             //         }
             //     }
             // }
-
+*/
        
-        }
+        
         // flip buffers
-        this.starts = start_next
-        this.data = data_next
+        // this.starts = start_next
+        // this.data = data_next
     }
 
 
@@ -781,13 +812,15 @@ export class Tridiagonal{
                 
                 // sub uses job.gap&3 !==0
                 // swap uses (not sure about all the brackets):
-                if ( ( (jop.filled >> (jop.filled >> 2 )) & 1 ) ===0){
+                const activeSource=jop.i[0][2].filled /*swap active*/? 1:0
+                if ( jop.i[0][ activeSource] ) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+                {
                     let t=new Span<number>(pos-last_Cut, last_Cut)
                     const relative=[pos, last_Cut]
-                    const i=jop.i[jop.filled >> 2]
+                    const i=jop.i[0][activeSource].from
                     t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                     spans_new.push(t)
-                    spans_new_Stream.removeSeams(row.data[i],row.starts[i],pos,jop.filled===0)
+                    spans_new_Stream.removeSeams( spans_new, pos,jop.i[0][activeSource].filled)
 
                     // sub uses concatter and (pass1gap === 0 ) ! to remove seams
                     // if ((jop.gap & 1) === 0 ){

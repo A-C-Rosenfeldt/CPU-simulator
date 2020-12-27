@@ -41,28 +41,54 @@ export function FromRaw(...b) {
     }
     return s;
 }
+class FilledFrom {
+    constructor(max) {
+        this.filled = false;
+        this.from = 0; // position in starts
+        this.fromfrom = 0; // position in Matrix
+        this.max = 0;
+        this.max = max;
+    }
+}
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
 // Todo: sub uses this
 // Todo: swap uses this
 class JoinOperatorIterator {
     constructor(...s) {
-        this.gap = 0;
+        this.filled = 0;
         //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
         //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
         this.s = s;
         this.last = Math.max(...this.s.map(s => s[s.length - 1]));
         //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
         // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-        this.i = new Array(s.length).fill(0); // this  Mybe use .values instead?
+        this.i = [this.s.map(starts => new FilledFrom(s.length))];
+        //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
         //let story:number[]=[]
         // ? let data_i=0
         //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
         // inner join ( sparse version )
     }
     next() {
-        if ((this.i[0] < this.s[0].length || this.i[1] < this.s[1].length)) {
+        // on the one hand: state is my enemy
+        // on the other hand: JS does not like joins (needed in Seams). NoSQL does not like joins. We cannot use a join to code a join, or can we?
+        // Maybe I should start with an equi-join
+        this.i[1] = this.i[0]; // this sets the order of indices. Feels okay
+        this.filled_last = this.filled_last;
+        const min = this.i[0].reduce((p, v) => (v.from < v.max && v.fromfrom < p) ? v.fromfrom : p, this.last); // uh. again a join
+        if (min < this.last) {
+            this.i[0].forEach((c) => {
+                if (min === c.fromfrom) { // not while because Seamless removes zero length spans ( degenerated )
+                    c.from++;
+                    c.filled = !c.filled; // ^= 1 << i
+                }
+            });
+        }
+        return min;
+        //if ((this.i[0][0].from < this.s[0].length || this.i[0][1] < this.s[1].length) )
+        {
             // console.log("i "+i+" a "+a)
-            const pass1gap = this.gap;
+            const pass1gap = this.filled;
             /*do*/ {
                 // trying to avoid infinity, null and undefined for better readability
                 let cursor = this.s.map(s => [this.last, s.length]);
@@ -71,7 +97,7 @@ class JoinOperatorIterator {
                 // let A:number=this.s[0][this.s[0].length-1]+1
                 let min = this.last;
                 cursor.forEach((c, i) => {
-                    const k = this.i[i];
+                    const k = this.i[0][i].from;
                     if (k < c[1]) {
                         c[0] = this.s[i][k];
                     }
@@ -89,8 +115,8 @@ class JoinOperatorIterator {
                     let R;
                     cursor.forEach((c, i) => {
                         if (min === c[0]) {
-                            this.i[i]++;
-                            this.gap ^= 1 << i;
+                            // this.i[i].from++ ; 
+                            // this.i[i].filled =  !this.i[i].filled  ; // ^= 1 << i
                             R = c[0];
                         }
                     });
@@ -117,22 +143,41 @@ class Seamless {
         // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
         //. Todo: Try both ways
         // two passes where motivated by memory allocation, but mess with the OOP structure
-        this.gap = [false, false];
+        this.filled = [false, false];
         this.pos = [0, 0];
         this.concatter = new Array();
     }
-    removeSeams(criterium, fillValues, sourceStart, pos, gap, whatIf = false // expose the triviality of this premature optimization
+    removeSeams(//criterium: ((a: number) => boolean),
+    fillValues, // sourceStart: number[],
+    pos, filled, factor = 0, whatIf = false // expose the triviality of this premature optimization
     ) {
         if (this.pos[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line )
             this.pos[0] = pos;
-            this.gap[0] = gap;
+            this.filled[0] = filled;
             // properties? With delegates I get to use Arrays!
             //!whatIf &&
-            if (!gap) { // fuse spans   // maybe invert meaning   =>  gap -> filled
-                this.concatter.push(fillValues.slice(this.pos[1] - sourceStart, pos - sourceStart));
+            if (filled) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+                const cut = fillValues.map(fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
+                if (factor === 0) {
+                    this.concatter.push(cut[0]);
+                }
+                else {
+                    // Violation of  Single Responsibility Principle for  Sub
+                    // ToDo: Trouble is, I do not really need the slices
+                    const result = new Array(pos - pos[1]);
+                    for (let k = pos[1]; k < pos; k++) {
+                        let sum = 0;
+                        const retards = fillValues.map(fv => fv.extends[k - fv.start]);
+                        if (factor !== 0) {
+                            retards[retards.length - 1] *= factor;
+                        }
+                        result.push(retards.reduce((p, c) => p + c));
+                    }
+                    this.concatter.push(result);
+                }
             }
             else { // flush buffer. Be sure to call before closing stream!
-                if (!gap[1]) { // switching from filled to gap 
+                if (filled[1]) { // switching from filled to gap 
                     if (whatIf) {
                         this.starts++;
                     }
@@ -148,7 +193,7 @@ class Seamless {
                             }
                         }
                     } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                    this.gap[1] = this.gap[0];
+                    this.filled[1] = this.filled[0];
                     this.pos[1] = this.pos[0];
                 }
             }
@@ -350,157 +395,224 @@ export class Row {
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
         let n = 0; //: number /// for pass=2
-        for (let pass = 0; pass < 2; pass++) {
-            console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join());
-            // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-            const jop = new JoinOperatorIterator(this.starts, that.starts); // ToDo use this instead of code below
-            let i = 0; // this  Mybe use .values instead?
-            let a = 0; // that
-            let story = [];
-            let gap = 0;
-            //let data_i=0
-            let concatter = new Array(); //,cut1:number[];
-            // inner join ( sparse version )
-            do {
-                // console.log("i "+i+" a "+a)
-                const pass1gap = gap;
-                /*do*/ {
-                    // trying to avoid infinity, null and undefined for better readability
-                    let I = that.starts[that.starts.length - 1] + 1;
-                    let A = this.starts[this.starts.length - 1] + 1;
-                    if (i < this.starts.length) {
-                        I = this.starts[i];
-                    }
-                    if (a < that.starts.length) {
-                        A = that.starts[a];
-                    }
-                    if (I > A) {
-                        a++;
-                        gap ^= 2;
-                        story[0] = A;
-                    }
-                    else {
-                        i++;
-                        gap ^= 1;
-                        story[0] = I;
-                        if (I === A) {
-                            a++;
-                            gap ^= 2;
+        // not using passes right now. Maybe need to add aflush . for (let pass = 0; pass < 2; pass++) {
+        //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
+        // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
+        const jop = new JoinOperatorIterator(this.starts, that.starts); // source stream  ToDo use this instead of code below
+        const drain = new Seamless(); // target stream
+        let i = 0; // this  Mybe use .values instead?
+        let a = 0; // that
+        let story = [];
+        let gap = 0;
+        //let data_i=0
+        let concatter = new Array(); //,cut1:number[];
+        let pos;
+        //=new Array<Span<number>>()
+        while ((pos = jop.next()) <= jop.last) {
+            let pointer = this.data;
+            // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
+            if (jop.i[1].length != 2)
+                throw "This is a binary operator!";
+            const these = jop.i[1].map(ii => {
+                //  const ii=jop.i[1][j]
+                const thi = new Span(0, ii.fromfrom);
+                thi.extends = pointer[ii.from >> 1]; // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                pointer = that.data;
+                return thi;
+            });
+            // if ( jop.i[1][j] ){
+            //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
+            //     thi.extends=pointer.data[jop.i[j]>>1]
+            //     these.push(thi)
+            // }
+            drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */);
+        }
+        if (jop.i[0].every(v => v.filled === false))
+            throw "last boundary should be a closing one";
+        /*
+                    
+                        switch( jop.filled_last & 3){
+                            case 1:drain.removeSeams(this.data[jop.i[0]>>1],this.starts[i],pos, jop.filled !== 0 ); break;
+                            case 2:drain.removeSeams(that.data[jop.i[1]>>1],that.starts[a],pos,jop.filled !== 0 );break;
+                            case 3:break;
+                            //default: drain.removeSeams([],0,pos,jop.filled !== 0 );break; // Todo: reorder parameters
                         }
-                    }
-                } //while(false)
-                //target value
-                if (pass === 1 && story.length === 2 /* in pass=0."micro pass"=0 story is not completely filled because border swim in a soup.  This needs reversed story */) { // polymorphism?
-                    console.log('story ' + story[1] + ' ' + story[0] + ' gap ' + pass1gap);
-                    // function construct only used to retard i and a by two and keep the names. Alternatively I could do a-- and start_next.reverse() or something. Important: ts.push();this.data[index].concat(ts)
-                    (function trailing(i, a) {
-                        if (pass1gap & 1) { // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
-                            console.log('this.data[' + i + '>>1].slice(' + story[1] + '-' + this.starts[i] + ',' + story[0] + '-' + this.starts[i] + ')');
-                            let cut = this.data[i >> 1].slice(story[1] - this.starts[i], story[0] - this.starts[i]); // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
-                            if (pass1gap & 2) {
-                                for (let b = 0; b < cut.length; b++) {
-                                    console.log("b " + b);
-                                    const t = that.data[a >> 1][b + (story[1] - that.starts[a])];
-                                    if (factor) {
-                                        cut[b] -= factor * t;
-                                    }
-                                    else {
+                        if (  (jop.filled & 3 ) ){
+                            if (jop.filled & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
+                            console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
+                            let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
+                            if (jop.filled & 2){
+                                for(let b=0;b<cut.length;b++){
+                                    console.log("b "+b)
+                                    const t=that.data[a>>1][b+(story[1]-that.starts[a])]
+                                    if (factor){
+                                        cut[b] -= factor*t
+                                    }else{
                                         //throw "use [get;set;trim] instead"
-                                        cut[b] += t; // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
+                                        cut[b] += t  // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
                                     }
                                 }
                             }
-                            concatter.push(cut);
-                            // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice 
-                        }
-                        else {
-                            if (pass1gap & 2) {
-                                console.log('ts.push(that.data[' + a + '>>1].slice(' + story[1] + '-' + that.starts[a] + ',' + story[0] + '-' + that.starts[a] + '))');
-                                concatter.push(that.data[a >> 1].slice(story[1] - that.starts[a - 1], story[0] - that.starts[a]));
+                            drain.removeSeams(cut, pos,pos, jop.filled !== 0 )
+                            concatter.push(cut)
+                            // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice
+                        }else{
+                            
+                            if (pass1gap & 2){
+                                console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
+                                concatter.push(that.data[a>>1].slice(story[1]-that.starts[a],story[0]-that.starts[a]))
                             }
                             // else{
                             //     ts.push(Array(story[0]-story[1]).fill(0))
                             // }
                         }
-                    }).bind(this)(i - 2, a - 2);
-                    console.log('this.starts[' + n + '] === story[' + 0 + ']');
-                    console.log('if' + this.starts[n] + ' === ' + story[0]);
-                    while (this.starts[n] === story[0]) {
-                        console.log('ts.length: ' + data_next.length);
-                        if ((n & 1) === 1) {
-                            const index = n >> 1;
-                            const rValue = Array.prototype.concat.apply([], data_next);
-                            console.log('pass ' + pass + ' data ' + this.data.map(d => d.length).join() + '   [' + index + '] = ' + rValue);
-                            this.data[index] = Array.prototype.concat.apply([], data_next);
-                            data_next = [];
-                        }
-                        n++;
-                    }
-                }
-                // target address. Mostly runs first, but data_next.push runs later
-                if ((pass1gap === 0) !== (gap === 0)) { // switching from gap mode to filled values mode and back                   
-                    if (pass === 0) {
-                        start_next.push(story[0]); // note border
-                    }
-                    else {
-                        if (gap === 0) { // target value needs to process the end of the span and thus be in a gap. We do a trick here: first initialization of concatter
-                            //if (pass===0){
-                            //data_next.push(new Array<number>(story[0] - start_next[start_next.length-1])) // create scratchpad to avoid creation of new arrays by concat()
-                            //Todo: combine data and start in class span for a single push?
-                            //}else{
-                            data_next.push(Array.prototype.concat.apply([], concatter)); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                            /*  var buffer = new ArrayBuffer(24);
-                                var idView = new Float64Array(buffer, byte offset=0*8, length=1*8); // instead of slice
-                                target.set(idView)
-                            */
-                            concatter = new Array();
-                            //}
+                    }).bind(this)(i-2,a-2)
                         }
                     }
-                } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                story[1] = story[0]; // the end of the gap becomes the start of the value-span                
-                //  else { // pass=0, but this belongs to the block outside below the while loops.
-                //     if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
-                //         // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
-                //         start_next=start_next.concat(story)
-                //     } //else { // not a gap
-                //     //     story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
-                //     // } 
-                //     // // Special code for Tridagonal
-                //     // if (gap !== 0) {
-                //     //     story[1] = story[0] // we looked back
-                //     // } else { // we record gaps
-                //     //     const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
-                //     //     if (pointer[0] - pointer[1] > story[0] - story[1]) {
-                //     //         gaps[i < 3 ? 0 : 1] = [i].concat(story)
-                //     //     }
-                //     // }
-                // }
-                // // if before was a gap, but now is no gap
-                // if (pass1gap === 0 && gap !== 0) {
-                // } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-            } while (i < this.starts.length || a < that.starts.length);
-            // Not needed for RLE
-            // if (pass===0){
-            //     // what to do if there are no gaps?
-            //     // main diagonal takes it!
-            //     // similar to constructor, but sadly not the same
-            //     throw "now RLE"
-            //     this.starts= new Array(this.starts.length).
-            //     fill(Math.min(this.starts[0                     ],that.starts[0]),0).
-            //     fill(Math.max(this.starts[this.starts.length-1  ],that.starts[this.starts.length-1  ]),3)
-            //     if (gaps){
-            //         for(let side=0;side<2;side++){
-            //         if (gaps[side] && gaps[side].length>0){
-            //             this.starts.splice(1+3*side,0,...gaps[side])
-            //         }
-            //         }
-            //     }
-            // }
-        }
+        
+                    // inner join ( sparse version )
+                    do {
+                        // console.log("i "+i+" a "+a)
+                        const pass1gap=gap;
+        
+                        //do
+                        {
+                            // trying to avoid infinity, null and undefined for better readability
+                            let I:number=that.starts[that.starts.length-1]+1
+                            let A:number=this.starts[this.starts.length-1]+1
+                            if (i < this.starts.length){
+                                I = this.starts[i]
+                            }
+                            if (a < that.starts.length){
+                                A = that.starts[a]
+                            }
+        
+                            if (I > A) {
+                                a++; gap ^= 2; story[0] = A
+                            }else{
+                                i++; gap ^= 1; story[0] = I
+                                if (I === A) {
+                                    a++; gap ^= 2
+                                }
+                            }
+                        }//while(false)
+                        
+                        //target value
+                        if (pass === 1 && story.length===2 /* in pass=0."micro pass"=0 story is not completely filled because border swim in a soup.  This needs reversed story ) { // polymorphism?
+                            console.log( 'story '+story[1]+' '+story[0] +' gap '+pass1gap);
+        
+                            // function construct only used to retard i and a by two and keep the names. Alternatively I could do a-- and start_next.reverse() or something. Important: ts.push();this.data[index].concat(ts)
+                            (function trailing(i:number,a:number){
+        
+                                if (pass1gap & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
+                                    console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
+                                    let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
+                                    if (pass1gap & 2){
+                                        for(let b=0;b<cut.length;b++){
+                                            console.log("b "+b)
+                                            const t=that.data[a>>1][b+(story[1]-that.starts[a])]
+                                            if (factor){
+                                                cut[b] -= factor*t
+                                            }else{
+                                                //throw "use [get;set;trim] instead"
+                                                cut[b] += t  // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
+                                            }
+                                        }
+                                    }
+                                    concatter.push(cut)
+                                    // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice
+                                }else{
+                                    if (pass1gap & 2){
+                                        console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
+                                        concatter.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
+                                    }
+                                    // else{
+                                    //     ts.push(Array(story[0]-story[1]).fill(0))
+                                    // }
+                                }
+                            }).bind(this)(i-2,a-2)
+        
+                            console.log('this.starts['+n+'] === story['+0+']')
+                            console.log('if'+this.starts[n]+' === '+story[0])
+                            while (this.starts[n] === story[0]) {
+                                console.log('ts.length: '+data_next.length)
+                                if ((n & 1) === 1) {
+                                    const index=n>>1
+                                    const rValue=Array.prototype.concat.apply([],data_next)
+                                    console.log('pass '+pass+' data '+this.data.map(d=>d.length).join()+'   ['+index+'] = '+rValue)
+                                    this.data[index]=Array.prototype.concat.apply([],data_next)
+                                        data_next=[]
+                                }
+                                n++
+                            }
+                        }
+        
+                        // target address. Mostly runs first, but data_next.push runs later
+                        if ( (pass1gap === 0 ) !== (gap === 0) ) { // switching from gap mode to filled values mode and back
+                            if (pass===0){
+                                start_next.push(story[0]) // note border
+                            }else{
+                                if (gap===0){ // target value needs to process the end of the span and thus be in a gap. We do a trick here: first initialization of concatter
+                                    //if (pass===0){
+                                        //data_next.push(new Array<number>(story[0] - start_next[start_next.length-1])) // create scratchpad to avoid creation of new arrays by concat()
+                                        //Todo: combine data and start in class span for a single push?
+                                    //}else{
+                                        data_next.push(Array.prototype.concat.apply([],concatter)) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+        
+                                        concatter=new Array<number[]>()
+                                    //}
+                                }
+                            }
+                        } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+                        story[1] = story[0] // the end of the gap becomes the start of the value-span
+        
+                        //  else { // pass=0, but this belongs to the block outside below the while loops.
+                        //     if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
+                        //         // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
+                        //         start_next=start_next.concat(story)
+                        //     } //else { // not a gap
+                        //     //     story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
+                        //     // }
+        
+                        //     // // Special code for Tridagonal
+                        //     // if (gap !== 0) {
+                        //     //     story[1] = story[0] // we looked back
+                        //     // } else { // we record gaps
+                        //     //     const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
+                        //     //     if (pointer[0] - pointer[1] > story[0] - story[1]) {
+                        //     //         gaps[i < 3 ? 0 : 1] = [i].concat(story)
+                        //     //     }
+                        //     // }
+                        // }
+                        // // if before was a gap, but now is no gap
+                        // if (pass1gap === 0 && gap !== 0) {
+        
+                        // } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+                    } while (i < this.starts.length || a < that.starts.length);
+        
+        
+                    // Not needed for RLE
+                    // if (pass===0){
+                    //     // what to do if there are no gaps?
+                    //     // main diagonal takes it!
+                    //     // similar to constructor, but sadly not the same
+                    //     throw "now RLE"
+                    //     this.starts= new Array(this.starts.length).
+                    //     fill(Math.min(this.starts[0                     ],that.starts[0]),0).
+                    //     fill(Math.max(this.starts[this.starts.length-1  ],that.starts[this.starts.length-1  ]),3)
+        
+                    //     if (gaps){
+                    //         for(let side=0;side<2;side++){
+                    //         if (gaps[side] && gaps[side].length>0){
+                    //             this.starts.splice(1+3*side,0,...gaps[side])
+                    //         }
+                    //         }
+                    //     }
+                    // }
+        */
         // flip buffers
-        this.starts = start_next;
-        this.data = data_next;
+        // this.starts = start_next
+        // this.data = data_next
     }
     // parent needs to add Matrix.length
     holdBothsides(i) {
@@ -606,23 +718,27 @@ export class Tridiagonal {
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
         let last_Cut = 0;
-        this.row.forEach(row => {
+        this.row = this.row.map(row => {
             //join starts and swap
             const l = row.starts.length >> 1;
             //for(let half=0;half<l;half+=l>>1){
             let jop = new JoinOperatorIterator(row.starts.slice(0, l), row.starts.slice(l, l << 1), swapHalf);
             let pos;
             const spans_new = new Array();
+            const spans_new_Stream = new Seamless();
             let last_gap = 0; //jop.gap
             while ((pos = jop.next()) <= jop.last /* could be replaced by < Matrix.width */) {
                 // sub uses job.gap&3 !==0
                 // swap uses (not sure about all the brackets):
-                if (((jop.gap >> (jop.gap >> 2)) & 1) === 0) {
+                const activeSource = jop.i[0][2].filled /*swap active*/ ? 1 : 0;
+                if (jop.i[0][activeSource]) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+                 {
                     let t = new Span(pos - last_Cut, last_Cut);
                     const relative = [pos, last_Cut];
-                    const i = jop.i[jop.gap >> 2];
+                    const i = jop.i[0][activeSource].from;
                     t.extends = row.data[i].slice(...relative.map(x => x - row.starts[i]));
                     spans_new.push(t);
+                    spans_new_Stream.removeSeams(spans_new, pos, jop.i[0][activeSource].filled);
                     // sub uses concatter and (pass1gap === 0 ) ! to remove seams
                     // if ((jop.gap & 1) === 0 ){
                     //     last_gap=jop.gap
@@ -633,7 +749,8 @@ export class Tridiagonal {
                     last_Cut = pos;
                 }
             }
-            const row_new = new Row(spans_new); // does trim 0 valus, but cannot fuse spans
+            const row_new = new Row(spans_new); // does trim 0 valus, but cannot fuse spans via start
+            return row_new;
         });
     }
     PrintGl() {
