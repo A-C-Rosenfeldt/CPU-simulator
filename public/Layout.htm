@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <title>6502 like layout ordered by significiance of bits</title>
+        <style>
+			.grid-container {
+			display: grid;
+			grid-template-columns: auto auto auto auto auto auto auto;
+			grid-gap: 20px;
+			}
+
+			.grid-item {
+				background-color: rgba(74, 145, 121, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  padding: 20px;
+			}
+
+.Register-File
+			{grid-column-start: 1;grid-column-end: 3; }
+
+        </style>
+    </head>
+    <body>
+		<h2>registers File -- ALU</h2>
+		<div class="grid-container">
+			<div class="grid-item Register-File"> Gate derived from halved clock ( 6502 uses writeBack register, why cann't I let go from doubel buffer?) </div>
+			<div class="grid-item" style="grid-column: 2;"> PC </div> <div class="grid-item">half adder</div><div class="grid-item">Carry</div><div class="grid-item">half adder</div><div class="grid-item"> WriteBack Register </div>
+			<div class="grid-item" style="grid-column: 2/6;"> &lt;- WriteBack </div>			
+			<div class="grid-item Register-File" > Address decoder </div>
+			<div class="grid-item Register-File"> Latch </div>
+			<div class="grid-item Register-File"> Gate </div>
+			<div class="grid-item" style="grid-column: 1;"> X Register </div><div class="grid-item"> B Register </div> <div class="grid-item">half adder</div><div class="grid-item">Carry</div><div class="grid-item">half adder</div><div class="grid-item"> WriteBack Register </div>
+			<div class="grid-item" style="grid-column: 1/6;"> &lt;- WriteBack </div>
+		</div>
+    </body>
+</html>

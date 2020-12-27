@@ -70,7 +70,7 @@
                 <tr><td>0011=Stream      </td> <td></td><td>R=X,Y</td> <td>D</td><td>++ --</td> <td>T=B|other index</td><td></td></tr>
                 <tr><td>0010=Stack       </td> <td></td><td>R=S  </td> <td>D</td><td>++ --</td> <td>TT={B,X,PStatus,PCounter}</td><td> wrong combination of D and ++ --  changes  JSR to BRK and RTS to RTI </td></tr>
                 <tr><td>0001=Absolute    </td> <td></td> <td>8bit|16bit address</td>  <td>D</td><td></td><td>TT = B C X </td></tr>
-                <tr><td>0001=Absolute    </td> <td></td><td>8bit|16bit address</td><td>Indirect?</td><td></td> <td>TT = PC</td><td>JMP</td></tr>
+                <tr><td>0001=Absolute    </td> <td></td><td>8bit|16bit address</td><td>Indirect? Swap Y and PC?</td><td></td> <td>TT = PC</td><td>JMP ... indirect is 6502.  Swap Y and PC is the MIPS way</td></tr>
                 
                 <tr style="border-top: 2px solid black;"><td>0000</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
                 <tr><td>0000</td><td></td><td></td><td>D=0</td><td>FF</td><td>V</td><td>Get Flag aka If FFlag==Value? Branch!</td></tr>
@@ -245,5 +245,6 @@
 
 </p>
 <a href="ISA16.htm">16 bit words</a>
+<a href="Layout.htm">16 bit words</a>
     </body>
 </html>
