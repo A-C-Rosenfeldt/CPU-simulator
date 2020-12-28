@@ -1,5 +1,5 @@
 //import import * as validator from "./ZipCodeValidator"; './enforcePivot'
-import { Tridiagonal, Row } from './enforcePivot.js';
+import { Tridiagonal, Row, JoinOperatorIterator, Seamless } from './enforcePivot.js';
 import { main } from './GL.js';
 //import 'assert'
 const print = document.getElementById('MatrixCanvas');
@@ -49,6 +49,11 @@ let y = 10;
     }
     imageGl = unit.PrintGl();
     main('MatrixCanvasGl5', imageGl);
+    // sub now uses quite complicated helper classes. Even private classes should be tested. I mean, with fields within classes it is probably difficult to not destroy the tests, but with classes?
+    // todo: how to visualize?. log?
+    const jop = new JoinOperatorIterator([0, 3, 4, 9], [1, 4, 6, 8]);
+    const sea = new Seamless();
+    // sub itself in action
     unit.row[2].sub(unit.row[3], 1); // 20201117 this works
     imageGl = unit.PrintGl(); // 20201117 so here must be a bug. Solved. Was a const=4 in prototype
     main('MatrixCanvasGl15', imageGl);

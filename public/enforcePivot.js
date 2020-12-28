@@ -42,18 +42,23 @@ export function FromRaw(...b) {
     return s;
 }
 class FilledFrom {
-    constructor(max) {
+    constructor(s) {
         this.filled = false;
         this.from = 0; // position in starts
-        this.fromfrom = 0; // position in Matrix
+        // fromfrom=0; // position in Matrix
         this.max = 0;
-        this.max = max;
+        // todo: maybe only store s?
+        this.max = s.length;
+        this.ex = s;
+    }
+    get mp() {
+        return this.ex[this.from];
     }
 }
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
 // Todo: sub uses this
 // Todo: swap uses this
-class JoinOperatorIterator {
+export class JoinOperatorIterator {
     constructor(...s) {
         this.filled = 0;
         //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
@@ -62,7 +67,7 @@ class JoinOperatorIterator {
         this.last = Math.max(...this.s.map(s => s[s.length - 1]));
         //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
         // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-        this.i = [this.s.map(starts => new FilledFrom(s.length))];
+        this.i = [this.s.map(starts => new FilledFrom(starts))];
         //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
         //let story:number[]=[]
         // ? let data_i=0
@@ -75,10 +80,12 @@ class JoinOperatorIterator {
         // Maybe I should start with an equi-join
         this.i[1] = this.i[0]; // this sets the order of indices. Feels okay
         this.filled_last = this.filled_last;
-        const min = this.i[0].reduce((p, v) => (v.from < v.max && v.fromfrom < p) ? v.fromfrom : p, this.last); // uh. again a join
+        const min = this.i[0].reduce((p, v) => {
+            return (v.from < v.max && v.mp < p) ? v.mp : p; // could set a break point on some part of a line in  VSC
+        }, this.last); // uh. again a join
         if (min < this.last) {
             this.i[0].forEach((c) => {
-                if (min === c.fromfrom) { // not while because Seamless removes zero length spans ( degenerated )
+                if (min === c.mp) { // not while because Seamless removes zero length spans ( degenerated )
                     c.from++;
                     c.filled = !c.filled; // ^= 1 << i
                 }
@@ -136,7 +143,7 @@ class JoinOperatorIterator {
         return this.last + 1; //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
-class Seamless {
+export class Seamless {
     constructor() {
         this.starts = 0; // whatIf
         this.length = 0; // whatIf  .. basically needs 3 passes for tight malloc =>  WhatIf:number
@@ -415,7 +422,7 @@ export class Row {
                 throw "This is a binary operator!";
             const these = jop.i[1].map(ii => {
                 //  const ii=jop.i[1][j]
-                const thi = new Span(0, ii.fromfrom);
+                const thi = new Span(0, ii.mp);
                 thi.extends = pointer[ii.from >> 1]; // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
                 pointer = that.data;
                 return thi;
