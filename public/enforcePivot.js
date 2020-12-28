@@ -145,6 +145,8 @@ export class JoinOperatorIterator {
 }
 export class Seamless {
     constructor() {
+        this.data_next = [];
+        this.start_next = [];
         this.starts = 0; // whatIf
         this.length = 0; // whatIf  .. basically needs 3 passes for tight malloc =>  WhatIf:number
         // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
@@ -163,7 +165,7 @@ export class Seamless {
             this.filled[0] = filled;
             // properties? With delegates I get to use Arrays!
             //!whatIf &&
-            if (filled) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+            if (true && fillValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled
                 const cut = fillValues.map(fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0]);
@@ -171,8 +173,8 @@ export class Seamless {
                 else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    const result = new Array(pos - pos[1]);
-                    for (let k = pos[1]; k < pos; k++) {
+                    const result = new Array(pos - this.pos[1]);
+                    for (let k = this.pos[1]; k < pos; k++) {
                         let sum = 0;
                         const retards = fillValues.map(fv => fv.extends[k - fv.start]);
                         if (factor !== 0) {
@@ -182,28 +184,29 @@ export class Seamless {
                     }
                     this.concatter.push(result);
                 }
-            }
-            else { // flush buffer. Be sure to call before closing stream!
-                if (filled[1]) { // switching from filled to gap 
+            } /*else*/
+            { // flush buffer. Be sure to call before closing stream!
+                if (this.filled[1] != filled) { // switching .. 
                     if (whatIf) {
                         this.starts++;
                     }
                     else {
                         {
-                            this.start_next.push(pos[1]); // note border
+                            this.start_next.push(this.pos[1]); // note border
                         }
                         {
-                            { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
+                            if (filled) // from filled to gap
+                             { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
                                 const t = Array.prototype.concat.apply([], this.concatter);
                                 this.data_next.push(t); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
                                 this.concatter = new Array();
                             }
                         }
                     } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                    this.filled[1] = this.filled[0];
-                    this.pos[1] = this.pos[0];
                 }
             }
+            this.filled[1] = this.filled[0];
+            this.pos[1] = this.pos[0];
         }
     }
     // better be sure to end with gap=true (from span end .. test?) or else call this

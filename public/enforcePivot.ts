@@ -191,68 +191,71 @@ export class Seamless {
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
-    filled = [true, true]
-    pos = [0, 0]
+    filled = [false,false]
+    pos = [0,0]
     concatter = new Array<number[]>()
 
     removeSeams(//criterium: ((a: number) => boolean),
-        fillValues: Span<number>[] , // sourceStart: number[],
+        fillValues: Span<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
-        factor=0,
+        factor = 0,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
-        if (this.pos[0] < pos ) { // eat zero length  ( Row constructor does this too, but it is only one line )
-            this.pos[0]=pos
-            this.filled[0]=filled
+        if (this.pos[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line )
+            this.pos[0] = pos
+            this.filled[0] = filled
             // properties? With delegates I get to use Arrays!
 
             //!whatIf &&
-            if ( filled ) { // fuse spans   // maybe invert meaning   =>  gap -> filled
-                const cut=fillValues.map( fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
-                if (factor===0){
+            if (true && fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+                const cut = fillValues.map(fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
+                if (factor === 0) {
                     this.concatter.push(cut[0])
-                }else{
+                } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    const result=new Array<number>(pos-pos[1])
-                    for(let k=pos[1];k<pos;k++){
-                        let sum=0
-                        const retards=fillValues.map(fv=> fv.extends[k-fv.start]                        )
-                        if (factor!==0){
-                            retards[retards.length-1]*=factor    
+                    const result = new Array<number>(pos - this.pos[1])
+                    for (let k = this.pos[1]; k < pos; k++) {
+                        let sum = 0
+                        const retards = fillValues.map(fv => fv.extends[k - fv.start])
+                        if (factor !== 0) {
+                            retards[retards.length - 1] *= factor
                         }
-                        result.push( retards.reduce((p,c)=>p+c))
+                        result.push(retards.reduce((p, c) => p + c))
                     }
                     this.concatter.push(result)
                 }
-            }else{ // flush buffer. Be sure to call before closing stream!
-                if (this.filled[1]) { // switching from filled to gap 
-                if (whatIf) {
-                    this.starts++
-                } else {
-                     {
-                        this.start_next.push(pos[1]) // note border
-                    }  {
-                       { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
-                            const t = Array.prototype.concat.apply([], this.concatter)
-                            this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                            this.concatter = new Array<number[]>()
+            } /*else*/ { // flush buffer. Be sure to call before closing stream!
+                if (this.filled[1] != filled ) { // switching .. 
+                    if (whatIf) {
+                        this.starts++
+                    } else {
+                        {
+                            this.start_next.push(this.pos[1]) // note border
+                        } {
+                            if (filled)  // from filled to gap
+                            { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
+                                const t = Array.prototype.concat.apply([], this.concatter)
+                                this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                                this.concatter = new Array<number[]>()
+                            }
                         }
-                    }
-                } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                this.filled[1] = this.filled[0]
-                this.pos[1] = this.pos[0]
+                    } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+
+                }
             }
-        }
+
+            this.filled[1] = this.filled[0]
+            this.pos[1] = this.pos[0]
         }
     }
 
     // better be sure to end with gap=true (from span end .. test?) or else call this
-    flush(){
+    flush() {
         this.start_next.push(this.pos[0])
         const t = Array.prototype.concat.apply([], this.concatter)
-                            this.data_next.push(t)
+        this.data_next.push(t)
     }
 }
 
