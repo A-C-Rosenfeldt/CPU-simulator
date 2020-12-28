@@ -15,7 +15,13 @@
 		</p>
 		<p>
 			Both Div and Mul utilize shift ( with either SX or ZX) and ADD/SUB per cycle. One bit is read from M and one bit is written back. Address application is different for read and write,
-			so why not have 2 registers and not trash the parameter?
+            so why not have 2 registers and not trash the parameter?
+            
+            Maybe use Booth algorithm to better utilize the 16 bit ALU.
+            Similarly use Carry Look ahead to find large blocks of 1 and 0.
+            This makes small factors as fast as not specifying length.
+            Code has to specify which factor to optimize because arbitration takes too long.
+
 		</p>
 	</body>
 </html>

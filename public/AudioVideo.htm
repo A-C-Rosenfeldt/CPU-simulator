@@ -32,5 +32,10 @@
         by only acting every 1,2,4,8 cycle.
         Matrix multiplication is even done less times.
         Overtones drown in noise of 1% noise of PWM + edge shifter (diagonal)
+
+        Euclidean algorithm with rounding to nearest should result in the delta pattern
+        which is most prevalent. So with each iteration we at least halve the pixels where we need to think.
+        Long spans feel like different sprites. So small rotations could be better be done in the CPU.
+        On the other hand Bresenham is also used for edges, so these may be calculated in the GPU ( maybe in horizontal retrace? )
     </body>
 </html>
