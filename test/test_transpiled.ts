@@ -52,7 +52,7 @@ describe('Testing unequi-join', () => {
     // expect(jop.i[0][0]).to.equal(0);
     // expect(jop.i[0][0]).to.equal(1);
     result = jop.next()    
-    expect(result).to.equal(0);    
+    expect(result).to.equal(1);    
     result = jop.next()    
     expect(result).to.equal(3);
     result = jop.next()    
@@ -74,23 +74,31 @@ describe('Testing Seamless', () => {
   it('shOuld reTurn 4', () => {
     const sea=new Seamless()
 
-    let span=new Span<number>(3,0)
+    const span=new Span<number>(3,0)
     span.extends=[2,3,4]
     sea.removeSeams([span],0 /* from above test */, true)
+    // jop is at the beginning. Nothing to write yet    
+    expect(sea.start_next.length).to.equal(0,"nothing in output yet"); //2020-12-28  start_nest is undefined
+
     // but lets test with "accidental input" sea.flush()
     
-    span=new Span<number>(0,3)
+    const span1=new Span<number>(0,3)
     span.extends=[]
-    sea.removeSeams([span],3 /* from above test */, false)
+    sea.removeSeams([span1],3 /* from above test */, false)
+
+    expect(sea.start_next.length).to.equal(1);
+    expect(sea.data_next.length).to.equal(1);
+
+    expect(sea.data_next[0].length).to.equal(3);
 
     let result = sea.start_next //hello();
     expect(result[0]).to.equal(0);
     expect(result[1]).to.equal(3);
 
-    result = sea.data_next[0] //hello();
-    expect(result[0]).to.equal(2);
-    expect(result[1]).to.equal(3);
-    expect(result[2]).to.equal(4);
+    const resultd = sea.data_next[0] //hello();
+    expect(resultd[0]).to.equal(2);
+    expect(resultd[1]).to.equal(3);
+    expect(resultd[2]).to.equal(4);
 
 
   });

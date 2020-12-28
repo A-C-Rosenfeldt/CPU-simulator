@@ -184,14 +184,14 @@ export class JoinOperatorIterator{
     }
 }
 export class Seamless {
-    data_next: number[][]
-    start_next: number[]
+    data_next: number[][] = []
+    start_next: number[] = []
     starts = 0 // whatIf
     length = 0 // whatIf  .. basically needs 3 passes for tight malloc =>  WhatIf:number
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
-    filled = [false, false]
+    filled = [true, true]
     pos = [0, 0]
     concatter = new Array<number[]>()
 
@@ -227,7 +227,7 @@ export class Seamless {
                     this.concatter.push(result)
                 }
             }else{ // flush buffer. Be sure to call before closing stream!
-                if (filled[1]) { // switching from filled to gap 
+                if (this.filled[1]) { // switching from filled to gap 
                 if (whatIf) {
                     this.starts++
                 } else {

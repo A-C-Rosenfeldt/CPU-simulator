@@ -58,4 +58,4 @@ let y = 10;
     imageGl = unit.PrintGl(); // 20201117 so here must be a bug. Solved. Was a const=4 in prototype
     main('MatrixCanvasGl15', imageGl);
 }
-//# sourceMappingURL=TestEnforcePivot.js.map
+//# sourceMappingURL=TestenforcePivot.js.map
