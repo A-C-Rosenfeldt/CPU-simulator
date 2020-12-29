@@ -192,7 +192,8 @@ export class Seamless {
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
     filled = [false,false]
-    pos = [0,0]
+    pos_input = [0,-1] // needed for slice
+    pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
     concatter = new Array<number[]>()
 
     removeSeams(//criterium: ((a: number) => boolean),
@@ -202,21 +203,47 @@ export class Seamless {
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
-        if (this.pos[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line )
-            this.pos[0] = pos
-            this.filled[0] = filled
+        //throw "nase"
+        if (this.pos_input[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
+            
+            this.pos_input[1] = this.pos_input[0]
+            this.pos_input[0] = pos
+
+            if (this.pos_input[1]>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input[1]) } // now that we advanced, lets note last border (if it was a real edge)
+ 
             // properties? With delegates I get to use Arrays!
 
+
+            if (this.filled[1] && !this.filled[0]) { // switched before advance 
+                if (whatIf) {
+                    this.starts++
+                } else {
+                    {
+                    } {
+                         // from filled to gap .. flush.  Join encounters a border, determines "filled" and we can use the positios to cut out ranges in the source Rows
+                        { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
+                            const t = Array.prototype.concat.apply([], this.concatter)
+                            this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            this.concatter = new Array<number[]>()
+                        }
+                    }
+                } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
+            }
+                // Delay three positions because: Confirm by advance (3), compare with previous value (2)
+                this.filled[1] = this.filled[0] // last possible moment. Quite some lag to compensate
+                this.filled[0] = filled
+                // now we do not need the oldest value anymore. Discard to avoid errors in code.
+
             //!whatIf &&
-            if (true && fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled
-                const cut = fillValues.map(fv => fv.extends.slice(this.pos[1] - fv.start, pos - fv.start));
+            if (this.filled[1] /* edge tracking  need have to be over filled area */ && fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+                const cut = fillValues.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0])
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    const result = new Array<number>(pos - this.pos[1])
-                    for (let k = this.pos[1]; k < pos; k++) {
+                    const result = new Array<number>(pos - this.pos_input[1])
+                    for (let k = this.pos_input[1]; k < pos; k++) {
                         let sum = 0
                         const retards = fillValues.map(fv => fv.extends[k - fv.start])
                         if (factor !== 0) {
@@ -227,33 +254,14 @@ export class Seamless {
                     this.concatter.push(result)
                 }
             } /*else*/ { // flush buffer. Be sure to call before closing stream!
-                if (this.filled[1] != filled ) { // switching .. 
-                    if (whatIf) {
-                        this.starts++
-                    } else {
-                        {
-                            this.start_next.push(this.pos[1]) // note border
-                        } {
-                            if (filled)  // from filled to gap
-                            { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
-                                const t = Array.prototype.concat.apply([], this.concatter)
-                                this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                                this.concatter = new Array<number[]>()
-                            }
-                        }
-                    } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-
-                }
             }
-
-            this.filled[1] = this.filled[0]
-            this.pos[1] = this.pos[0]
         }
+        
     }
 
     // better be sure to end with gap=true (from span end .. test?) or else call this
     flush() {
-        this.start_next.push(this.pos[0])
+        this.start_next.push(this.pos_input[0])
         const t = Array.prototype.concat.apply([], this.concatter)
         this.data_next.push(t)
     }
