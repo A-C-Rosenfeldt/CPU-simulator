@@ -83,12 +83,12 @@ export class JoinOperatorIterator{
     i:FilledFrom[][] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     filled=0
     filled_last:number
-    last:number
+    behind:number
     constructor(...s:number[][]){
         //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
         //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
         this.s=s
-        this.last=Math.max(...this.s.map(s=>s[s.length-1]))
+        this.behind=Math.max(...this.s.map(s=>s[s.length-1]))+1
             //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
@@ -107,15 +107,16 @@ export class JoinOperatorIterator{
         // on the other hand: JS does not like joins (needed in Seams). NoSQL does not like joins. We cannot use a join to code a join, or can we?
         // Maybe I should start with an equi-join
         this.i[1]=this.i[0] // this sets the order of indices. Feels okay
-        this.filled_last=this.filled_last
+        //this.filled_last=this.filled_last
         const min = this.i[0].reduce((p,v) => {
           return  (v.from < v.max && v.mp < p) ?  v.mp : p ;  // could set a break point on some part of a line in  VSC
-        },this.last 
+        },this.behind 
         ) // uh. again a join
 
-        if (min<this.last){
+        //if (min<this.last) // this would lead to an endless loop
+        {
             this.i[0].forEach((c)=>{
-                            if (min===c.mp){ // not while because Seamless removes zero length spans ( degenerated )
+                            if (min===c.mp ){ // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
                                 c.from++ ; 
                                 c.filled =  !c.filled  ; // ^= 1 << i
 
@@ -134,12 +135,12 @@ export class JoinOperatorIterator{
                 /*do*/{
                     // trying to avoid infinity, null and undefined for better readability
                     
-                    let cursor=this.s.map(s=>[this.last,s.length])
+                    let cursor=this.s.map(s=>[this.behind,s.length])
                     //new Array<[number,number]>(this.i.length).fill([),s.length])
                     // let I:number=this.s[1][this.s[1].length-1]+1
                     // let A:number=this.s[0][this.s[0].length-1]+1
 
-                    let min=this.last
+                    let min=this.behind
                     cursor.forEach((c,i)=>{
                         const k=this.i[0][i].from
                         if (k < c[1]){
@@ -180,7 +181,7 @@ export class JoinOperatorIterator{
                     // }
                 }//while(false)
             }
-            return this.last+1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
+            return this.behind+1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
 export class Seamless {
@@ -496,13 +497,22 @@ export class Row{
             let pos:number
             //=new Array<Span<number>>()
             
-            while ((pos = jop.next()) <= jop.last) {
+            // Maybe we should check for input data. No idea what jop does without input though.
+            do {
+                pos = jop.next()
+                
                 let pointer = this.data
                 // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
-                if (jop.i[1].length != 2) throw "This is a binary operator!"
-                const these = jop.i[1].map(ii => {
+                if (jop.i[1 /** why do we use the old value? todo */].length != 2) throw "This is a binary operator!"
+                const these = jop.i[1].filter(ii=>ii.from < ii.max).map(ii => {
                     //  const ii=jop.i[1][j]
+                    if (typeof ii.mp === "undefined" || !( typeof ii.mp !== "number")){
+                        throw "all indizes should just stop before the end ii.mp"
+                    } 
                     const thi = new Span<number>(0, ii.mp)
+                    if (typeof ii.from === "undefined" || !( typeof ii.from !== "number")){
+                        throw "all indizes should just stop before the end ii.from"
+                    }
                     thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
                     pointer = that.data
                     return thi
@@ -513,8 +523,14 @@ export class Row{
                 //     these.push(thi)
                 // }
 
-                drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */);
-            }
+                // up the last position in the matrix at least one of these has values
+                drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */);           
+            }while(  pos < jop.behind ); // last is just after the end in Matrix 
+
+            // This should be  equivalent to pos=jop.last, but is somewhat more concise: we are out of bounds and need to get outta here!
+            drain.flush(); // after we filled concater in the last cycle of the loop and set filled=false, we now confirm that no zero length are to come
+            // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
+            // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
 
             if (jop.i[0].every(v => v.filled === false) ) throw "last boundary should be a closing one"
 /*
@@ -829,7 +845,7 @@ export class Tridiagonal{
             const spans_new=new Array<Span<number>>()
             const spans_new_Stream=new Seamless()
             let last_gap=0 //jop.gap
-            while((pos=jop.next()) <= jop.last /* could be replaced by < Matrix.width */){
+            while((pos=jop.next()) <= jop.behind /* could be replaced by < Matrix.width */){
                 
                 
                 // sub uses job.gap&3 !==0

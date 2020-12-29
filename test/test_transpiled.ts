@@ -48,6 +48,13 @@ describe('Testing unequi-join', () => {
 
     let result = jop.next()    
     expect(result).to.equal(0);
+
+    const these = jop.i[0].every(ii => {
+      //  const ii=jop.i[1][j]
+      return  typeof ii.mp === "number"
+              })
+    expect(these).to.true
+
     // Inf fact: I do not know .. ah I know, both I should guard the next edge
     // expect(jop.i[0][0]).to.equal(0);
     // expect(jop.i[0][0]).to.equal(1);
@@ -64,7 +71,7 @@ describe('Testing unequi-join', () => {
     result = jop.next()    
     expect(result).to.equal(9);
     result = jop.next()    
-    expect(result).to.equal(jop.last);    
+    expect(result).to.equal(jop.behind);    
   });
 
 });
