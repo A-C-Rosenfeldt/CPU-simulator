@@ -145,6 +145,55 @@ describe('Testing Seamless', () => {
 
 
 
+    // sub now uses quite complicated helper classes. Even private classes should be tested. I mean, with fields within classes it is probably difficult to not destroy the tests, but with classes?
+    describe('Testing unequi-join integrate Seamless', () => {
+
+      it('shOuld return 0', () => {
+
+        // to actually join something, I need two spans of values
+        const span1=new Span<number>(3,0)                
+        const span2=new Span<number>(3,1)
+
+        const jop=new JoinOperatorIterator([0,3,4,9],[1,4,6,8])
+        span1.extends=[12,13,14]
+        span2.extends=[22,23,24]         
+
+        const sea=new Seamless()
+
+        let result = jop.next()    
+        expect(result).to.equal(0);
+        const these = jop.i[0].every(ii => {
+          //  const ii=jop.i[1][j]
+          return  typeof ii.mp === "number"
+                  })
+        expect(these).to.true
+
+        // we simulate  "sub"  . Any not 0 => 0.   ( be sure to let Row.ctrs remove the (single)0 due to sub )
+        expect(jop.i[0][0].filled).to.true
+        expect(jop.i[0][1].filled).to.false
+        sea.removeSeams([span1],result, true)
+        expect(sea.pos_input[0]).to.equal(0) // this is a little bit lame. Todo: better test data. Push this edge case towards the end.
+
+        
+        // Inf fact: I do not know .. ah I know, both I should guard the next edge
+        // expect(jop.i[0][0]).to.equal(0);
+        // expect(jop.i[0][0]).to.equal(1);
+        result = jop.next()    
+        expect(result).to.equal(1);
+        sea.removeSeams([span1,span2],result, true) // huh, overlap
+        expect(sea.pos_input[0]).to.equal(1) 
+        // todo: create  filled=false        
+        
+        result = jop.next()    
+        expect(result).to.equal(3);
+        result = jop.next()    
+
+      });
+    
+    });
+
+
+
 describe('Doing some linAlg', () => {
     it('shOuld reTurn 5', () => {
 

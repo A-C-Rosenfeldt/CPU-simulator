@@ -200,7 +200,7 @@ export class Seamless {
     removeSeams(//criterium: ((a: number) => boolean),
         fillValues: Span<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
-        factor = 0,
+        factor = 0, nukeCol?:number,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
@@ -213,7 +213,6 @@ export class Seamless {
             if (this.pos_input[1]>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input[1]) } // now that we advanced, lets note last border (if it was a real edge)
  
             // properties? With delegates I get to use Arrays!
-
 
             if (this.filled[1] && !this.filled[0]) { // switched before advance 
                 if (whatIf) {
@@ -248,9 +247,9 @@ export class Seamless {
                         let sum = 0
                         const retards = fillValues.map(fv => fv.extends[k - fv.start])
                         if (factor !== 0) {
-                            retards[retards.length - 1] *= factor
+                            retards[retards.length - 1] *= factor  // maybe I should also know divisor so that i
                         }
-                        result.push(retards.reduce((p, c) => p + c))
+                        result.push(retards.reduce((p, c) => p + c))  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
                     }
                     this.concatter.push(result)
                 }
@@ -470,7 +469,7 @@ export class Row{
 
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
     // Doesn't look like this code knows about the number of spans. So do I really need the constraint? After all, I cannot enforce anything using spans. Permutation is transparent to this.
-    sub(that:Row, factor?:number){
+    sub(that:Row, factor?:number, nukeCol=-2 /* < -1 <= pos */){
         let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
         let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
         that.starts
@@ -506,11 +505,11 @@ export class Row{
                 if (jop.i[1 /** why do we use the old value? todo */].length != 2) throw "This is a binary operator!"
                 const these = jop.i[1].filter(ii=>ii.from < ii.max).map(ii => {
                     //  const ii=jop.i[1][j]
-                    if (typeof ii.mp === "undefined" || !( typeof ii.mp !== "number")){
+                    if (typeof ii.mp === "undefined" ||  typeof ii.mp !== "number"){
                         throw "all indizes should just stop before the end ii.mp"
                     } 
                     const thi = new Span<number>(0, ii.mp)
-                    if (typeof ii.from === "undefined" || !( typeof ii.from !== "number")){
+                    if (typeof ii.from === "undefined" ||  typeof ii.from !== "number"){
                         throw "all indizes should just stop before the end ii.from"
                     }
                     thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
@@ -524,7 +523,13 @@ export class Row{
                 // }
 
                 // up the last position in the matrix at least one of these has values
-                drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */);           
+
+                // inverting is supposed to clear (upper or lower) triangles completely
+                if (nukeCol < pos && nukeCol >= drain.pos_input[0]){
+                    drain.removeSeams(these, nukeCol, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
+                    drain.removeSeams(these, nukeCol+1, false, factor /* sorry */, nukeCol); // delete cell
+                }
+                drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);           
             }while(  pos < jop.behind ); // last is just after the end in Matrix 
 
             // This should be  equivalent to pos=jop.last, but is somewhat more concise: we are out of bounds and need to get outta here!
@@ -920,7 +925,7 @@ export class Tridiagonal{
             for(let k=0;k<this.row.length;k++)if (k!==i){
                const f=this.row[k].get(i)
                if (f!==0){
-                this.row[k].sub(this.row[i],f)
+                this.row[k].sub(this.row[i],f) // ToDo: nuke column
                 inve.row[k].sub(this.row[i],f)
                }
             }
@@ -965,12 +970,15 @@ export class Tridiagonal{
         //const inve=new Tridiagonal(this.row.length) // I may want to merge the runlength encoders?
 
         for(let i=0;i<this.row.length>>1;i++){
-            this.row[i].scale(1/this.row[i].get(i))
+            this.row[i].scale(1/this.row[i].get(i)) // uh rounding. At least our cell of interest should be exactly 1 after this. Or?
+            this.row[i].set(1,i); // combat rounding while still minimizing the number of divides
             for(let k=0;k<this.row.length;k++)if (k!==i){
                const f=this.row[k].get(i)
                if (f!==0){
-                this.row[k].sub(this.row[i],f)
+                this.row[k].sub(this.row[i],f,i) // No rounding problems anymore. Multiplication with 1 is safe. Still, let's be a bit explicit here
                 //inve.row[k].sub(this.row[i],f)
+               }else{
+                   throw "pivot is broken"
                }
             }
         }
