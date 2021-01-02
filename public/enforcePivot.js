@@ -169,8 +169,8 @@ export class Seamless {
         //. Todo: Try both ways
         // two passes where motivated by memory allocation, but mess with the OOP structure
         this.filled = [false, false];
-        this.pos_input = [0, -1]; // needed for slice
-        this.pos_output = [0, -1]; // pos[1] lags behind on output if seams are eliminated. 
+        this.pos_input = [-1, -1]; // needed for slice
+        //pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
         this.concatter = new Array();
     }
     removeSeams(//criterium: ((a: number) => boolean),

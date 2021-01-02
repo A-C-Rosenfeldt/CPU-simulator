@@ -84,32 +84,41 @@ describe('Testing Seamless', () => {
     const span2=new Span<number>(3,0)
     span2.extends=[22,23,24] 
 
-    sea.removeSeams([],2 /* First value  from  above test */, true)  // Matrix Row  starts with zeros ( false ). After 2 of them, values are filled "true". jop flipped to true on first edge.
+    // sea.removeSeams(filled: { 2020: {true, false, false}, 2021: {false, true, true} })
+    sea.removeSeams([],2 /* First value  from  above test */, false)  // Matrix Row  starts with zeros ( false ). After 2 of them, values are filled "true". jop flipped to true on first edge.
     expect(sea.start_next.length).to.equal(0); // we switch from empty ( Matrix out of bounds has 0) to filled
+    expect(sea.filled[1]).to.equal(false) // not yet trigger data concat !
+    expect(sea.filled[0]).to.equal(false) // parameter
+
+
     //expect(sea.start_next[0]).to.equal(2);  // we cannot note 2 here because we do not know if a zero length and an edge back to false comes
-
-
 
     const span=new Span<number>(3,2)
     span.extends=[2,3,4]  // i >> 1  can give the string one cycle after getting the start value. After all we need to wait for end
 
 // in this case  ..  white box test is needed. Different folder? Is for edge cases. Maybe transform into black later
     expect(sea.pos_input[0]).to.equal(2) // { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
-    expect(sea.pos_input[1]).to.equal(0)  
+    expect(sea.pos_input[1]).to.equal(-1) //0)  
+    expect(sea.filled[1]).to.equal(true)
+    expect(sea.filled[0]).to.equal(false)
+    sea.removeSeams([span],5 /* ToDo: check!  0 makes no sense!  from above test */, true /* flips from jop  go to false */)   // We add 5 values and stay true: more to come (why do we know this?)
     expect(sea.filled[1]).to.equal(false)
     expect(sea.filled[0]).to.equal(true)
     
-    expect(sea.data_next.length).to.equal(0);    
+    expect(sea.start_next.length).to.equal(1); // Note pos[1] . jop again detects filled state => no real border, just a seam. Do not note!
+    expect(sea.start_next[0]).to.equal(2);
+    expect(sea.data_next.length).to.equal(0); // Make sure concatting happens on true->false transition.  values still reside in concatter    
 
-    sea.removeSeams([span],5 /* ToDo: check!  0 makes no sense!  from above test */, false /* flips from jop  go to false */)   // We add 5 values and stay true: more to come (why do we know this?)
+
+
 
     expect(sea.pos_input[0]).to.equal(5) // { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
     expect(sea.pos_input[1]).to.equal(2)  
 
-    expect(sea.start_next.length).to.equal(1); // Note pos[1] . jop again detects filled state => no real border, just a seam. Do not note!
-    expect(sea.start_next[0]).to.equal(2);
-    expect(sea.data_next.length).to.equal(0); // values still reside in concatter    
-
+    expect(sea.start_next.length).to.equal(2); // fill state  confirmed by advancing to new position
+    expect(sea.data_next[0].length).to.gt(0);  // since I ignore zero length even before the switching detection, concatter must contain values. Otherwise the input spans have to be bogus. 
+   
+   
     // jop is at the beginning. Nothing to write yet    
     expect(sea.start_next.length).to.equal(1,"nothing in output yet"); //2020-12-28  start_nest is undefined
 
@@ -117,10 +126,8 @@ describe('Testing Seamless', () => {
     
     const span1=new Span<number>(1,3)
     span1.extends=[1 /* len < 1 is ignored */]
-    sea.removeSeams([span1],6 /* zero length are ignored. So either need .flush to transmitt the final  fill vs gap  value:  */, false /* value after the string we deliver in first param */)
-    expect(sea.start_next.length).to.equal(2); // fill state  confirmed by advancing to new position
-    expect(sea.data_next.length).to.equal(1);  // flush concatter because confirmed state is  not filled
-    expect(sea.data_next[0].length).to.gt(0);  // since I ignore zero length even before the switching detection, concatter must contain values. Otherwise the input spans have to be bogus. 
+    sea.removeSeams([span1],6 /* zero length are ignored. So either need .flush to transmitt the final  fill vs gap  value:  */, true /* value after the string we deliver in first param */)
+    expect(sea.data_next.length).to.equal(3);  // flush concatter because confirmed state is  not filled
 
     //span1.extends = [99,99,99]; 
 

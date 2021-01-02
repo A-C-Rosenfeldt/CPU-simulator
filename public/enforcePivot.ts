@@ -217,9 +217,9 @@ export class Seamless {
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
-    filled = [false,false]
-    pos_input = [0,-1] // needed for slice
-    pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
+    filled = [false, false]
+    pos_input = [-1,-1] // needed for slice
+    //pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
     concatter = new Array<number[]>()
 
     removeSeams(//criterium: ((a: number) => boolean),
