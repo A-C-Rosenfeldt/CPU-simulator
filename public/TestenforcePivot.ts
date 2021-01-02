@@ -69,7 +69,7 @@ let y=10
     const sea=new Seamless()
 
     // sub itself in action
-    unit.row[2].sub(unit.row[3],1) // 20201117 this works
+    unit.row[2].sub(unit.row[3],1) // 20201117 this works. 20210101 not working with join and seamless helper classes
 
     imageGl=unit.PrintGl() // 20201117 so here must be a bug. Solved. Was a const=4 in prototype
     main('MatrixCanvasGl15',imageGl)

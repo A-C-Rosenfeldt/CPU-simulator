@@ -71,9 +71,9 @@ describe('Testing unequi-join', () => {
     result = jop.next()    
     expect(result).to.equal(9);
     result = jop.next()    
-    expect(result).to.equal(jop.behind);    
+    expect(result).to.equal(jop.behind);
+    expect(jop.i[0].every(v => v.filled === false) ).to.true;
   });
-
 });
 
 describe('Testing Seamless', () => {

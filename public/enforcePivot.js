@@ -43,7 +43,7 @@ export function FromRaw(...b) {
 }
 class FilledFrom {
     constructor(s) {
-        this.filled = false;
+        //filled=false;
         this.from = 0; // position in starts
         // fromfrom=0; // position in Matrix
         this.max = 0;
@@ -52,7 +52,16 @@ class FilledFrom {
         this.ex = s;
     }
     get mp() {
+        // apparently "undefined" is used in join ..  if (this.from < 1) throw "right hand side of string needs to be at minimum at 1"
         return this.ex[this.from];
+    }
+    // Interface Value
+    get filled() {
+        return (this.from & 1) === 1; // looks back like ValueSpanStartInMatrix
+    }
+    get ValueSpanStartInMatrix() {
+        // apparently "undefined" is used in join ..  if (this.from < 1) throw "right hand side of string needs to be at minimum at 1"
+        return this.ex[this.from - 1 /* anchor of span is on the low end, but join tracks the high end for the "end condition" .. todo: switch */];
     }
 }
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
@@ -78,7 +87,13 @@ export class JoinOperatorIterator {
         // on the one hand: state is my enemy
         // on the other hand: JS does not like joins (needed in Seams). NoSQL does not like joins. We cannot use a join to code a join, or can we?
         // Maybe I should start with an equi-join
-        this.i[1] = this.i[0]; // this sets the order of indices. Feels okay
+        this.i[1] = this.i[0].map(ff => {
+            // todo: If debugged, make it one line
+            let neu = new FilledFrom(ff.ex /* readonly reference */); // I mean I could instead add an "if" into the ctor.
+            Object.assign(neu, ff); // affects only own properties. Overwrites ex a second time
+            //const {...neu, mp}=ff;
+            return neu;
+        }); // this sets the order of indices. Feels okay
         //this.filled_last=this.filled_last
         const min = this.i[0].reduce((p, v) => {
             return (v.from < v.max && v.mp < p) ? v.mp : p; // could set a break point on some part of a line in  VSC
@@ -88,7 +103,7 @@ export class JoinOperatorIterator {
             this.i[0].forEach((c) => {
                 if (min === c.mp) { // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
                     c.from++;
-                    c.filled = !c.filled; // ^= 1 << i
+                    // c.filled =  !c.filled  ; // ^= 1 << i
                 }
             });
         }
@@ -166,10 +181,16 @@ export class Seamless {
         if (this.pos_input[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
             this.pos_input[1] = this.pos_input[0];
             this.pos_input[0] = pos;
+            // Delay three positions because: Confirm by advance (3), compare with previous value (2)
+            // Caller already delays "filled" in the sources by appropriating inverting bit0 of index into starts[]
+            // So we do not have to deal with 3 fill values and 8 combinations in our heads and in automated tests ( state is your enemy )
+            this.filled[1] = this.filled[0]; // last possible moment. Quite some lag to compensate
+            this.filled[0] = filled;
             if (this.pos_input[1] >= 0 && (this.filled[1] != this.filled[0])) {
                 this.start_next.push(this.pos_input[1]);
             } // now that we advanced, lets note last border (if it was a real edge)
             // properties? With delegates I get to use Arrays!
+            // Test run: pos=1 fillValues.start=0 filled is homogenous .. concatter is already prepared to accept data
             if (this.filled[1] && !this.filled[0]) { // switched before advance 
                 if (whatIf) {
                     this.starts++;
@@ -187,12 +208,10 @@ export class Seamless {
                     }
                 } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
             }
-            // Delay three positions because: Confirm by advance (3), compare with previous value (2)
-            this.filled[1] = this.filled[0]; // last possible moment. Quite some lag to compensate
-            this.filled[0] = filled;
             // now we do not need the oldest value anymore. Discard to avoid errors in code.
             //!whatIf &&
-            if (this.filled[1] /* edge tracking  need have to be over filled area */ && fillValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled
+            // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
+            if (this.filled[0] /* edge tracking  need have to be over filled area */ && fillValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
                 const cut = fillValues.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0]);
@@ -432,12 +451,12 @@ export class Row {
             // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
             if (jop.i[1 /** why do we use the old value? todo */].length != 2)
                 throw "This is a binary operator!";
-            const these = jop.i[1].filter(ii => ii.from < ii.max).map(ii => {
+            const these = jop.i[1].filter(ii => ii.from < ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 //  const ii=jop.i[1][j]
-                if (typeof ii.mp === "undefined" || typeof ii.mp !== "number") {
-                    throw "all indizes should just stop before the end ii.mp";
+                if (typeof ii.ValueSpanStartInMatrix === "undefined" || typeof ii.ValueSpanStartInMatrix !== "number") {
+                    throw "all indizes should just stop before the end ii.mp. From: " + ii.from;
                 }
-                const thi = new Span(0, ii.mp);
+                const thi = new Span(0, ii.ValueSpanStartInMatrix);
                 if (typeof ii.from === "undefined" || typeof ii.from !== "number") {
                     throw "all indizes should just stop before the end ii.from";
                 }
@@ -455,14 +474,14 @@ export class Row {
             if (nukeCol < pos && nukeCol >= drain.pos_input[0]) {
                 drain.removeSeams(these, nukeCol, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
                 drain.removeSeams(these, nukeCol + 1, false, factor /* sorry */, nukeCol); // delete cell
-            }
+            } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
             drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
         } while (pos < jop.behind); // last is just after the end in Matrix 
         // This should be  equivalent to pos=jop.last, but is somewhat more concise: we are out of bounds and need to get outta here!
         drain.flush(); // after we filled concater in the last cycle of the loop and set filled=false, we now confirm that no zero length are to come
         // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
         // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
-        if (jop.i[0].every(v => v.filled === false))
+        if (!jop.i[0].every(v => v.filled === false))
             throw "last boundary should be a closing one";
         /*
                     
