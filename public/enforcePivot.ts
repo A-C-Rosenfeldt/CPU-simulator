@@ -68,7 +68,7 @@ interface DoublyIndirect{
 }
 class FilledFrom implements DoublyIndirect,ValuesInSpan{
     //filled=false;
-    from=0;     // position in starts
+    from=0;     // position in starts. We may trace the first element, but do not yet have a record of a previous boundary
    // fromfrom=0; // position in Matrix
     max=0
     readonly ex:Array<number>;
@@ -99,7 +99,7 @@ class FilledFrom implements DoublyIndirect,ValuesInSpan{
 // Todo: swap uses this
 export class JoinOperatorIterator{
     s:number[][]
-    i:FilledFrom[][] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+    i:FilledFrom[] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     filled=0
     filled_last:number
     behind:number
@@ -111,7 +111,8 @@ export class JoinOperatorIterator{
             //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
-            this.i = [this.s.map(starts=> new FilledFrom(starts) )]
+            this.i = this.s.map(starts=> new FilledFrom(starts) )
+            
             //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
             
             //let story:number[]=[]
@@ -125,22 +126,22 @@ export class JoinOperatorIterator{
         // on the one hand: state is my enemy
         // on the other hand: JS does not like joins (needed in Seams). NoSQL does not like joins. We cannot use a join to code a join, or can we?
         // Maybe I should start with an equi-join
-        this.i[1]=this.i[0].map(ff=>{
-            // todo: If debugged, make it one line
-            let neu=new FilledFrom(ff.ex /* readonly reference */); // I mean I could instead add an "if" into the ctor.
-            Object.assign(neu, ff ); // affects only own properties. Overwrites ex a second time
-            //const {...neu, mp}=ff;
-             return neu; 
-            } ) // this sets the order of indices. Feels okay
+        // this.i[1]=this.i[0].map(ff=>{
+        //     // todo: If debugged, make it one line
+        //     let neu=new FilledFrom(ff.ex /* readonly reference */); // I mean I could instead add an "if" into the ctor.
+        //     Object.assign(neu, ff ); // affects only own properties. Overwrites ex a second time
+        //     //const {...neu, mp}=ff;
+        //      return neu; 
+        //     } ) // this sets the order of indices. Feels okay
         //this.filled_last=this.filled_last
-        const min = this.i[0].reduce((p,v) => {
+        const min = this.i.reduce((p,v) => {
           return  (v.from < v.max && v.mp < p) ?  v.mp : p ;  // could set a break point on some part of a line in  VSC
         },this.behind 
         ) // uh. again a join
 
         //if (min<this.last) // this would lead to an endless loop
         {
-            this.i[0].forEach((c)=>{
+            this.i.forEach((c)=>{
                             if (min===c.mp ){ // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
                                 c.from++ ; 
                                // c.filled =  !c.filled  ; // ^= 1 << i
@@ -235,11 +236,8 @@ export class Seamless {
             this.pos_input[1] = this.pos_input[0]
             this.pos_input[0] = pos
 
-            // Delay three positions because: Confirm by advance (3), compare with previous value (2)
-            // Caller already delays "filled" in the sources by appropriating inverting bit0 of index into starts[]
-            // So we do not have to deal with 3 fill values and 8 combinations in our heads and in automated tests ( state is your enemy )
-            this.filled[1] = this.filled[0] // last possible moment. Quite some lag to compensate
-            this.filled[0] = filled
+
+            console.log(" going from filled?:" + this.filled[1] + " to filled?:"+ this.filled[0] );
 
             if (this.pos_input[1]>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input[1]) } // now that we advanced, lets note last border (if it was a real edge)
  
@@ -262,16 +260,21 @@ export class Seamless {
             }
             // now we do not need the oldest value anymore. Discard to avoid errors in code.
 
+
+
             //!whatIf &&
+            // 2021-01-03 pulled before concat
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
             if (this.filled[0] /* edge tracking  need have to be over filled area */ && fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
+
+                console.log(fillValues.map(fv=>"slice("+ (this.pos_input[1] - fv.start)+","+( pos - fv.start)+")"))
                 const cut = fillValues.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0])
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    const result = new Array<number>(pos - this.pos_input[1])
+                    const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
                     for (let k = this.pos_input[1]; k < pos; k++) {
                         let sum = 0
                         const retards = fillValues.map(fv => fv.extends[k - fv.start])
@@ -284,6 +287,16 @@ export class Seamless {
                 }
             } /*else*/ { // flush buffer. Be sure to call before closing stream!
             }
+
+            // Keep this below to get consisten logs
+
+            // Delay three positions because: Confirm by advance (3), compare with previous value (2)
+            // Caller already delays "filled" in the sources by appropriating inverting bit0 of index into starts[]
+            // So we do not have to deal with 3 fill values and 8 combinations in our heads and in automated tests ( state is your enemy )
+            this.filled[1] = this.filled[0] // last possible moment. Quite some lag to compensate
+            this.filled[0] = filled
+
+
         }
         
     }
@@ -291,7 +304,8 @@ export class Seamless {
     // better be sure to end with gap=true (from span end .. test?) or else call this
     flush() {
         this.start_next.push(this.pos_input[0])
-        const t = Array.prototype.concat.apply([], this.concatter)
+        const t : number[]= Array.prototype.concat.apply([], this.concatter)
+        console.log(this.start_next.join('') + "->"+ t.join('') )
         this.data_next.push(t)
     }
 }
@@ -524,25 +538,38 @@ export class Row{
 
             let pos:number
             //=new Array<Span<number>>()
-            
+            let these:Span<number>[]=[]
             // Maybe we should check for input data. No idea what jop does without input though.
-            do {
-                pos = jop.next()
+            while(  (pos = jop.next()) < jop.behind ){ // last is just after the end in Matrix {  pos behind does not deliver any results with slice. We have the extra flush method to avoid application of superfical parameters
+ 
+                // inverting is supposed to clear (upper or lower) triangles completely
+                // if (nukeCol < pos && nukeCol >= drain.pos_input[0]){
+                //     drain.removeSeams(these, nukeCol, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
+                //     drain.removeSeams(these, nukeCol+1, false, factor /* sorry */, nukeCol); // delete cell
+                // } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
+                console.log(" pos: "+pos+" we just transitioned to: "+!jop.i.every(v => v.filled === false)+ " sources to fill from: {"+these.map(t=>("start: "+t.start )+(",len: "+t.extends.length))+"}");
+                // first pass, just store pos for slice()
+                drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), factor /* sorry */, nukeCol);                   
                 
                 let pointer = this.data
                 // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
-                if (jop.i[1 /** why do we use the old value? todo */].length != 2) throw "This is a binary operator!"
-                const these = jop.i[1].filter(ii=>ii.from < ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+                
+                if (jop.i.length != 2) throw "This is a binary operator!"
+                // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
+                // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
+                these = jop.i.filter(ii=>ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                     //  const ii=jop.i[1][j]
                     if (typeof ii.ValueSpanStartInMatrix === "undefined" ||  typeof ii.ValueSpanStartInMatrix !== "number"){
-                        throw "all indizes should just stop before the end ii.mp. From: "+ii.from
+                        throw "all indizes should just stop before the end ii.mp. From: "+ii.ValueSpanStartInMatrix
                     } 
                     const thi = new Span<number>(0, ii.ValueSpanStartInMatrix)
+                    
                     if (typeof ii.from === "undefined" ||  typeof ii.from !== "number"){
                         throw "all indizes should just stop before the end ii.from"
                     }
                     thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
                     pointer = that.data
+                    //console.log(" span.start: "+thi.start );
                     return thi
                 })
                 // if ( jop.i[1][j] ){
@@ -551,22 +578,15 @@ export class Row{
                 //     these.push(thi)
                 // }
 
-                // up the last position in the matrix at least one of these has values
-
-                // inverting is supposed to clear (upper or lower) triangles completely
-                if (nukeCol < pos && nukeCol >= drain.pos_input[0]){
-                    drain.removeSeams(these, nukeCol, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
-                    drain.removeSeams(these, nukeCol+1, false, factor /* sorry */, nukeCol); // delete cell
-                } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
-                drain.removeSeams(these, pos, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);           
-            }while(  pos < jop.behind ); // last is just after the end in Matrix 
+                // up the last position in the matrix at least one of these has values        
+            }; 
 
             // This should be  equivalent to pos=jop.last, but is somewhat more concise: we are out of bounds and need to get outta here!
             drain.flush(); // after we filled concater in the last cycle of the loop and set filled=false, we now confirm that no zero length are to come
             // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
             // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
 
-            if (! jop.i[0].every(v => v.filled === false) ) throw "last boundary should be a closing one"
+            if (! jop.i.every(v => v.filled === false) ) throw "last boundary should be a closing one"
 /*
             
                 switch( jop.filled_last & 3){
@@ -751,8 +771,10 @@ export class Row{
        
         
         // flip buffers
-        // this.starts = start_next
-        // this.data = data_next
+        this.starts = drain.start_next
+        this.data = drain.data_next
+
+        console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
 
 
