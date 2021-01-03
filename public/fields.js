@@ -343,14 +343,15 @@ export class Field extends FieldToDiagonal {
             // JS is strange still. I need index:      for (let c of str) 
             for (let k = 0; k < str.length; k++) {
                 // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
-                collector[i_mat++] = str[k]; // ToDo   So I have to support both directions. Collector is part of the function?
+                collector[i_mat++] = f(str[k], i, k); // as any as T  // ToDo   So I have to support both directions. Collector is part of the function?
                 //f(str[k] /* reference type */, /* Todo: uuupsie. Vector is supposed to have value type elements */)
                 //f(i_mat, i, k);
             }
         }
-        throw "Only sceleton";
+        return collector;
     }
     // for testing. Pure function
+    // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
     static AugmentMatrix(M) {
         M.row.forEach((r, i) => {
             r.data.push([1]);
@@ -359,7 +360,11 @@ export class Field extends FieldToDiagonal {
             r.starts.push(s + 1);
         });
     }
-    sortByKnowledge(m, i, k) {
+    // right now this only does swaps between two groups:{ (un-)known }
+    // Doesn' make thing easier to code and hard to display data oriented debugging. better do it on the spans before sending to the constructor[trim]
+    // public only for testing. ToDo: extract into external class .. okay not this stuff it is almost trivial. look into the matrix stuff maybe?
+    groupByKnowledge(m, i, k) {
+        return m.BandGap === 0;
         if (this.fieldInVarFloats[i][k].BandGap === 0) {
             // This code fails for "vertical" pitched spans with length > 1
             const m = this.M.row[this.i];
@@ -369,13 +374,23 @@ export class Field extends FieldToDiagonal {
             m.set(a, i + o); // moved clear into set
         }
         //throw "not fully implementd"
-        return 0;
+        //return 0
     }
     SortByKnowledge(M) {
         this.M = M;
         M.row.forEach((r, i) => {
             this.i = i;
-            this.IterateOverAllCells(this.sortByKnowledge);
+            const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);
+            // parameter in field is boolean, but for the algorithm I tried to adapt to starts[] to reduce the lines of critical code
+            const startsToSwap = new Array();
+            passedThrough.reduce((a, b, i) => {
+                if (a !== b) {
+                    startsToSwap.push(i); // should not be that many
+                }
+                return b; // lame, I know. Side-effects are just easier 
+            }, false);
+            // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
+            M.swapColumns(startsToSwap);
         });
     }
     knownItemsOnly(m, i, k) {
