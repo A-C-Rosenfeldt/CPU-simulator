@@ -27,15 +27,29 @@
             In this kind of game all sprites overlap on a scanline. 16 sprites suffices already for hangout, but not out run.
             Anyway, the simple byte buffer format allows the CPU to software render the far away spot into a frame buffer. Scenery in these old games clung to the street.
         </p>
+        <p>
+            
+        Euclidean algorithm with rounding to nearest should result in the delta pattern
+        which is most prevalent. So with each iteration we at least halve the pixels where we need to think.
+        Long spans feel like different sprites. So small rotations could be better be done in the CPU.
+        On the other hand Bresenham is also used for edges, so these may be calculated in the GPU ( maybe in horizontal retrace? 
+        </p>
+        <h3> Display BSP (the dead end for Quake)</h3>
+        <p>
+            Sprites conjure the idea that a position is more important than the color. On CRTs sprites can be calculated at quite a high horizontal resolution, but vertical movement
+            jumps per scan line. With vintage portable screens with low resolution even horizontal movement wants antialiasing. The only way to achieve this that I can live with is,
+            is a BSP tree within each scanline. But this has quite high overdraw cost, so naturally I'd go all 2d display BSP, or at least a reliable front to back rendering.
+        </p>
+        <p>
+            With reliable front to back, I mean that in case of doubt ( no 3d BSP and after backface culling ), triangles which overlap can cheaply be cut at a z-value and also have some synergy with
+            perspective correct texture mapping. Final calculation of values from edge positions is quite expensive, but only needs to be done with zero overdraw.
+            Also texels are already dissolved, no shader need to be loaded and the workload is steady. Hardware support comes in form of low precision mul and div combined with cheap branching in hyperthreading CPU core. 
+        </p>
         <h2>Audio</h2>
         floating point matrix rotation for sine tones. The floating point is implemented
         by only acting every 1,2,4,8 cycle.
         Matrix multiplication is even done less times.
         Overtones drown in noise of 1% noise of PWM + edge shifter (diagonal)
-
-        Euclidean algorithm with rounding to nearest should result in the delta pattern
-        which is most prevalent. So with each iteration we at least halve the pixels where we need to think.
-        Long spans feel like different sprites. So small rotations could be better be done in the CPU.
-        On the other hand Bresenham is also used for edges, so these may be calculated in the GPU ( maybe in horizontal retrace? )
+)
     </body>
 </html>
