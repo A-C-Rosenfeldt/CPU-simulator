@@ -1,5 +1,5 @@
 // https://journal.artfuldev.com/unit-testing-node-applications-with-typescript-using-mocha-and-chai-384ef05f32b2
-import { Tridiagonal, Row, JoinOperatorIterator, Seamless, Span } from '../public/enforcePivot';
+import { Tridiagonal, Row, JoinOperatorIterator, AllSeamless, Span } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
@@ -79,7 +79,7 @@ describe('Testing unequi-join', () => {
 describe('Testing Seamless', () => {
 
   it('shOuld reTurn 4', () => {
-    const sea=new Seamless()
+    const sea=new AllSeamless()
 
     const span2=new Span<number>(3,0)
     span2.extends=[22,23,24] 
@@ -156,7 +156,7 @@ describe('Testing Seamless', () => {
         span1.extends=[12,13,14]
         span2.extends=[22,23,24]         
 
-        const sea=new Seamless()
+        const sea=new AllSeamless()
 
         let result = jop.next()    
         expect(result).to.equal(0);

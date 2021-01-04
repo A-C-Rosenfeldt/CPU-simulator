@@ -161,7 +161,7 @@ export class JoinOperatorIterator {
         return this.behind + 1; //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
-export class Seamless {
+export class AllSeamless {
     constructor() {
         this.data_next = [];
         this.start_next = [];
@@ -247,6 +247,14 @@ export class Seamless {
         const t = Array.prototype.concat.apply([], this.concatter);
         console.log(this.start_next.join('') + "->" + t.join(''));
         this.data_next.push(t);
+    }
+}
+class RemoveMostSeams {
+    constructor(keepSeamAt) {
+        this.keepSeamAt = keepSeamAt;
+    }
+    removeSeams(fillValues, pos, filled, factor, nukeCol, whatIf) {
+        throw new Error('Method not implemented.');
     }
 }
 // speed optimization ( premature? )
@@ -429,14 +437,19 @@ export class Row {
         }
     }
     // // to toggle between sub (inverse) and swap (conversion from field)
-    // splitOf(pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
-    //     const jop=new JoinOperatorIterator(this.starts,[pos]) // source stream  ToDo use this instead of code below
-    //     while(  (pos = jop.next()) < pos ){}
-    //     return new Row();
-    // }
-    // append(tail: Row){
-    //     const drain=new Seamless()
-    // }
+    // sub may have removed seams?
+    splitAtSeam(pos /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */) {
+        const jop = new JoinOperatorIterator(this.starts, [pos]); // source stream  ToDo use this instead of code below
+        while ((pos = jop.next()) < pos) { }
+        return null; //new Row(0);
+    }
+    // trying to avoid  join  artifacts
+    extendUnity(pos) {
+        // Seamless is only for statistics on sparse inversion. Sub should still work with seams: //const drain=new Seamless()
+        this.data.push([1]);
+        this.starts.push(pos);
+        this.starts.push(pos + 1);
+    }
     // todo: remove in child class due to all the calls
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
     // Doesn't look like this code knows about the number of spans. So do I really need the constraint? After all, I cannot enforce anything using spans. Permutation is transparent to this.
@@ -452,7 +465,7 @@ export class Row {
         //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
         // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
         const jop = new JoinOperatorIterator(this.starts, that.starts); // source stream  ToDo use this instead of code below
-        const drain = new Seamless(); // target stream
+        const drain = new AllSeamless(); // target stream
         let i = 0; // this  Mybe use .values instead?
         let a = 0; // that
         let story = [];
@@ -787,27 +800,34 @@ export class Tridiagonal {
     getAt(row, column) {
         return this.row[row].get(column);
     }
-    swapColumns(other, swapHalf /* I only explicitly use bitfields if I address fields literally */) {
+    swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */) {
         let //adapter=[]
         // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
         adapter = [swapHalf.length]; // Maybe move this code to field? Where is "augment" ?
         //}
         const swap = swapHalf.concat(adapter, swapHalf.map(pos => pos + swapHalf.length)); // "mirror"
+        const delayedSWP = swapHalf.map(pos => pos + swapHalf.length);
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
         let last_Cut = 0;
         // Seamless already does the mapping part. Todo seamless is Row? but: shold I manually shorten the prototype chain to remove access to some methods?   . this.row=this.row.map
-        this.row.forEach(row => {
+        this.row.forEach((row, i_row) => {
+            var delayedRow = new Row([]);
+            delayedRow.data = row.data;
+            delayedRow.starts = row.starts.map(s => s + this.row.length); // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
             //join starts and swap
             const l = row.starts.length >> 1;
             //for(let half=0;half<l;half+=l>>1){
-            let jop = new JoinOperatorIterator(row.starts.slice(0, l), row.starts.slice(l, l << 1), swapHalf);
+            let jop = new JoinOperatorIterator(delayedSWP, row.starts, delayedRow.starts /* uhg, ugly join */); //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
             // ^ so this is one indirection less then needed
             // gotta change  FillValues.ValueSpanStartInMatrix 
             let pos;
             const spans_new = new Array();
-            const spans_new_Stream = new Seamless();
+            const spans_new_Stream = [new AllSeamless(), new AllSeamless()]; // I copy row instead  l)
+            // const spans_new_Stream=new AllSeamless()  // jop doesn't like zero length ( if => while, but debugging nightmare ). So zero length gaps can give zero progress on "position in Matrix" .. so what?
             let last_gap = 0; //jop.gap
+            const secondHalf = new Array();
+            // todo: test that swap  discards the single source outside of the overlapping range
             while ((pos = jop.next()) <= jop.behind /* could be replaced by < Matrix.width */) {
                 // sub uses job.gap&3 !==0
                 // swap uses (not sure about all the brackets):
@@ -823,7 +843,8 @@ export class Tridiagonal {
                 }
                 // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                 // don't jop and seams handle this: spans_new.push(t)
-                spans_new_Stream.removeSeams(interfaceIsSharedWithSub, pos, jop.i[activeSource].filled);
+                spans_new_Stream.forEach((AS, i) => AS.removeSeams(interfaceIsSharedWithSub, pos, jop.i[(i === 0) === jop.i[2].filled ? 1 : 0].filled));
+                // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
                 // sub uses concatter and (pass1gap === 0 ) ! to remove seams
                 // if ((jop.gap & 1) === 0 ){
                 //     last_gap=jop.gap
@@ -832,8 +853,8 @@ export class Tridiagonal {
             }
             // todo:  eat zero values   as  in place
             //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
-            row.starts = spans_new_Stream.start_next; // todo: inheritance from common base due to same private data.
-            row.data = spans_new_Stream.data_next;
+            row.starts = spans_new_Stream[0].start_next.map(ns => ns - this.row.length).concat(spans_new_Stream[0].start_next); // todo: inheritance from common base due to same private data.
+            row.data = Array.prototype.concat.apply(spans_new_Stream.map(ns => ns.data_next));
             //return spans_new_Stream
         });
     }
