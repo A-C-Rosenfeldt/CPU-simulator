@@ -787,7 +787,7 @@ export class Tridiagonal {
     getAt(row, column) {
         return this.row[row].get(column);
     }
-    swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */) {
+    swapColumns(other, swapHalf /* I only explicitly use bitfields if I address fields literally */) {
         let //adapter=[]
         // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
         adapter = [swapHalf.length]; // Maybe move this code to field? Where is "augment" ?
@@ -912,6 +912,9 @@ export class Tridiagonal {
     //product
     //Tridiagonal|
     // }
+    inverseInConcert() {
+    }
+    // dead end. This creates a lot of unnecessary calls to class jop and seamless 
     // // Note how the filenam as of 20201124 still contains "enforcePivot", but that responsibility lies fully within field.cs
     // export class MatrixTupelWithCommonSpans extends Tridiagonal{
     inverseHalf() {
