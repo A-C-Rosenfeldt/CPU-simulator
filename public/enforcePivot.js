@@ -51,6 +51,7 @@ class FilledFrom {
         this.max = s.length;
         this.ex = s;
     }
+    //SummandForJoin=0 // only needed for swap, not for sub.  todo remove. I want join to be short. I do not shift for anything else
     get mp() {
         // apparently "undefined" is used in join ..  if (this.from < 1) throw "right hand side of string needs to be at minimum at 1"
         return this.ex[this.from];
@@ -68,7 +69,7 @@ class FilledFrom {
 // Todo: sub uses this
 // Todo: swap uses this
 export class JoinOperatorIterator {
-    constructor(...s) {
+    constructor(...s /*, SummandForJoin=0 */) {
         this.filled = 0;
         //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
         //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
@@ -77,6 +78,7 @@ export class JoinOperatorIterator {
         //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
         // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
         this.i = this.s.map(starts => new FilledFrom(starts));
+        //this.i[0].SummandForJoin=SummandForJoin
         //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
         //let story:number[]=[]
         // ? let data_i=0
@@ -426,6 +428,16 @@ export class Row {
             this.data.forEach(segment => segment.forEach((value, i) => segment[i] *= factor));
         }
     }
+    // // to toggle between sub (inverse) and swap (conversion from field)
+    // splitOf(pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
+    //     const jop=new JoinOperatorIterator(this.starts,[pos]) // source stream  ToDo use this instead of code below
+    //     while(  (pos = jop.next()) < pos ){}
+    //     return new Row();
+    // }
+    // append(tail: Row){
+    //     const drain=new Seamless()
+    // }
+    // todo: remove in child class due to all the calls
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
     // Doesn't look like this code knows about the number of spans. So do I really need the constraint? After all, I cannot enforce anything using spans. Permutation is transparent to this.
     sub(that, factor, nukeCol = -2 /* < -1 <= pos */) {
@@ -784,11 +796,14 @@ export class Tridiagonal {
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
         let last_Cut = 0;
-        this.row = this.row.map(row => {
+        // Seamless already does the mapping part. Todo seamless is Row? but: shold I manually shorten the prototype chain to remove access to some methods?   . this.row=this.row.map
+        this.row.forEach(row => {
             //join starts and swap
             const l = row.starts.length >> 1;
             //for(let half=0;half<l;half+=l>>1){
             let jop = new JoinOperatorIterator(row.starts.slice(0, l), row.starts.slice(l, l << 1), swapHalf);
+            // ^ so this is one indirection less then needed
+            // gotta change  FillValues.ValueSpanStartInMatrix 
             let pos;
             const spans_new = new Array();
             const spans_new_Stream = new Seamless();
@@ -796,27 +811,30 @@ export class Tridiagonal {
             while ((pos = jop.next()) <= jop.behind /* could be replaced by < Matrix.width */) {
                 // sub uses job.gap&3 !==0
                 // swap uses (not sure about all the brackets):
-                const activeSource = jop.i[0][2].filled /*swap active*/ ? 1 : 0;
-                if (jop.i[0][activeSource]) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+                const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0;
+                const interfaceIsSharedWithSub = new Array();
+                if (jop.i[activeSource].filled) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
                  {
-                    let t = new Span(pos - last_Cut, last_Cut);
-                    const relative = [pos, last_Cut];
-                    const i = jop.i[0][activeSource].from;
-                    t.extends = row.data[i].slice(...relative.map(x => x - row.starts[i]));
-                    spans_new.push(t);
-                    spans_new_Stream.removeSeams(spans_new, pos, jop.i[0][activeSource].filled);
-                    // sub uses concatter and (pass1gap === 0 ) ! to remove seams
-                    // if ((jop.gap & 1) === 0 ){
-                    //     last_gap=jop.gap
-                    //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
-                    // }
+                    let t = new Span(0, jop.i[activeSource].ValueSpanStartInMatrix);
+                    t.extends = row.data[jop.i[activeSource].from];
+                    const i = jop.i[activeSource].from;
+                    console.log(" i: " + i + " data[i]: " + row.data[i]); // enforcePivot.ts:915  i: 1 data[i]: undefined
+                    interfaceIsSharedWithSub.push(t);
                 }
-                else {
-                    last_Cut = pos;
-                }
+                // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
+                // don't jop and seams handle this: spans_new.push(t)
+                spans_new_Stream.removeSeams(interfaceIsSharedWithSub, pos, jop.i[activeSource].filled);
+                // sub uses concatter and (pass1gap === 0 ) ! to remove seams
+                // if ((jop.gap & 1) === 0 ){
+                //     last_gap=jop.gap
+                //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
+                // }
             }
-            const row_new = new Row(spans_new); // does trim 0 valus, but cannot fuse spans via start
-            return row_new;
+            // todo:  eat zero values   as  in place
+            //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
+            row.starts = spans_new_Stream.start_next; // todo: inheritance from common base due to same private data.
+            row.data = spans_new_Stream.data_next;
+            //return spans_new_Stream
         });
     }
     PrintGl() {
