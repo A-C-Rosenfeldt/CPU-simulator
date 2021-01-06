@@ -124,6 +124,15 @@ export class JoinOperatorIterator{
 
     next():number{
 
+        // negative position in matrix should work => todo test
+        // this.i.forEach((c)=>{
+        //     if (pos>c.mp ){ // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
+        //         c.from++ ; 
+        //        // c.filled =  !c.filled  ; // ^= 1 << i
+
+        //     }
+        // })
+
         // on the one hand: state is my enemy
         // on the other hand: JS does not like joins (needed in Seams). NoSQL does not like joins. We cannot use a join to code a join, or can we?
         // Maybe I should start with an equi-join
@@ -933,7 +942,14 @@ export class Tridiagonal{
             adapter=[swapHalf.length] // Maybe move this code to field? Where is "augment" ?
         //}
         //const swap=swapHalf.concat(adapter,swapHalf.map(pos=>pos+swapHalf.length)) // "mirror"
-        const delayedSWP= [-1,0].concat(  swapHalf.map(pos=>pos+(this.row.length>>1)) , [this.row.length,this.row.length+1]) // concat: cut spans which span the center. This method seems to be responsible for this feature
+        const delayedSWP= [0,0].concat(  swapHalf.map(pos=>pos+(this.row.length>>1)) , [this.row.length,this.row.length]) // concat: cut spans which span the center. This method seems to be responsible for this feature
+        // 2021-01-06  This looks bogus in log of jop ( too short, so check)
+        console.log(" swap " + swapHalf + " -> " + delayedSWP) 
+        // -1 does not work well with jop (it should though), where pos (into matrix) is initialized with 0 => input cursors advance before being put in lockstep. Todo: throw in jop? Calculate jop from inputs?
+        // I can stay positive when I add this to row.starts / and delayed starts  ...  and data :-(
+        // Or like this:
+        //const fillFliper = swapHalf[0]=0
+
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
         let last_Cut=0
@@ -946,7 +962,7 @@ export class Tridiagonal{
             //join starts and swap
             const l=row.starts.length >> 1
             //for(let half=0;half<l;half+=l>>1){
-            let jop=new JoinOperatorIterator(delayedSWP, row.starts, delayedRow.starts /* uhg, ugly join */ ) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
+            let jop=new JoinOperatorIterator(row.starts, delayedRow.starts, delayedSWP /* uhg, ugly join */ ) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
             // ^ so this is one indirection less then needed
             // gotta change  FillValues.ValueSpanStartInMatrix 
 
@@ -965,25 +981,36 @@ export class Tridiagonal{
 
                 const interfaceIsSharedWithSub=new Array<Span<number>>()
 
-                console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
-                console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
-                if ( pos >= (this.row.length>>1) /* find first span after center-seam (hopefully) */ && jop.i[ activeSource].filled ) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
-                {
-                    let t=new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
-                    t.extends=row.data[jop.i[activeSource].from >> 1  /* Maybe I should write an accessor */]  // 
-                    const i=jop.i[activeSource].from
-                    if ((i>>1)>=row.data.length){
-                        console.log('place breakpoint here '+(i>>1) + ' >= ' + row.data.length + "  filled? "+jop.i[ activeSource].filled )
-                        console.log('place breakpoint here '+(i) + ' >= ' + row.starts.length + "  filled? "+jop.i[ activeSource].filled )
-                    }
-                    console.log(" i: "+i+" data[i]: "+row.data[i>>1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
-                    interfaceIsSharedWithSub.push(t)
-                }
+                // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
+                // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
+                jop.i.forEach((j,k)=>{
+                    console.log(row.starts[j.from-1]+"<="+pos + " < "+row.starts[j.from] + " from: "+j.from+ " <= " + row.starts.length + ( k===activeSource ? " active " : " --" ))
+                })
+                console.log("") // spacer
 
-                // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
-                // don't jop and seams handle this: spans_new.push(t)
-                spans_new_Stream.forEach((AS,i)=>AS.removeSeams( interfaceIsSharedWithSub, pos,jop.i[ (i===0) === jop.i[2].filled ? 1:0  ].filled))
-                // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
+                // console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
+                // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
+                if ( pos >= (this.row.length>>1) /* find first span after center-seam (hopefully) */ ) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+                {
+                    if (jop.i[ activeSource].filled ){
+                        let t=new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
+                        // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
+                        t.extends=row.data[jop.i[activeSource].from >> 1  /* Maybe I should write an accessor */]  // 
+
+                        const i=jop.i[activeSource].from
+                        if ((i>>1)>=row.data.length){
+                            console.log('place breakpoint here '+(i>>1) + ' >= ' + row.data.length + "  filled? "+jop.i[ activeSource].filled )
+                            console.log('place breakpoint here '+(i) + ' >= ' + row.starts.length + "  filled? "+jop.i[ activeSource].filled )
+                        }
+                        console.log(" i: "+i+" data[i]: "+row.data[i>>1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
+                        interfaceIsSharedWithSub.push(t)
+                    } // else, just let removeSeam note the closing edge
+                    // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
+                    // don't jop and seams handle this: spans_new.push(t)
+                    spans_new_Stream.forEach((AS,i)=>AS.removeSeams( interfaceIsSharedWithSub, pos,jop.i[ (i===0) === jop.i[2].filled ? 1:0  ].filled))
+                    // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
+
+                } // without source data there is not need to push something ( at least remove unnecessary log entries )
 
                 // sub uses concatter and (pass1gap === 0 ) ! to remove seams
                 // if ((jop.gap & 1) === 0 ){
@@ -991,10 +1018,15 @@ export class Tridiagonal{
                 //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
                 // }
             }
-
+            
             // todo:  eat zero values   as  in place
             //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
-            row.starts=spans_new_Stream[0].start_next.map(ns=>ns-this.row.length ).concat(spans_new_Stream[0].start_next) // todo: inheritance from common base due to same private data.
+            spans_new_Stream.forEach(AS => AS.flush() )  // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
+            row.starts=spans_new_Stream[0].start_next.map(ns=>ns-(this.row.length >> 1) ).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.            
+            console.log("row.starts: "+ ( row.starts ))
+            if (row.starts.filter(r=>r<0).length>0){
+                throw "shifting forth and back  does not  match"
+            }
             row.data=Array.prototype.concat.apply( spans_new_Stream.map(ns=>ns.data_next))
             //return spans_new_Stream
         })
