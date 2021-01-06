@@ -537,6 +537,13 @@ export const fieldTobeSquared = [
     'i-im',
     'sssi',
 ];
+export const bandsGapped = [
+    // connected m  . Connected to wire with impedance=50
+    'sssi',
+    'siii',
+    'i-is',
+    'sssi',
+];
 var html = `
   <div>
     <span>Some HTML here</span>

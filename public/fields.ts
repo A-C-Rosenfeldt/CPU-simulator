@@ -672,6 +672,13 @@ export const fieldTobeSquared:string[]=[
  'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
 ];
 
+export const bandsGapped:string[]=[
+  // connected m  . Connected to wire with impedance=50
+ 'sssi', // contact
+ 'siii',  // we assume homognous electric field between plates (the side walls of the gates)
+ 'i-is', // gate
+ 'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
+];
 
 var html = `
   <div>

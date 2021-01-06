@@ -1,5 +1,5 @@
 import { Row } from './enforcePivot.js';
-import { StaticField, exampleField, FieldToDiagonal, fieldTobeSquared, Field } from './fields.js'
+import { StaticField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js'
 import { main } from './GL.js';
 //import 'assert'
 
@@ -30,6 +30,13 @@ let y=10
     var imageGl=squared.PrintGl()
     main('FieldGl0_mat',imageGl) 
 
+    const NoSwap=new Field(bandsGapped)
+    // reproduce stuff from above
+    squared=NoSwap.ToSparseMatrix()
+    var imageGl=squared.PrintGl()
+    main('FieldGl0_NoSwap',imageGl) 
+
+
     // Constructor is too fat? Now that I parse already in the base class? ToDo!
     const tri=new Field(fieldTobeSquared)
     // reproduce stuff from above
@@ -42,4 +49,6 @@ let y=10
     main('FieldGl0_tri_blank',imageGl) 
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
     //squared=diag.ToMatrix()
+
+
 }

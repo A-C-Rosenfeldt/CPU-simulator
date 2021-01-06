@@ -80,7 +80,11 @@ let y=10
 
     unit.swapColumns([0]) // size=6 this should swap 0 and 3
     imageGl=unit.PrintGl()
-    main('MatrixCanvasGlSwap',imageGl)    
+    main('MatrixCanvasGlSwap',imageGl)
+
+    unit.swapColumns([1]) // size=6 this should swap 0 and 3
+    imageGl=unit.PrintGl()
+    main('MatrixCanvasGlSwapMiddle',imageGl)      
 }
 
     

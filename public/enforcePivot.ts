@@ -278,7 +278,7 @@ export class AllSeamless implements Seamless {
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
             if (this.filled[0] /* edge tracking  need have to be over filled area */ && fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
 
-                console.log(fillValues.map(fv=>"slice("+ (this.pos_input[1] - fv.start)+","+( pos - fv.start)+")"))
+                console.log('going to slice '+fillValues.map(fv=>"slice("+ (this.pos_input[1] - fv.start)+","+( pos - fv.start)+")"))
                 const cut = fillValues.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0])
@@ -927,12 +927,13 @@ export class Tridiagonal{
     }
 
     public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */){
+        if (swapHalf.length>0){ // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
         let //adapter=[]
         // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
             adapter=[swapHalf.length] // Maybe move this code to field? Where is "augment" ?
         //}
-        const swap=swapHalf.concat(adapter,swapHalf.map(pos=>pos+swapHalf.length)) // "mirror"
-        const delayedSWP=  swapHalf.map(pos=>pos+swapHalf.length)
+        //const swap=swapHalf.concat(adapter,swapHalf.map(pos=>pos+swapHalf.length)) // "mirror"
+        const delayedSWP= [-1,0].concat(  swapHalf.map(pos=>pos+(this.row.length>>1)) , [this.row.length,this.row.length+1]) // concat: cut spans which span the center. This method seems to be responsible for this feature
         // ToDo: three way join? Now I understand why other people use indirection instead of RLE
         // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
         let last_Cut=0
@@ -940,7 +941,7 @@ export class Tridiagonal{
         this.row.forEach((row,i_row)=>{ // the block clearly separates singular and plural
             var delayedRow=new Row([]);
             delayedRow.data=row.data;
-            delayedRow.starts=row.starts.map(s=>s+this.row.length)   // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
+            delayedRow.starts=row.starts.map(s=>s+(this.row.length>>1))   // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
 
             //join starts and swap
             const l=row.starts.length >> 1
@@ -957,18 +958,25 @@ export class Tridiagonal{
 
             const secondHalf=new Array<Span<number>>()
             // todo: test that swap  discards the single source outside of the overlapping range
-            while((pos=jop.next()) <= jop.behind /* could be replaced by < Matrix.width */){
+            while((pos=jop.next()) < (this.row.length)/* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */){
                 // sub uses job.gap&3 !==0
                 // swap uses (not sure about all the brackets):
                 const activeSource=jop.i[2].filled /*swap active*/? 1:0
 
                 const interfaceIsSharedWithSub=new Array<Span<number>>()
-                if ( jop.i[ activeSource].filled ) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+
+                console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
+                console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
+                if ( pos >= (this.row.length>>1) /* find first span after center-seam (hopefully) */ && jop.i[ activeSource].filled ) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
                 {
                     let t=new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
-                    t.extends=row.data[jop.i[activeSource].from]
+                    t.extends=row.data[jop.i[activeSource].from >> 1  /* Maybe I should write an accessor */]  // 
                     const i=jop.i[activeSource].from
-                    console.log(" i: "+i+" data[i]: "+row.data[i]) // enforcePivot.ts:915  i: 1 data[i]: undefined
+                    if ((i>>1)>=row.data.length){
+                        console.log('place breakpoint here '+(i>>1) + ' >= ' + row.data.length + "  filled? "+jop.i[ activeSource].filled )
+                        console.log('place breakpoint here '+(i) + ' >= ' + row.starts.length + "  filled? "+jop.i[ activeSource].filled )
+                    }
+                    console.log(" i: "+i+" data[i]: "+row.data[i>>1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
                     interfaceIsSharedWithSub.push(t)
                 }
 
@@ -990,7 +998,7 @@ export class Tridiagonal{
             row.data=Array.prototype.concat.apply( spans_new_Stream.map(ns=>ns.data_next))
             //return spans_new_Stream
         })
-    }
+}}
 
     PrintGl():SimpleImage{
         const s=this.row.length
