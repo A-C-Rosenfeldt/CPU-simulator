@@ -225,10 +225,14 @@ export interface Seamless{
     removeSeams(//criterium: ((a: number) => boolean),
         fillValues: Span<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
-        factor:number, nujeCol:number,
-        whatIf:boolean  // expose the triviality of this premature optimization
+        factor?:number, nujeCol?:number,
+        whatIf?:boolean  // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
-;
+
+    flush()
+
+    data_next: number[][]
+    start_next: number[]
 }
 export class AllSeamless implements Seamless {
     data_next: number[][] = []
@@ -330,17 +334,7 @@ export class AllSeamless implements Seamless {
     }
 }
 
-class RemoveMostSeams implements Seamless{
-keepSeamAt:number
-sa: AllSeamless;
 
-constructor(keepSeamAt?:number){
-    this.keepSeamAt=keepSeamAt
-}
-    removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, factor?: number, nukeCol?: number, whatIf?: boolean) {
-        throw new Error('Method not implemented.')
-    }
-}
 
 // speed optimization ( premature? )
 class Passes{
@@ -829,6 +823,89 @@ export class Row{
         console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
 
+    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[]) {
+        var delayedRow = new Row([])
+        // rename trick //const row=this
+        delayedRow.data = this.data
+        delayedRow.starts = this.starts.map(s => s + (length >> 1)) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
+
+
+        //join starts and swap
+        const l = this.starts.length >> 1
+        //for(let half=0;half<l;half+=l>>1){
+        let jop = new JoinOperatorIterator(this.starts, delayedRow.starts, delayedSWP /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
+
+
+        // ^ so this is one indirection less then needed
+        // gotta change  FillValues.ValueSpanStartInMatrix 
+        let pos: number
+        //const spans_new=new Array<Span<number>>()
+        // const spans_new_Stream=new AllSeamless()  // jop doesn't like zero length ( if => while, but debugging nightmare ). So zero length gaps can give zero progress on "position in Matrix" .. so what?
+        //let last_gap=0 //jop.gap
+        //const secondHalf=new Array<Span<number>>()
+        // todo: test that swap  discards the single source outside of the overlapping range
+        while ((pos = jop.next()) < (length) /* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */) {
+            // sub uses job.gap&3 !==0
+            // swap uses (not sure about all the brackets):
+            const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
+            const interfaceIsSharedWithSub = new Array<Span<number>>()
+            // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
+            // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
+            jop.i.forEach((j, k) => {
+                console.log(this.starts[j.from - 1] + "<=" + pos + " < " + this.starts[j.from] + " from: " + j.from + " <= " + length + (k === activeSource ? " active " : " --"))
+            })
+            console.log("") // spacer
+
+
+
+            // console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
+            // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
+            if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+            {
+                if (jop.i[activeSource].filled) {
+                    let t = new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
+                    // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
+                    t.extends = this.data[jop.i[activeSource].from >> 1 /* Maybe I should write an accessor */] // 
+
+                    const i = jop.i[activeSource].from
+                    if ((i >> 1) >= this.data.length) {
+                        console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
+                        console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
+                    }
+                    console.log(" i: " + i + " data[i]: " + this.data[i >> 1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
+                    interfaceIsSharedWithSub.push(t)
+                } // else, just let removeSeam note the closing edge
+
+
+                // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
+                // don't jop and seams handle this: spans_new.push(t)
+                spans_new_Stream.forEach((AS, i) => AS.removeSeams(interfaceIsSharedWithSub, pos, jop.i[(i === 0) === jop.i[2].filled ? 1 : 0].filled))
+                // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
+            } // without source data there is not need to push something ( at least remove unnecessary log entries )
+
+
+
+
+
+
+            // sub uses concatter and (pass1gap === 0 ) ! to remove seams
+            // if ((jop.gap & 1) === 0 ){
+            //     last_gap=jop.gap
+            //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
+            // }
+        }
+
+        // todo:  eat zero values   as  in place
+        //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
+        spans_new_Stream.forEach(AS => AS.flush()) // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
+        this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.            
+        console.log("row.starts: " + (this.starts))
+        if (this.starts.filter(r => r < 0).length > 0) {
+            throw "shifting forth and back  does not  match"
+        }
+        this.data = Array.prototype.concat.apply(spans_new_Stream.map(ns => ns.data_next))
+    }
+
 
     // parent needs to add Matrix.length
     holdBothsides(i:number){
@@ -955,82 +1032,15 @@ export class Tridiagonal{
         let last_Cut=0
         // Seamless already does the mapping part. Todo seamless is Row? but: shold I manually shorten the prototype chain to remove access to some methods?   . this.row=this.row.map
         this.row.forEach((row,i_row)=>{ // the block clearly separates singular and plural
-            var delayedRow=new Row([]);
-            delayedRow.data=row.data;
-            delayedRow.starts=row.starts.map(s=>s+(this.row.length>>1))   // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
-
-            //join starts and swap
-            const l=row.starts.length >> 1
-            //for(let half=0;half<l;half+=l>>1){
-            let jop=new JoinOperatorIterator(row.starts, delayedRow.starts, delayedSWP /* uhg, ugly join */ ) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
-            // ^ so this is one indirection less then needed
-            // gotta change  FillValues.ValueSpanStartInMatrix 
-
-            let pos:number
-            const spans_new=new Array<Span<number>>()
-            const spans_new_Stream=[new AllSeamless(),new AllSeamless()] // I copy row instead  l)
-            // const spans_new_Stream=new AllSeamless()  // jop doesn't like zero length ( if => while, but debugging nightmare ). So zero length gaps can give zero progress on "position in Matrix" .. so what?
-            let last_gap=0 //jop.gap
-
-            const secondHalf=new Array<Span<number>>()
-            // todo: test that swap  discards the single source outside of the overlapping range
-            while((pos=jop.next()) < (this.row.length)/* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */){
-                // sub uses job.gap&3 !==0
-                // swap uses (not sure about all the brackets):
-                const activeSource=jop.i[2].filled /*swap active*/? 1:0
-
-                const interfaceIsSharedWithSub=new Array<Span<number>>()
-
-                // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
-                // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
-                jop.i.forEach((j,k)=>{
-                    console.log(row.starts[j.from-1]+"<="+pos + " < "+row.starts[j.from] + " from: "+j.from+ " <= " + row.starts.length + ( k===activeSource ? " active " : " --" ))
-                })
-                console.log("") // spacer
-
-                // console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
-                // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
-                if ( pos >= (this.row.length>>1) /* find first span after center-seam (hopefully) */ ) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
-                {
-                    if (jop.i[ activeSource].filled ){
-                        let t=new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
-                        // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
-                        t.extends=row.data[jop.i[activeSource].from >> 1  /* Maybe I should write an accessor */]  // 
-
-                        const i=jop.i[activeSource].from
-                        if ((i>>1)>=row.data.length){
-                            console.log('place breakpoint here '+(i>>1) + ' >= ' + row.data.length + "  filled? "+jop.i[ activeSource].filled )
-                            console.log('place breakpoint here '+(i) + ' >= ' + row.starts.length + "  filled? "+jop.i[ activeSource].filled )
-                        }
-                        console.log(" i: "+i+" data[i]: "+row.data[i>>1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
-                        interfaceIsSharedWithSub.push(t)
-                    } // else, just let removeSeam note the closing edge
-                    // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
-                    // don't jop and seams handle this: spans_new.push(t)
-                    spans_new_Stream.forEach((AS,i)=>AS.removeSeams( interfaceIsSharedWithSub, pos,jop.i[ (i===0) === jop.i[2].filled ? 1:0  ].filled))
-                    // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
-
-                } // without source data there is not need to push something ( at least remove unnecessary log entries )
-
-                // sub uses concatter and (pass1gap === 0 ) ! to remove seams
-                // if ((jop.gap & 1) === 0 ){
-                //     last_gap=jop.gap
-                //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
-                // }
-            }
+            const spans_new_Stream=[new AllSeamless(),new AllSeamless()] // todo: inject unit test debug moch    I copy row instead  l)
+            const length=this.row.length ; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
             
-            // todo:  eat zero values   as  in place
-            //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
-            spans_new_Stream.forEach(AS => AS.flush() )  // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
-            row.starts=spans_new_Stream[0].start_next.map(ns=>ns-(this.row.length >> 1) ).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.            
-            console.log("row.starts: "+ ( row.starts ))
-            if (row.starts.filter(r=>r<0).length>0){
-                throw "shifting forth and back  does not  match"
-            }
-            row.data=Array.prototype.concat.apply( spans_new_Stream.map(ns=>ns.data_next))
+            // todo: this becomes a method of class Row
+            row.shiftedOverlay(length, delayedSWP, spans_new_Stream)
             //return spans_new_Stream
         })
 }}
+
 
     PrintGl():SimpleImage{
         const s=this.row.length
