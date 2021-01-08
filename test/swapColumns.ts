@@ -1,4 +1,4 @@
-import { Tridiagonal, Row, JoinOperatorIterator, Seamless, Span } from '../public/enforcePivot';
+import { Tridiagonal, Row, JoinOperatorIterator, Seamless, AllSeamless, Span } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
@@ -16,7 +16,7 @@ class SeamlessMock implements Seamless{
   }
       removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, factor?: number, nukeCol?: number, whatIf?: boolean) {
         this.start_next.push(pos) // pos should always pass the test at the end of  swapColumns()
-        console.log("remove Seams at least has to note pos: "+pos)
+        console.log("remove Seams at least has to note pos: "+pos+" and filled "+filled+" to check the chain of XORs")
         if (fillValues.length===1){
         const f=fillValues[0] // array functionality for sub only. Degenerated case is simpler than type union
         if (this.start_next.length>0 && this.start_next[this.start_next.length-1]>f.start){
@@ -174,7 +174,10 @@ describe('Swap', () => {
   
     });
 
-  it('jop + swap + seamless', () => {
+   //  flus is tested in test_transpiled.ts/Testing Seamless it('jop + swap + seamless(flush)', () => {
+//    
+  
+it('jop + swap + seamless + tridiagonal', () => {
     // Maybe inject mock, which tests, if buffers were flushed before read?
 
     //const scalar=new Tridiagonal(1)
@@ -191,8 +194,16 @@ describe('Swap', () => {
     expect(unit.getAt(0,0)).to.equal(5)
     expect(unit.getAt(0,3)).to.equal(0)
     unit.swapColumns([0,1])
+    expect(unit.row[0].starts.length).to.equal(2)
+    expect(unit.row[0].starts[0]).to.equal(3)
+    expect(unit.row[0].starts[1]).to.equal(4)
+
+    expect(unit.row[0].data.length).to.equal(1)
+    expect(unit.row[0].data[0]).to.equal(5)
+
+    
     expect(unit.getAt(0,0)).to.equal(0)
-    expect(unit.getAt(0,3)).to.equal(5)
+    expect(unit.getAt(0,3)).to.equal(5) // still fails
 
     expect(unit.getAt(1,1)).to.equal(5)
     expect(unit.getAt(1,4)).to.equal(0)

@@ -76,23 +76,45 @@ describe('Testing unequi-join', () => {
   });
 });
 
+// before(async () => {  
+//   await Special.setupForThisFile()
+// })
+
 describe('Testing Seamless', () => {
 
-  it('shOuld reTurn 4', () => {
-    const sea=new AllSeamless()
+  let sea=new AllSeamless()
 
-    const span2=new Span<number>(3,0)
-    span2.extends=[22,23,24] 
-
-    // sea.removeSeams(filled: { 2020: {true, false, false}, 2021: {false, true, true} })
+  beforeEach(function(){
+    console.log('see.. this function is run EACH time')
     sea.removeSeams([],2 /* First value  from  above test */, false)  // Matrix Row  starts with zeros ( false ). After 2 of them, values are filled "true". jop flipped to true on first edge.
+  })
+  it('empty, false, flush', () => {
+  
+    // sea.removeSeams(filled: { 2020: {true, false, false}, 2021: {false, true, true} })
+ 
+    // end of  set-up
+
     expect(sea.start_next.length).to.equal(0); // we switch from empty ( Matrix out of bounds has 0) to filled
     expect(sea.filled[1]).to.equal(false) // not yet trigger data concat !
     expect(sea.filled[0]).to.equal(false) // parameter
 
+       /*
+    Debug log from 2021-01-08  test/swapColumns
+public/enforcePivot.ts:746  going from filled?:false to filled?:false
+public/enforcePivot.ts:199  going from filled?:false to filled?:true
+public/enforcePivot.ts:199 flush: 4-> by the way, filled: false,false
+public/enforcePivot.ts:262 flush: 34-> by the way, filled: false,true
 
-    //expect(sea.start_next[0]).to.equal(2);  // we cannot note 2 here because we do not know if a zero length and an edge back to false comes
+then I changed: !this.filled[0] to this.filled[1]
+.. now, let's test
+     */
+    sea.flush()
+    expect(sea.start_next.length).to.equal(0)
+  })
 
+  
+  it('extend, true, flush', () => {
+ 
     const span=new Span<number>(3,2)
     span.extends=[2,3,4]  // i >> 1  can give the string one cycle after getting the start value. After all we need to wait for end
 
@@ -103,6 +125,9 @@ describe('Testing Seamless', () => {
     sea.removeSeams([span],5 /* ToDo: check!  0 makes no sense!  from above test */, true /* flips from jop  go to false */)   // We add 5 values and stay true: more to come (why do we know this?)
     expect(sea.filled[1]).to.equal(false)
     expect(sea.filled[0]).to.equal(true)
+
+    sea.flush()
+    expect(sea.start_next.length).to.equal(0) 
     return
     expect(sea.start_next.length).to.equal(1); //  Note pos[1] . jop again detects filled state => no real border, just a seam. Do not note!
     expect(sea.start_next[0]).to.equal(2);

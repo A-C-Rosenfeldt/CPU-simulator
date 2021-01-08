@@ -327,10 +327,17 @@ export class AllSeamless implements Seamless {
 
     // better be sure to end with gap=true (from span end .. test?) or else call this
     flush() {
-        this.start_next.push(this.pos_input[0])
-        const t : number[]= Array.prototype.concat.apply([], this.concatter)
-        console.log(this.start_next.join('') + "->"+ t.join('') )
-        this.data_next.push(t)
+        if (this.filled[1] /* condition derived from log while debugging. Maybe test? */) { // to keep even numbeer of open and close .. looks better in log .. also even worse than a seam (aesthetically) .  todo test for this
+            this.start_next.push(this.pos_input[0])
+            const t : number[]= Array.prototype.concat.apply([], this.concatter)
+            console.log("flush: "+this.start_next.join('') + "->"+ t.join('') +" by the way, filled: "+this.filled)
+            // is filled, so there must be data available
+            if (this.concatter.length<=0) {throw "with filled there needs to be data!"}
+            
+            this.data_next.push(t)
+        }else{
+            console.log("flush: not because stream is not active" )
+        }
     }
 }
 
@@ -852,7 +859,7 @@ export class Row{
             // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
             // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
             jop.i.forEach((j, k) => {
-                console.log(this.starts[j.from - 1] + "<=" + pos + " < " + this.starts[j.from] + " from: " + j.from + " <= " + length + (k === activeSource ? " active " : " --"))
+                console.log( j.ValueSpanStartInMatrix + " <= " + pos + " < " + j.ex[j.from] + " from: " + j.from + " <= " + j.ex.length + " filled " + j.filled)
             })
             console.log("") // spacer
 
@@ -862,6 +869,7 @@ export class Row{
             // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
             if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
             {
+                // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
                 if (jop.i[activeSource].filled) {
                     let t = new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
                     // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
@@ -879,7 +887,9 @@ export class Row{
 
                 // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                 // don't jop and seams handle this: spans_new.push(t)
-                spans_new_Stream.forEach((AS, i) => AS.removeSeams(interfaceIsSharedWithSub, pos, jop.i[(i === 0) === jop.i[2].filled ? 1 : 0].filled))
+
+                // [starts, delayedStarts] .. pos >= (length >> 1) => delayed Starts are the non-swapped starts. filled === i=0
+                spans_new_Stream.forEach((AS, i) => AS.removeSeams(interfaceIsSharedWithSub, pos, jop.i[(i === 0) === jop.i[2].filled ? 0 : 1].filled))
                 // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
             } // without source data there is not need to push something ( at least remove unnecessary log entries )
 
