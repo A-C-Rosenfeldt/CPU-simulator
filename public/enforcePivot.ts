@@ -901,7 +901,7 @@ export class Row{
         this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.            
         console.log("row.starts: " + (this.starts))
         if (this.starts.filter(r => r < 0).length > 0) {
-            throw "shifting forth and back  does not  match"
+            throw "shifting forth and back  does not  match "+ spans_new_Stream.map(s=>"["+s.start_next+"]") //this.starts // 0,-2,3,1
         }
         this.data = Array.prototype.concat.apply(spans_new_Stream.map(ns => ns.data_next))
     }

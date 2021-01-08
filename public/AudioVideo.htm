@@ -34,8 +34,9 @@
         Long spans feel like different sprites. So small rotations could be better be done in the CPU.
         On the other hand Bresenham is also used for edges, so these may be calculated in the GPU ( maybe in horizontal retrace? 
         </p>
-        <h3> Display BSP (the dead end for Quake)</h3>
+        <h3> Display BSP, The beam tree </h3>
         <p>
+            <a href="https://www.bluesnews.com/abrash/">Abrash</a>
             Sprites conjure the idea that a position is more important than the color. On CRTs sprites can be calculated at quite a high horizontal resolution, but vertical movement
             jumps per scan line. With vintage portable screens with low resolution even horizontal movement wants antialiasing. The only way to achieve this that I can live with is,
             is a BSP tree within each scanline. But this has quite high overdraw cost, so naturally I'd go all 2d display BSP, or at least a reliable front to back rendering.

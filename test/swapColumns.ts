@@ -5,22 +5,36 @@ import 'mocha';
 class SeamlessMock implements Seamless{
   data_next: number[][] = []
   start_next: number[] = []
+  otherLog:number[][]=[]
   
   constructor() { //keepSeamAt?:number){
     // this is a conflict. I like to be explicit and constructive, but at the same time minimize surface. swapArray seems to be rich enough to induce seams. Will write tests to express my intent.
       //  this.keepSeamAt=keepSeamAt
   }
   flush() {
-    throw new Error('Method not implemented.');
+    // not needed in this mock:  throw new Error('Method not implemented.');
   }
       removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, factor?: number, nukeCol?: number, whatIf?: boolean) {
-        const f=fillValues[0] // array functionality for sub only. Degenerated case is simpler than type union 
-        this.start_next.push(f.start,f.extends.length) // raw for max flexiblity applying mocha.expect
+        this.start_next.push(pos) // pos should always pass the test at the end of  swapColumns()
+        console.log("remove Seams at least has to note pos: "+pos)
+        if (fillValues.length===1){
+        const f=fillValues[0] // array functionality for sub only. Degenerated case is simpler than type union
+        if (this.start_next.length>0 && this.start_next[this.start_next.length-1]>f.start){
+          throw "values must be increasing monotonic "+ this.start_next +" > "+f.start  // back tracking from "shifting forth and back  does not match"
+        } 
+        
+        this.otherLog.push([(filled?1:0),f.start,f.extends.length]) // todo: start next is public and this use crashes swapColums()
+        }else{
+          this.otherLog.push([(filled?1:0)])
+          if (fillValues.length>1){
+            throw "should only happen in subtract"
+          }
+        }
       }
   }
 
-describe('Swap Hello function 2021-01-03', () => {
-  it('shouls work with three operands jop and cutter at 0 and row.length', () => {
+describe('Swap', () => {
+  it('jop should work with three operands jop and cutter at 0 and row.length', () => {
     let jop = new JoinOperatorIterator([0, 1],[3, 4],[0, 0, 3, 4, 6, 6])
 
     // find minimum start value of the three
@@ -119,7 +133,7 @@ describe('Swap Hello function 2021-01-03', () => {
 
 
 
-    it('row swap', () => {
+    it('jop + swap', () => {
       // Maybe inject mock, which tests, if buffers were flushed before read?
   
       //const scalar=new Tridiagonal(1)
@@ -134,26 +148,33 @@ describe('Swap Hello function 2021-01-03', () => {
       const spans_new_Stream=[new SeamlessMock(),new SeamlessMock()] // todo: inject unit test debug moch    I copy row instead  l)
       const delayedSWP= [0,0].concat(  swapHalf.map(pos=>pos+(size>>1)) , [size,size]) // concat: cut spans which span the center. This method seems to be responsible for this feature
   
-        // todo: this becomes a method of class Row
-        row.shiftedOverlay(size, delayedSWP, spans_new_Stream)      
-      
-  
-      // expect(unit.getAt(0,0)).to.equal(5)
+      // todo: this becomes a method of class Row
+      row.shiftedOverlay(size, delayedSWP, spans_new_Stream)      
+
+      expect(spans_new_Stream[1].start_next.length).to.equal(2)
+      expect(spans_new_Stream[0].start_next.length).to.equal(2)
+      let j=0
+      {
+        let i=0
+        expect(spans_new_Stream[j].start_next[i]).to.equal(3)
+        expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(0) // is 1 .. like no swap happend :-(
+        expect(spans_new_Stream[j].start_next[i]).to.equal(4)        
+        expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(0)
+      }
+      j++
+      {
+        let i=0
+        expect(spans_new_Stream[j].start_next[i]).to.equal(3)
+        expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(1)
+        expect(spans_new_Stream[j].start_next[i]).to.equal(4)        
+        expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(0)
+      }
+
       // expect(unit.getAt(0,3)).to.equal(0)
-      // unit.swapColumns([0,1])
-      // expect(unit.getAt(0,0)).to.equal(0)
-      // expect(unit.getAt(0,3)).to.equal(5)
-  
-      // expect(unit.getAt(1,1)).to.equal(5)
-      // expect(unit.getAt(1,4)).to.equal(0)
-      // unit.swapColumns([1,3])
-      // expect(unit.getAt(1,1)).to.equal(0)
-      // expect(unit.getAt(2,4)).to.equal(5)
-  
   
     });
 
-  it('Matrix swap integrated with seamless', () => {
+  it('jop + swap + seamless', () => {
     // Maybe inject mock, which tests, if buffers were flushed before read?
 
     //const scalar=new Tridiagonal(1)
