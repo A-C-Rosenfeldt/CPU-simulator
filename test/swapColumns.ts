@@ -199,7 +199,7 @@ it('jop + swap + seamless + tridiagonal', () => {
     expect(unit.row[0].starts[1]).to.equal(4)
 
     expect(unit.row[0].data.length).to.equal(1)
-    expect(unit.row[0].data[0]).to.equal(5)
+    expect(unit.row[0].data[0][0]).to.equal(5)
 
     
     expect(unit.getAt(0,0)).to.equal(0)
@@ -209,7 +209,7 @@ it('jop + swap + seamless + tridiagonal', () => {
     expect(unit.getAt(1,4)).to.equal(0)
     unit.swapColumns([1,3])
     expect(unit.getAt(1,1)).to.equal(0)
-    expect(unit.getAt(2,4)).to.equal(5)
+    expect(unit.getAt(1,4)).to.equal(5)
 
 
   });

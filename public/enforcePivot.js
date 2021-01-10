@@ -186,11 +186,13 @@ export class AllSeamless {
     fillValues, // sourceStart: number[],
     pos, filled, factor = 0, nukeCol, whatIf = false // expose the triviality of this premature optimization
     ) {
+        console.log("should be [5] 2: " + fillValues.map(f => f.extends));
         //throw "nase"
         if (this.pos_input[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
             this.pos_input[1] = this.pos_input[0];
             this.pos_input[0] = pos;
             console.log(" going from filled?:" + this.filled[1] + " to filled?:" + this.filled[0]);
+            console.log("should be [5] 3: " + fillValues.map(f => f.extends));
             if (this.pos_input[1] >= 0 && (this.filled[1] != this.filled[0])) {
                 this.start_next.push(this.pos_input[1]);
             } // now that we advanced, lets note last border (if it was a real edge)
@@ -217,9 +219,10 @@ export class AllSeamless {
             //!whatIf &&
             // 2021-01-03 pulled before concat
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
-            if (this.filled[0] /* edge tracking  need have to be over filled area */ && fillValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
-                console.log('going to slice ' + fillValues.map(fv => "slice(" + (this.pos_input[1] - fv.start) + "," + (pos - fv.start) + ")"));
-                const cut = fillValues.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
+            if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.delayedSlice.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
+                console.log("should be [5] 4: " + this.delayedSlice.map(f => f.extends));
+                console.log('going to slice ' + this.delayedSlice.map(fv => "slice(" + (this.pos_input[1] - fv.start) + "," + (pos - fv.start) + ")"));
+                const cut = this.delayedSlice.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0]);
                 }
@@ -246,6 +249,8 @@ export class AllSeamless {
             // So we do not have to deal with 3 fill values and 8 combinations in our heads and in automated tests ( state is your enemy )
             this.filled[1] = this.filled[0]; // last possible moment. Quite some lag to compensate
             this.filled[0] = filled;
+            // match value delay to position delay
+            this.delayedSlice = fillValues;
         }
     }
     // better be sure to end with gap=true (from span end .. test?) or else call this
@@ -733,8 +738,7 @@ export class Row {
         while ((pos = jop.next()) < (length) /* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */) {
             // sub uses job.gap&3 !==0
             // swap uses (not sure about all the brackets):
-            const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0;
-            const interfaceIsSharedWithSub = new Array();
+            // we have two sources and two targets and either pass through or swap  //const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
             // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
             // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
             jop.i.forEach((j, k) => {
@@ -745,23 +749,30 @@ export class Row {
             // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
             if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
              {
-                // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
-                if (jop.i[activeSource].filled) {
-                    let t = new Span(0, jop.i[activeSource].ValueSpanStartInMatrix);
-                    // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
-                    t.extends = this.data[jop.i[activeSource].from >> 1 /* Maybe I should write an accessor */]; // 
-                    const i = jop.i[activeSource].from;
-                    if ((i >> 1) >= this.data.length) {
-                        console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled);
-                        console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled);
-                    }
-                    console.log(" i: " + i + " data[i]: " + this.data[i >> 1]); // enforcePivot.ts:915  i: 1 data[i]: undefined
-                    interfaceIsSharedWithSub.push(t);
-                } // else, just let removeSeam note the closing edge
                 // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                 // don't jop and seams handle this: spans_new.push(t)
                 // [starts, delayedStarts] .. pos >= (length >> 1) => delayed Starts are the non-swapped starts. filled === i=0
-                spans_new_Stream.forEach((AS, i) => AS.removeSeams(interfaceIsSharedWithSub, pos, jop.i[(i === 0) === jop.i[2].filled ? 0 : 1].filled));
+                spans_new_Stream.forEach((AS, i) => {
+                    const activeSource = (i === 0) === jop.i[2].filled ? 0 : 1;
+                    const filled = jop.i[activeSource].filled; // XOR^3
+                    const interfaceIsSharedWithSub = new Array();
+                    // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
+                    if (filled) {
+                        let t = new Span(0, jop.i[activeSource].ValueSpanStartInMatrix);
+                        // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
+                        t.extends = this.data[jop.i[activeSource].from >> 1 /* Maybe I should write an accessor */]; // 
+                        const i = jop.i[activeSource].from;
+                        if ((i >> 1) >= this.data.length) {
+                            console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled);
+                            console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled);
+                        }
+                        console.log(" i: " + i + " data[i]: " + this.data[i >> 1]); // enforcePivot.ts:915  i: 1 data[i]: undefined
+                        console.log("should be [5] 0: " + t.extends);
+                        interfaceIsSharedWithSub.push(t);
+                    } // else, just let removeSeam note the closing edge
+                    console.log("should be [5] 1: " + interfaceIsSharedWithSub.map(f => f.extends));
+                    AS.removeSeams(interfaceIsSharedWithSub, pos, filled);
+                });
                 // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
             } // without source data there is not need to push something ( at least remove unnecessary log entries )
             // sub uses concatter and (pass1gap === 0 ) ! to remove seams

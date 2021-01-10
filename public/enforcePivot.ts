@@ -280,6 +280,7 @@ export class AllSeamless implements Seamless {
                         { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
                             const t = Array.prototype.concat.apply([], this.concatter)
                             this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            if (this.data_next.length > (this.start_next.length >>1)) { throw "I could not belive it, but log claims 1: "+this.data_next.length +" > "+ this.start_next.length +" >>1  "}
                             this.concatter = new Array<number[]>()
                         }
                     }
@@ -337,6 +338,7 @@ export class AllSeamless implements Seamless {
             if (this.concatter.length<=0) {throw "with filled there needs to be data!"}
             
             this.data_next.push(t)
+            if (this.data_next.length > (this.start_next.length >>1)) { throw "I could not belive it, but log claims 2: "+this.data_next.length +" > "+ this.start_next.length +" >>1  "}
         }else{
             console.log("flush: not because stream is not active" )
         }
@@ -835,6 +837,7 @@ export class Row{
     }
 
     public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[]) {
+        if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
         // rename trick //const row=this
         delayedRow.data = this.data
@@ -919,13 +922,27 @@ export class Row{
 
         // todo:  eat zero values   as  in place
         //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
+        if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2  1"
+        
         spans_new_Stream.forEach(AS => AS.flush()) // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
-        this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.            
+        this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.
+        try{
+        console.log(this.starts.length+" = "+ spans_new_Stream[0].start_next.length + " + " + spans_new_Stream[1].start_next.length)
+        }catch{
+            console.log("span did not have two spans")
+        }
         console.log("row.starts: " + (this.starts))
         if (this.starts.filter(r => r < 0).length > 0) {
             throw "shifting forth and back  does not  match "+ spans_new_Stream.map(s=>"["+s.start_next+"]") //this.starts // 0,-2,3,1
         }
-        this.data = Array.prototype.concat.apply(spans_new_Stream.map(ns => ns.data_next))
+        this.data = Array.prototype.concat.apply([],spans_new_Stream.map(ns => ns.data_next))
+
+        try{
+            console.log(this.data.length+" = "+ spans_new_Stream[0].data_next.length + " + " + spans_new_Stream[1].data_next.length) // 2=0+1
+            }catch{
+                console.log("data did not have two spans")
+        }        
+        if (this.data.length > (this.starts.length >>1)) { throw "I could not belive it, but log claims 0: "+this.data.length +" > "+ this.starts.length +" >>1  "}
     }
 
 
