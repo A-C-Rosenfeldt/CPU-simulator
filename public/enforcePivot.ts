@@ -242,28 +242,31 @@ export class AllSeamless implements Seamless {
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
-    filled = [false, false]
-    pos_input = [-1,-1] // needed for slice
+    filled = [false, false] // todo: no array.. here we need an array to remember that old pos to know if we have to flush? 
+    pos_input = -1 // state is your enemy. Keep in sync with delayed Slice [-1,-1] // needed for slice
     //pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
     concatter = new Array<number[]>()
+    fillValues=new Array<Span<number>>() // undefined is not the logical start value  // where to put this? Apparently sub also already delays  and  swap also needs it .. so better put in in Seamless? Caller just needs a simple reorder of calls. Todo in swap? Single Responsible .. logs sure look strange
+    // it is important to only strong monotonic pos before using the data values for the last span
+    // swap has weak monotonic cutter for center (which may or may not be needed)
+    // robust code, cleaner logs, delay stuff all in one place: Delay in class AllSeamless
 
     removeSeams(//criterium: ((a: number) => boolean),
-        fillValues: Span<number>[], // sourceStart: number[],
+        _fillValues: Span<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
         factor = 0, nukeCol?:number,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
-        //throw "nase"
-        if (this.pos_input[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
+        console.log("should be [5] 2: "+_fillValues.map(f=>f.extends))
+
+        //throw "nase" 
+        if (this.pos_input < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
             
-            this.pos_input[1] = this.pos_input[0]
-            this.pos_input[0] = pos
+            console.log(" going from filled?:" + this.filled[1] + " to filled?:"+ pos );
+            console.log("should be [5] 3: "+this.fillValues.map(f=>f.extends))
 
-
-            console.log(" going from filled?:" + this.filled[1] + " to filled?:"+ this.filled[0] );
-
-            if (this.pos_input[1]>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input[1]) } // now that we advanced, lets note last border (if it was a real edge)
+            if (this.pos_input>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
  
             // properties? With delegates I get to use Arrays!
             // Test run: pos=1 fillValues.start=0 filled is homogenous .. concatter is already prepared to accept data
@@ -284,34 +287,33 @@ export class AllSeamless implements Seamless {
             }
             // now we do not need the oldest value anymore. Discard to avoid errors in code.
 
-
-
             //!whatIf &&
             // 2021-01-03 pulled before concat
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
-            if (this.filled[0] /* edge tracking  need have to be over filled area */ && fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
-
-                console.log('going to slice '+fillValues.map(fv=>"slice("+ (this.pos_input[1] - fv.start)+","+( pos - fv.start)+")"))
-                const cut = fillValues.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
+            if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
+                console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
+                console.log('going to slice '+this.fillValues.map(fv=>"slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+")"))
+                const cut = this.fillValues.map(fv => fv.extends.slice(this.pos_input - fv.start, pos - fv.start));
                 if (factor === 0) {
                     this.concatter.push(cut[0])
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
                     const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
-                    for (let k = this.pos_input[1]; k < pos; k++) {
+                    for (let k = this.pos_input; k < pos; k++) {
                         let sum = 0
-                        const retards = fillValues.map(fv => fv.extends[k - fv.start])
+                        const retards = this.fillValues.map(fv => fv.extends[k - fv.start])
                         if (factor !== 0) {
                             retards[retards.length - 1] *= factor  // maybe I should also know divisor so that i
                         }
-                        result.push(retards.reduce((p, c) => p + c))  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        result.push(retards.reduce((p, c) => p + c),0)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
                     }
                     this.concatter.push(result)
                 }
             } /*else*/ { // flush buffer. Be sure to call before closing stream!
             }
 
+            this.pos_input = pos
             // Keep this below to get consisten logs
 
             // Delay three positions because: Confirm by advance (3), compare with previous value (2)
@@ -319,8 +321,8 @@ export class AllSeamless implements Seamless {
             // So we do not have to deal with 3 fill values and 8 combinations in our heads and in automated tests ( state is your enemy )
             this.filled[1] = this.filled[0] // last possible moment. Quite some lag to compensate
             this.filled[0] = filled
-
-
+            // match value delay to position delay
+            this.fillValues=_fillValues // Todo: hide using inner function
         }
         
     }
@@ -591,7 +593,7 @@ export class Row{
 
             let pos:number
             //=new Array<Span<number>>()
-            let these:Span<number>[]=[]
+            // was the old way to keep Seamless smaller. TDD at its worst I guess. Trapped me in Swap. \\let these:Span<number>[]=[]
             // Maybe we should check for input data. No idea what jop does without input though.
             while(  (pos = jop.next()) < jop.behind ){ // last is just after the end in Matrix {  pos behind does not deliver any results with slice. We have the extra flush method to avoid application of superfical parameters
  
@@ -600,17 +602,14 @@ export class Row{
                 //     drain.removeSeams(these, nukeCol, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
                 //     drain.removeSeams(these, nukeCol+1, false, factor /* sorry */, nukeCol); // delete cell
                 // } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
-                console.log(" pos: "+pos+" we just transitioned to: "+!jop.i.every(v => v.filled === false)+ " sources to fill from: {"+these.map(t=>("start: "+t.start )+(",len: "+t.extends.length))+"}");
-                // first pass, just store pos for slice()
-                drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), factor /* sorry */, nukeCol);                   
-                
+  
                 let pointer = this.data
                 // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
                 
                 if (jop.i.length != 2) throw "This is a binary operator!"
                 // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
                 // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
-                these = jop.i.filter(ii=>ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+                const these = jop.i.filter(ii=>ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                     //  const ii=jop.i[1][j]
                     if (typeof ii.ValueSpanStartInMatrix === "undefined" ||  typeof ii.ValueSpanStartInMatrix !== "number"){
                         throw "all indizes should just stop before the end ii.mp. From: "+ii.ValueSpanStartInMatrix
@@ -625,6 +624,11 @@ export class Row{
                     //console.log(" span.start: "+thi.start );
                     return thi
                 })
+
+                console.log(" pos: "+pos+" we just transitioned to: "+!jop.i.every(v => v.filled === false)+ " sources to fill from: {"+these.map(t=>("start: "+t.start )+(",len: "+t.extends.length))+"}");
+                // first pass, just store pos for slice()
+            
+                drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), factor /* sorry */, nukeCol);       
                 // if ( jop.i[1][j] ){
                 //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
                 //     thi.extends=pointer.data[jop.i[j]>>1]
@@ -854,8 +858,8 @@ export class Row{
         while ((pos = jop.next()) < (length) /* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */) {
             // sub uses job.gap&3 !==0
             // swap uses (not sure about all the brackets):
-            const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
-            const interfaceIsSharedWithSub = new Array<Span<number>>()
+            // we have two sources and two targets and either pass through or swap  //const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
+
             // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
             // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
             jop.i.forEach((j, k) => {
@@ -869,27 +873,35 @@ export class Row{
             // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
             if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
             {
-                // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
-                if (jop.i[activeSource].filled) {
-                    let t = new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
-                    // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
-                    t.extends = this.data[jop.i[activeSource].from >> 1 /* Maybe I should write an accessor */] // 
-
-                    const i = jop.i[activeSource].from
-                    if ((i >> 1) >= this.data.length) {
-                        console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
-                        console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
-                    }
-                    console.log(" i: " + i + " data[i]: " + this.data[i >> 1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
-                    interfaceIsSharedWithSub.push(t)
-                } // else, just let removeSeam note the closing edge
 
 
                 // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                 // don't jop and seams handle this: spans_new.push(t)
 
                 // [starts, delayedStarts] .. pos >= (length >> 1) => delayed Starts are the non-swapped starts. filled === i=0
-                spans_new_Stream.forEach((AS, i) => AS.removeSeams(interfaceIsSharedWithSub, pos, jop.i[(i === 0) === jop.i[2].filled ? 0 : 1].filled))
+                spans_new_Stream.forEach((AS, i) => {
+                    const activeSource = (i === 0) === jop.i[2].filled ? 0 : 1
+                    const filled=jop.i[activeSource].filled  // XOR^3
+
+                    const interfaceIsSharedWithSub = new Array<Span<number>>()
+                                    // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
+                    if (filled) {
+                        let t = new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
+                        // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
+                        t.extends = this.data[jop.i[activeSource].from >> 1 /* Maybe I should write an accessor */] // 
+
+                        const i = jop.i[activeSource].from
+                        if ((i >> 1) >= this.data.length) {
+                            console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
+                            console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
+                        }
+                        console.log(" i: " + i + " data[i]: " + this.data[i >> 1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
+                        console.log("should be [5] 0: "+t.extends)
+                        interfaceIsSharedWithSub.push(t)
+                    } // else, just let removeSeam note the closing edge
+                    console.log("should be [5] 1: "+interfaceIsSharedWithSub.map(f=>f.extends))
+                    AS.removeSeams(interfaceIsSharedWithSub, pos, filled  )
+                })
                 // not good: secondHalf.push( interfaceIsSharedWithSub, pos,jop.i[1-activeSource].filled)
             } // without source data there is not need to push something ( at least remove unnecessary log entries )
 

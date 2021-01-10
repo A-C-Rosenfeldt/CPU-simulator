@@ -119,8 +119,8 @@ then I changed: !this.filled[0] to this.filled[1]
     span.extends=[2,3,4]  // i >> 1  can give the string one cycle after getting the start value. After all we need to wait for end
 
 // in this case  ..  white box test is needed. Different folder? Is for edge cases. Maybe transform into black later
-    expect(sea.pos_input[0]).to.equal(2) // { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
-    expect(sea.pos_input[1]).to.equal(-1) //0)  
+// what does thar mean?    //expect(sea.pos_input[0]).to.equal(2) // { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
+    expect(sea.pos_input).to.equal(2) //0)  
 
     sea.removeSeams([span],5 /* ToDo: check!  0 makes no sense!  from above test */, true /* flips from jop  go to false */)   // We add 5 values and stay true: more to come (why do we know this?)
     expect(sea.filled[1]).to.equal(false)
@@ -195,7 +195,7 @@ then I changed: !this.filled[0] to this.filled[1]
         expect(jop.i[0].filled).to.true
         expect(jop.i[1].filled).to.false
         sea.removeSeams([span1],result, true)
-        expect(sea.pos_input[0]).to.equal(0) // this is a little bit lame. Todo: better test data. Push this edge case towards the end.
+        expect(sea.pos_input).to.equal(0) // this is a little bit lame. Todo: better test data. Push this edge case towards the end.
 
         
         // Inf fact: I do not know .. ah I know, both I should guard the next edge
@@ -204,7 +204,7 @@ then I changed: !this.filled[0] to this.filled[1]
         result = jop.next()    
         expect(result).to.equal(1);
         sea.removeSeams([span1,span2],result, true) // huh, overlap
-        expect(sea.pos_input[0]).to.equal(1) 
+        expect(sea.pos_input).to.equal(1) 
         // todo: create  filled=false        
         
         result = jop.next()    
