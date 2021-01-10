@@ -263,8 +263,8 @@ export class AllSeamless implements Seamless {
         //throw "nase" 
         if (this.pos_input < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
             
-            console.log(" going from filled?:" + this.filled[1] + " to filled?:"+ pos );
-            console.log("should be [5] 3: "+this.fillValues.map(f=>f.extends))
+            console.log(" going from filled?:" + this.filled[1] + " to filled?: "+  this.filled[0] + " to filled: "+filled );
+            console.log("should be [5] 6: "+this.fillValues.map(f=>f.extends)+" should be [5] 3: "+_fillValues.map(f=>f.extends))
 
             if (this.pos_input>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
  
@@ -291,11 +291,11 @@ export class AllSeamless implements Seamless {
             // 2021-01-03 pulled before concat
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
             if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
-                console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
-                console.log('going to slice '+this.fillValues.map(fv=>"slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+")"))
+                //console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
+                console.log('going to slice '+this.fillValues.map(fv=>" '"+fv.extends+"' slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+")"))
                 const cut = this.fillValues.map(fv => fv.extends.slice(this.pos_input - fv.start, pos - fv.start));
                 if (factor === 0) {
-                    this.concatter.push(cut[0])
+                    this.concatter.push(cut[0]);console.log("push c: "+cut[0])
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
@@ -306,9 +306,9 @@ export class AllSeamless implements Seamless {
                         if (factor !== 0) {
                             retards[retards.length - 1] *= factor  // maybe I should also know divisor so that i
                         }
-                        result.push(retards.reduce((p, c) => p + c),0)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        result.push(retards.reduce((p, c) => p + c))  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
                     }
-                    this.concatter.push(result)
+                    this.concatter.push(result);console.log("push r: "+result)
                 }
             } /*else*/ { // flush buffer. Be sure to call before closing stream!
             }
@@ -330,9 +330,9 @@ export class AllSeamless implements Seamless {
     // better be sure to end with gap=true (from span end .. test?) or else call this
     flush() {
         if (this.filled[1] /* condition derived from log while debugging. Maybe test? */) { // to keep even numbeer of open and close .. looks better in log .. also even worse than a seam (aesthetically) .  todo test for this
-            this.start_next.push(this.pos_input[0])
+            this.start_next.push(this.pos_input)
             const t : number[]= Array.prototype.concat.apply([], this.concatter)
-            console.log("flush: "+this.start_next.join('') + "->"+ t.join('') +" by the way, filled: "+this.filled)
+            console.log("flush: "+this.start_next.join() + "->"+ t.join() +" by the way, filled: "+this.filled)
             // is filled, so there must be data available
             if (this.concatter.length<=0) {throw "with filled there needs to be data!"}
             
