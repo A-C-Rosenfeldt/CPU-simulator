@@ -9,6 +9,9 @@ describe('Multiply', () => {
 	it('integer scale', () => {
 	})
 
+	it('rotation 2pi/n', () => {
+	})	
+
 })  
 
 describe('Inverse', () => {

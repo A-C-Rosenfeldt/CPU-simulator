@@ -191,6 +191,10 @@ it('jop + swap + seamless + tridiagonal', () => {
       unit.row[i]=Row.Single(i,5) //0,[[],[5],[]])
     }
 
+    // to left
+    expect(unit.getAt(3,0)).to.equal(0)
+    expect(unit.getAt(3,3)).to.equal(5)
+    // to right
     expect(unit.getAt(0,0)).to.equal(5)
     expect(unit.getAt(0,3)).to.equal(0)
     unit.swapColumns([0,1])
@@ -201,9 +205,12 @@ it('jop + swap + seamless + tridiagonal', () => {
     expect(unit.row[0].data.length).to.equal(1)
     expect(unit.row[0].data[0][0]).to.equal(5)
 
-    
+    // to left
+    expect(unit.getAt(3,0)).to.equal(5)
+    expect(unit.getAt(3,3)).to.equal(0)
+    // to right
     expect(unit.getAt(0,0)).to.equal(0)
-    expect(unit.getAt(0,3)).to.equal(5) // still fails
+    expect(unit.getAt(0,3)).to.equal(5)
 
     expect(unit.getAt(1,1)).to.equal(5)
     expect(unit.getAt(1,4)).to.equal(0)
