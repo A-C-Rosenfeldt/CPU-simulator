@@ -1030,12 +1030,13 @@ export class Tridiagonal implements Matrix{
     // both left half and full innerProduct (not really now, but it is --after all-- a Matrix) may make sense
     // inner product works, if the other matrix/vector is shorter. From a math point of view, I would need a Transpose function ( ToDo on demand )
 
-    MatrixProductUsingTranspose(that:number[]|Tridiagonal) {
+    MatrixProductUsingTranspose(that:number[]|Tridiagonal):Tridiagonal {
   
         if (Array.isArray( that ) ) { // Poisson simulation uses columns
-            return this.row.map(r=>{
-                return r.innerProduct(that)
-            })
+            throw "Why would you even consider Transpose when you have dense arrays?"
+            // return this.row.map(r=>{
+            //     return r.innerProduct(that)
+            // })
         } else{ // mostly to test inverse
             const t=new Transpose(that) // hoisting. Todo: Move dependet class up
             const result=this.row.map(r=>new SeamlessWithRef(r))
