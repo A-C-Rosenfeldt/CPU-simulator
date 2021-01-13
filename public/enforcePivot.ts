@@ -383,6 +383,7 @@ export class Row{
                 // only string has trim(). And it can't even return the number of trimmed items
 
                 // trim 0 values
+                // todo: better two passes: over s and s reverse. That min stuff looks strange
                 s.forEach((t,i)=>{
                     if (t!==0){
                         for(let d=0;d<2;d++){
@@ -416,42 +417,6 @@ export class Row{
             //     this.data.push(s.slice(range[0],range[1]))
             // }
         }
-
-
-        // this.data=start.map(s=>s.slice()) // convert Span to base class  ES6: [...s] Do I like it?
-
-        // // 2020-11-19 ToDo: This is to complicated: does not work well with vertical edges
-        // //this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
-
-        // // var aggregate=data.map(d=>d.length)
-        // // {
-        // //     let i=0
-        // //     let a=aggregate[i++]
-        // //     do{
-
-        // //     }
-
-        // // }
-        // // Better do: start of diagonal range  and from there  run length encoding of zeros
-        // this.starts=[].concat.apply([],start.map(d=>[d.start,d.start+d.length]))      
-        // //this.starts=new Array(6).fill(pos)
-        // // {
-        // //     const fitch = forwardpitch
-        // //     this.starts[0] -= pitch + data[0].length
-        // //     this.starts[1] -= pitch + data[0].length
-        // //     this.starts[4] += fitch + data[1].length
-        // //     this.starts[5] += fitch + data[1].length
-        // // }
-        // // // for diagonal-only construction
-        // // if (this.starts[1]>this.starts[2]){
-        // //     this.starts[0]-=this.starts[1]-this.starts[2]
-        // //     this.starts[1]=this.starts[2]
-        // // }
-        
-        // // if (this.starts[4]<this.starts[3]){
-        // //     this.starts[5]-=this.starts[4]-this.starts[3]
-        // //     this.starts[4]=this.starts[3]
-        // // }
         
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce<number>((v1,v0)=>v0>=v1? v0 : Number.MAX_SAFE_INTEGER,0) === Number.MAX_SAFE_INTEGER ) {
@@ -1042,9 +1007,10 @@ export class Tridiagonal implements Matrix{
             const result=this.row.map(r=>new SeamlessWithRef(r))
             while(t.next()){ // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
                 //const acc=that.row.map((dump)=>0) 
-                result.map(r=> {
+                result.forEach(r=> {
                     const s=new Span<number>(1,t.i)
                     s.extends=[r.ref.innerProductColumn(t.c)] // degenerated
+                    console.log(s.extends[0])
                     r.removeSeams(  [s],t.i, s.extends[0]!==0 ) 
                 } )
                 // let acc:number
@@ -1054,8 +1020,11 @@ export class Tridiagonal implements Matrix{
             // SEamless to Row .. todo how?
 
             const degen=new Tridiagonal(this.length())
-            degen.row=this.row.map(r=>{
-                return  r.innerProduct_Matrix(that)
+            degen.row=result.map(r=>{
+                const row=new Row([])
+                row.starts=r.start_next  // I really miss constructor overloading                
+                row.data=r.data_next     // 0 is removed as "not filled" in the per element writing to r.removeSeams
+                return  row //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
             })
             return degen
         }            
@@ -1071,20 +1040,50 @@ class SeamlessWithRef extends AllSeamless{
     }
 }
 
-
+// similar to jop, but simpler? Maybe it should become a base. jop with single input?
 class RowCursor{
    r:Row
-   span:number=-1 
-   pos=-1
+   span:number=0
+   
+   pos=0
    constructor(r:Row){
        this.r=r
    }
    advance(i:number):boolean{
-    if ((++this.pos)<this.r.data.length){
+       // ensure edge to track
+       while(this.r.starts[this.span]<i){
+        if (this.r.starts.length>=this.span){return false}
+        this.span++
+       }
 
+       this.pos=i-this.r.starts[this.span] // trying to avoid simple copy
     }
-    return false
-   }
+
+   getValue():number{
+       return (this.span & 1)? 0  // gap
+       : this.r.data[this.span>>1][this.pos]
+    }
+
+
+    //    if (this.span & 1){
+    //        // gap
+    //    }
+        
+    //     +this.pos < i){
+    //     while (this.r.data.length>this.span){
+    //         if (this.pos <this.r.data[this.span>>1].length){
+    //             return true 
+    //         }
+    //         this.pos=0
+    //         this.span++
+    //     }
+
+    //         if (this.r.data.length>this.span && (++this.pos)<this.r.data[this.span].length){
+    //         }
+    //     }
+    // this.pos=-1
+    //     if ((++this.pos)>=this.r.data.length){
+    // return false
 }
 
 // Iterator over Matrix which keeps O() for debug, log, performance
@@ -1109,6 +1108,9 @@ export class Transpose implements Matrix{
         return anyProgress
       }
       getCellInRow(r:number):number{
+          if (this.I[r].pos===this.i){
+
+          }
         return 0  // do not need Null or undef when 0 is already 0 
       }
 }

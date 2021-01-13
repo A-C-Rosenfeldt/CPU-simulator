@@ -1,15 +1,27 @@
-import { Tridiagonal, Row } from '../public/enforcePivot';
+import { Tridiagonal, Row, Transpose } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
 describe('Multiply', () => {
 	const size = 3
 	const unit = new Tridiagonal(size)
-	beforeEach(function(){		
-		const unit = new Tridiagonal(size)
+	beforeEach(function(){
 		for(var i=0;i<size;i++){
 		  unit.row[i]=Row.Single(i,5) //0,[[],[5],[]])
 		}
+		console.log("unit.row[0].starts[0] before "+unit.row[0].starts[0])
+	})
+	it('Transpose', () => {
+		console.log("unit.row[0].starts[0] transpose "+unit.row[0].starts[0])
+		// swaps permute also
+		const trans = new Transpose(unit)
+		trans.next() // move into column 0
+		let c=trans.getCellInRow(0)
+		expect(c).to.equal(5)
+		trans.next()
+		c=trans.getCellInRow(1)
+		expect(c).to.equal(5)
+
 	})
 
 	it('permutation', () => {
