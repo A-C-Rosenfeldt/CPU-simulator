@@ -1005,6 +1005,7 @@ export class Tridiagonal implements Matrix{
         } else{ // mostly to test inverse
             const t=new Transpose(that) // hoisting. Todo: Move dependet class up
             const result=this.row.map(r=>new SeamlessWithRef(r))
+            let safety=100
             while(t.next()){ // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
                 //const acc=that.row.map((dump)=>0) 
                 result.forEach(r=> {
@@ -1015,6 +1016,7 @@ export class Tridiagonal implements Matrix{
                 } )
                 // let acc:number
                 // result[0].removeSeams([new Span(1,t.i)],t.i,acc!==0)
+                if (safety--<0) {throw "endless loop"}
             }
 
             // SEamless to Row .. todo how?
@@ -1051,17 +1053,19 @@ class RowCursor{
    }
    advance(i:number):boolean{
        // ensure edge to track
-       while(this.r.starts[this.span]<i){
-        if (this.r.starts.length>=this.span){return false}
+       while(this.r.starts[this.span]<=i){ // always track the next edge. otherwise first letter becomes a special case
+        if (this.r.starts.length<=this.span){return false}
         this.span++
        }
 
-       this.pos=i-this.r.starts[this.span] // trying to avoid simple copy
+       this.pos=i-this.r.starts[this.span-1] // trying to avoid simple copy.   Here again the problem of left and right edges of spans/strings :-(   When streaming: looks like lag.
+       return true
     }
 
    getValue():number{
-       return (this.span & 1)? 0  // gap
+       const stupidDebugger= ((this.span & 1) === 0) || (this.r.starts.length<=this.span)? 0  // gap
        : this.r.data[this.span>>1][this.pos]
+       return stupidDebugger
     }
 
 
@@ -1107,10 +1111,7 @@ export class Transpose implements Matrix{
         this.i++
         return anyProgress
       }
-      getCellInRow(r:number):number{
-          if (this.I[r].pos===this.i){
-
-          }
-        return 0  // do not need Null or undef when 0 is already 0 
-      }
+    getCellInRow(r: number): number {
+        return this.I[r].getValue()
+     }
 }
