@@ -18,19 +18,52 @@ describe('Multiply', () => {
 		trans.next() // move into column 0
 		let c=trans.getCellInRow(0)
 		expect(c).to.equal(5)
+		let r=trans.c.get(0)
+		expect(r).to.equal(5)
+
 		trans.next()
-		c=trans.getCellInRow(1)
+		c=trans.getCellInRow(1) // bug from jop repeating?
 		expect(c).to.equal(5)
 
+	})
+
+	it('inner Procuct0', () => {
+		// swaps permute also
+		const a=Row.Single(0,1)
+		const b=Row.Single(0,2)
+
+		  let product = a.innerProductColumn(b)
+		  expect(product).equal(2)
+
+		const c=Row.Single(1,1)  
+		product = a.innerProductColumn(c)
+		expect(product).equal(0)
+		
+		b.starts[1]++
+		b.data[0].push(3)
+		product = a.innerProductColumn(b)
+		expect(product).equal(2)
+
+		product = c.innerProductColumn(b)
+		expect(product).equal(6)
+
+		product = c.innerProductColumn(c)
+		expect(product).equal(13)
+	})
+		it('inner Product  delayed', () => {
+		const ao=Row.Single(1,1)
+		const bo=Row.Single(2,2)		
+		let product=ao.innerProductColumn(bo)
+		expect(product).equal(0)
 	})
 
 	it('permutation', () => {
 		// swaps permute also
 		const prmu = new Tridiagonal(size)
 		let i=0
-		  unit.row[i++]=Row.Single(0,1)
-		  unit.row[i++]=Row.Single(2,1)
-		  unit.row[i++]=Row.Single(1,1)
+		prmu.row[i++]=Row.Single(0,1)
+		prmu.row[i++]=Row.Single(2,1)
+		prmu.row[i++]=Row.Single(1,1)
 
 		  const product = unit.MatrixProductUsingTranspose(prmu)
 		  expect(product.getAt(0,0)).equal(5)

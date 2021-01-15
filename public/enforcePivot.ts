@@ -798,18 +798,36 @@ export class Row{
     innerProductColumn(clmn:Row ):number{
         const j=new JoinOperatorIterator(this.starts,clmn.starts)
         // monkey patch the  indices
-        const pick=(data:number[][],i:FilledFrom)=>data[i.from>>1][p-i.mp]
+        const pick=(data:number[][],i:FilledFrom)=>{
+            if (data.length<=(i.from>>1)-1/*trial and error*/ || p<i.ex[i.from-2]){ //}.ValueSpanStartInMatrix){
+                throw "not in order: "+data.length+" <= "+i.from + ">>1 || "+p+" < "+i.ValueSpanStartInMatrix+" !"
+            }
+            console.log(data.length+" "+i.from + " >>1)-1/*trial and error*/][" + p + " - " + i.ex[i.from-1])
+            return data[(i.from>>1)-1/*trial and error*/][p-i.ex[i.from-2]] //i.ValueSpanStartInMatrix]
+        }
         let acc=0
         let pos:number
-        let p=0
-        while(( pos=j.next()) <j.behind ){
-            if (!j.i.some(i=>!i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
-               while(p<pos){ 
-                    acc+=pick(this.data,j.i[0])*
-                        pick(clmn.data,j.i[1])
-                     p++ // delay like the first in sub and swap?
-               }
+        let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
+        let filled=false
+        //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
+        while ((pos = j.next()) < j.behind) {
+            filled=!j.i.some(i => (i.from & 1) === 0)
+            console.log(pos+">"+p+" "+j.i[0].from+ " 01 "+j.i[1].from+ " filled: "+filled)
+            if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
+
+                
+                if (p < 0) throw "something is wrong with filled"
+                for (; p < pos; p++) {
+                    acc += pick(this.data, j.i[0]) *
+                        pick(clmn.data, j.i[1])
+                    if (isNaN(acc)) {
+                        throw "Two lines abo ve: !j.i.some(i=>!i.filled    is buggy .Nan due to: " + this.data + "," + j.i[0] + "," + clmn.data + "," + j.i[1]
+                    }
+                    p++ // delay like the first in sub and swap?
+                }
             }
+            p = pos
+
         }
         return acc
     }
@@ -1011,7 +1029,7 @@ export class Tridiagonal implements Matrix{
                 result.forEach(r=> {
                     const s=new Span<number>(1,t.i)
                     s.extends=[r.ref.innerProductColumn(t.c)] // degenerated
-                    console.log(s.extends[0])
+                    console.log(s.extends[0]); if ( isNaN( s.extends[0])) throw "NaN does not make sense in my algorithm"
                     r.removeSeams(  [s],t.i, s.extends[0]!==0 ) 
                 } )
                 // let acc:number
@@ -1046,25 +1064,34 @@ class SeamlessWithRef extends AllSeamless{
 class RowCursor{
    r:Row
    span:number=0
-   
    pos=0
    constructor(r:Row){
        this.r=r
    }
-   advance(i:number):boolean{
+   noSideEffect=true
+   advance(i:number):number{
        // ensure edge to track
        while(this.r.starts[this.span]<=i){ // always track the next edge. otherwise first letter becomes a special case
-        if (this.r.starts.length<=this.span){return false}
+        if (this.r.starts.length<=this.span){
+            console.log("advance: no")
+            this.noSideEffect=false
+            return this.getValue()
+        }
         this.span++
        }
 
+       if (this.span===0){console.log("advance: "+this.span+" . ")
+           return 0}
        this.pos=i-this.r.starts[this.span-1] // trying to avoid simple copy.   Here again the problem of left and right edges of spans/strings :-(   When streaming: looks like lag.
-       return true
+       console.log("advance: "+this.span+" . "+this.pos)
+       this.noSideEffect=true
+       return this.getValue();
     }
 
    getValue():number{
        const stupidDebugger= ((this.span & 1) === 0) || (this.r.starts.length<=this.span)? 0  // gap
        : this.r.data[this.span>>1][this.pos]
+       console.log(" "+((this.span & 1) === 0) +" || "+ (this.r.starts.length<=this.span) + " ? 0 : this.r.data[" + (this.span>>1) +"][" +this.pos +"] " )
        return stupidDebugger
     }
 
@@ -1103,11 +1130,26 @@ export class Transpose implements Matrix{
       }
       next():boolean{
           let anyProgress=false
-          const s=new AllSeamless()
-          this.I.forEach(j=>{
-            anyProgress ||= j.advance(this.i)
+          // we do not have starts yet:  //const s=new AllSeamless()
+          this.c=new Row([]); // trim would mostly work, but what about tridiagonal + pitch and  then scale?
+          let last=0
+          this.I.forEach((j,i)=>{
+            const v= j.advance(this.i)
+            anyProgress||=j.noSideEffect // why is typeScript converting my method with sideEffects into this shortcut code? Just analyse the scopes, compiler!
+            if (v!==0){
+                if (last===0){
+                    this.c.starts.push(i)
+                    this.c.data.push([])
+                }
+                this.c.data[this.c.data.length-1].push(v)
+            }else{
+                if (last!==0){
+                    this.c.starts.push(i)
+                }
+            }
+            last=v
         })
-        this.c=new Row([]);
+        if (last!==0) { this.c.starts.push(this.I.length) } // flush
         this.i++
         return anyProgress
       }
