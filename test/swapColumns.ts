@@ -1,4 +1,4 @@
-import { Tridiagonal, Row, JoinOperatorIterator, Seamless, AllSeamless, Span } from '../public/enforcePivot';
+import { Tridiagonal, Row, JoinOperatorIterator, Seamless, AllSeamless, Span, Result } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
@@ -14,7 +14,7 @@ class SeamlessMock implements Seamless{
   flush() {
     // not needed in this mock:  throw new Error('Method not implemented.');
   }
-      removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, factor?: number, nukeCol?: number, whatIf?: boolean) {
+      removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, operator?: Result, nukeCol?: number, whatIf?: boolean) {
         this.start_next.push(pos) // pos should always pass the test at the end of  swapColumns()
         console.log("remove Seams at least has to note pos: "+pos+" and filled "+filled+" to check the chain of XORs")
         if (fillValues.length===1){

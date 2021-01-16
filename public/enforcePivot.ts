@@ -225,7 +225,7 @@ export interface Seamless{
     removeSeams(//criterium: ((a: number) => boolean),
         fillValues: Span<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
-        factor?:number, nujeCol?:number,
+        operation?:Result, nujeCol?:number,
         whatIf?:boolean  // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
 
@@ -254,7 +254,7 @@ export class AllSeamless implements Seamless {
     removeSeams(//criterium: ((a: number) => boolean),
         _fillValues: Span<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
-        factor = 0, nukeCol?:number,
+        operation:Result=null, nukeCol?:number,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
@@ -295,21 +295,19 @@ export class AllSeamless implements Seamless {
                 //console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
                 console.log('going to slice '+this.fillValues.map(fv=>" '"+fv.extends+"' slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+")"))
                 const cut = this.fillValues.map(fv => fv.extends.slice(this.pos_input - fv.start, pos - fv.start));
-                if (factor === 0) {
+                if (operation === null) {
                     this.concatter.push(cut[0]);console.log("push c: "+cut[0])
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
+                    operation && operation.clear() //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
                     for (let k = this.pos_input; k < pos; k++) {
                         let sum = 0
                         const retards = this.fillValues.map(fv => fv.extends[k - fv.start])
-                        if (factor !== 0) {
-                            retards[retards.length - 1] *= factor  // maybe I should also know divisor so that i
-                        }
-                        result.push(retards.reduce((p, c) => p + c))  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        const resultSpan = operation.operation(retards)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        
                     }
-                    this.concatter.push(result);console.log("push r: "+result)
+                    this.concatter.push(operation.result);console.log("push r: "+operation.result)
                 }
             } /*else*/ { // flush buffer. Be sure to call before closing stream!
             }
@@ -553,7 +551,7 @@ export class Row{
             let story:number[]=[]
             let gap=0
             //let data_i=0
-            let concatter:number[][]=new Array<number[]>() //,cut1:number[];
+            //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
 
             let pos:number
             //=new Array<Span<number>>()
@@ -591,8 +589,11 @@ export class Row{
 
                 console.log(" pos: "+pos+" we just transitioned to: "+!jop.i.every(v => v.filled === false)+ " sources to fill from: {"+these.map(t=>("start: "+t.start )+(",len: "+t.extends.length))+"}");
                 // first pass, just store pos for slice()
+
             
-                drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), factor /* sorry */, nukeCol);       
+                const Sub=new ResultAdd()
+                Sub.factor=factor
+                drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), Sub, nukeCol);       
                 // if ( jop.i[1][j] ){
                 //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
                 //     thi.extends=pointer.data[jop.i[j]>>1]
@@ -809,7 +810,8 @@ export class Row{
 
         const a=new AllSeamless();
 
-        // so this is the same as Seamless. It only changes the innerloop. I could not finde a simpler solution to the underlying structure 2021-01-16
+        // so this is the same as sub/Seamless. It only changes the innerloop. I could not finde a simpler solution to the underlying structure 2021-01-16
+        // unify sub and inner product?
         // let acc=0
         let pos:number
         let pointer = this.data // code from sub
@@ -838,8 +840,9 @@ export class Row{
                 //console.log(" span.start: "+thi.start );
                 return thi
             })
-            a.removeSeams(these, pos, jop.i.every(v => v.filled /* differs from sub */ ), /*inject multiply */) //, factor /* sorry */, nukeCol);
-            return a.start_next.reduce((p,v)=>p+v)
+            const mul=new ResultMul()
+            a.removeSeams(these, pos, jop.i.every(v => v.filled /* differs from sub */ ), mul /*inject multiply */) //, factor /* sorry */, nukeCol);
+            return a.start_next.reduce((p,v)=>p+v,0)  // could ony sum up per span .. otherwise the type system gets very ugly. I do only expect a small number of spans. I would rather add a  reduce number of spans policy  than complicating this code
 
             // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
 
@@ -1185,3 +1188,31 @@ export class Transpose implements Matrix{
         return this.I[r].getValue()
      }
 }
+
+
+export interface Result{
+    result : Array<number> // concatter / seamless expects this for slice and stuff
+    clear():void
+    operation(retards: number[]):void
+}
+class ResultAdd implements Result{
+ result = new Array<number>()
+ clear(){this.result = new Array<number>()}
+ factor:number 
+ operation(retards: number[]):void {
+    if (this.factor === 0) { throw "why would someone do this" }
+
+    retards[retards.length - 1] *= this.factor // maybe I should also know divisor so that i
+    const resultSpan = (retards.reduce((p, c) => p + c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+    this.result.push(resultSpan)
+}
+}
+
+class ResultMul implements Result{
+    result = [0] // degenerated .. sorry todo ? 
+    clear(){this.result=[0]}
+    operation(retards: number[]):void {
+       const resultSpan = (retards.reduce((p, c) => p * c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+       this.result[0]=(resultSpan)
+   }
+   }
