@@ -795,41 +795,69 @@ export class Row{
         }
     }
     
-    innerProductColumn(clmn:Row ):number{
-        const j=new JoinOperatorIterator(this.starts,clmn.starts)
+    
+    innerProductColumn(that:Row ):number{
+        const jop=new JoinOperatorIterator(this.starts,that.starts)
         // monkey patch the  indices
-        const pick=(data:number[][],i:FilledFrom)=>{
-            if (data.length<=(i.from>>1)-1/*trial and error*/ || p<i.ex[i.from-2]){ //}.ValueSpanStartInMatrix){
-                throw "not in order: "+data.length+" <= "+i.from + ">>1 || "+p+" < "+i.ValueSpanStartInMatrix+" !"
-            }
-            console.log(data.length+" "+i.from + " >>1)-1/*trial and error*/][" + p + " - " + i.ex[i.from-1])
-            return data[(i.from>>1)-1/*trial and error*/][p-i.ex[i.from-2]] //i.ValueSpanStartInMatrix]
-        }
-        let acc=0
+        // const pick=(data:number[][],i:FilledFrom)=>{
+        //     if (data.length<=(i.from>>1)-1/*trial and error*/ || p<i.ex[i.from-2]){ //}.ValueSpanStartInMatrix){
+        //         throw "not in order: "+data.length+" <= "+i.from + ">>1 || "+p+" < "+i.ValueSpanStartInMatrix+" !"
+        //     }
+        //     console.log(data.length+" "+i.from + " >>1)-1/*trial and error*/][" + p + " - " + i.ex[i.from-1])
+        //     return data[(i.from>>1)-1/*trial and error*/][p-i.ex[i.from-2]] //i.ValueSpanStartInMatrix]
+        // }
+
+        const a=new AllSeamless();
+
+        // so this is the same as Seamless. It only changes the innerloop. I could not finde a simpler solution to the underlying structure 2021-01-16
+        // let acc=0
         let pos:number
-        let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
-        let filled=false
-        //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
-        while ((pos = j.next()) < j.behind) {
-            filled=!j.i.some(i => (i.from & 1) === 0)
-            console.log(pos+">"+p+" "+j.i[0].from+ " 01 "+j.i[1].from+ " filled: "+filled)
-            if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
+        let pointer = this.data // code from sub
+        // let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
+        // let filled=false
+        // //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
+        while ((pos = jop.next()) < jop.behind) {
+            //const interfaceIsSharedWithSub = new Array<Span<number>>()
+
+            const filled=!jop.i.some(i => (i.from & 1) === 0)
+            console.log(pos+" "+jop.i[0].from+ " 01 "+jop.i[1].from+ " filled: "+filled)
+
+            const these = jop.i.filter(ii=>ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+                // code from sub
+                //  const ii=jop.i[1][j]
+                if (typeof ii.ValueSpanStartInMatrix === "undefined" ||  typeof ii.ValueSpanStartInMatrix !== "number"){
+                    throw "all indizes should just stop before the end ii.mp. From: "+ii.ValueSpanStartInMatrix
+                } 
+                const thi = new Span<number>(0, ii.ValueSpanStartInMatrix)
+                
+                if (typeof ii.from === "undefined" ||  typeof ii.from !== "number"){
+                    throw "all indizes should just stop before the end ii.from"
+                }
+                thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                pointer = that.data
+                //console.log(" span.start: "+thi.start );
+                return thi
+            })
+            a.removeSeams(these, pos, jop.i.every(v => v.filled /* differs from sub */ ), /*inject multiply */) //, factor /* sorry */, nukeCol);
+            return a.start_next.reduce((p,v)=>p+v)
+
+            // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
 
                 
-                if (p < 0) throw "something is wrong with filled"
-                for (; p < pos; p++) {
-                    acc += pick(this.data, j.i[0]) *
-                        pick(clmn.data, j.i[1])
-                    if (isNaN(acc)) {
-                        throw "Two lines abo ve: !j.i.some(i=>!i.filled    is buggy .Nan due to: " + this.data + "," + j.i[0] + "," + clmn.data + "," + j.i[1]
-                    }
-                    p++ // delay like the first in sub and swap?
-                }
-            }
-            p = pos
+            //     if (p < 0) throw "something is wrong with filled"
+            //     for (; p < pos; p++) {
+            //         acc += pick(this.data, j.i[0]) *
+            //             pick(clmn.data, j.i[1])
+            //         if (isNaN(acc)) {
+            //             throw "Two lines abo ve: !j.i.some(i=>!i.filled    is buggy .Nan due to: " + this.data + "," + j.i[0] + "," + clmn.data + "," + j.i[1]
+            //         }
+            //         p++ // delay like the first in sub and swap?
+            //     }
+            // }
+            // p = pos
 
         }
-        return acc
+        //return acc
     }
 }
 
