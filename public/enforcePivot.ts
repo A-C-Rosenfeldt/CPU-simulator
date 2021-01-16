@@ -842,7 +842,6 @@ export class Row{
             })
             const mul=new ResultMul()
             a.removeSeams(these, pos, jop.i.every(v => v.filled /* differs from sub */ ), mul /*inject multiply */) //, factor /* sorry */, nukeCol);
-            return a.start_next.reduce((p,v)=>p+v,0)  // could ony sum up per span .. otherwise the type system gets very ugly. I do only expect a small number of spans. I would rather add a  reduce number of spans policy  than complicating this code
 
             // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
 
@@ -860,6 +859,8 @@ export class Row{
             // p = pos
 
         }
+        a.flush()
+        return a.data_next.reduce((p,v)=>p+v[0],0)  // could ony sum up per span .. otherwise the type system gets very ugly. I do only expect a small number of spans. I would rather add a  reduce number of spans policy  than complicating this code
         //return acc
     }
 }

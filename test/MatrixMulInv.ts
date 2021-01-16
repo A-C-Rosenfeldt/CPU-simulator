@@ -48,7 +48,7 @@ describe('Multiply', () => {
 		expect(product).equal(6)
 
 		product = c.innerProductColumn(c)
-		expect(product).equal(13)
+		expect(product).equal(1)
 	})
 		it('inner Product  delayed', () => {
 		const ao=Row.Single(1,1)
