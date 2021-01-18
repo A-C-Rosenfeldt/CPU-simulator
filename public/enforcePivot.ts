@@ -1055,7 +1055,7 @@ export class Tridiagonal implements Matrix{
         } else{ // mostly to test inverse
             const t=new Transpose(that) // hoisting. Todo: Move dependet class up
             const result=this.row.map(r=>new SeamlessWithRef(r))
-            let safety=100
+            let safety=10
             while(t.next()){ // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
                 //const acc=that.row.map((dump)=>0) 
                 result.forEach(r=> {
@@ -1066,6 +1066,9 @@ export class Tridiagonal implements Matrix{
                 } )
                 // let acc:number
                 // result[0].removeSeams([new Span(1,t.i)],t.i,acc!==0)
+                if (safety<1) {
+                    console.log("endless loop")
+                }
                 if (safety--<0) {throw "endless loop"}
             }
 
@@ -1102,21 +1105,25 @@ class RowCursor{
    }
    noSideEffect=true
    advance(i:number):number{
+    this.noSideEffect=false
+        this.noSideEffect= this.span<this.r.starts.length  // delay: Was there an advance before we got to the current position?  // this looks suspectivly like Seamless. Or more like jop. jop over all rows, but without the slice .. only subscript operator
+
        // ensure edge to track
+       // only accept seamless
        while(this.r.starts[this.span]<=i){ // always track the next edge. otherwise first letter becomes a special case
         if (this.r.starts.length<=this.span){
             console.log("advance: no")
-            this.noSideEffect=false
+
             return this.getValue()
         }
         this.span++
        }
 
-       if (this.span===0){console.log("advance: "+this.span+" . ")
+       if (this.span===0){console.log("advance: 0 : "+this.span+" . ")
            return 0}
        this.pos=i-this.r.starts[this.span-1] // trying to avoid simple copy.   Here again the problem of left and right edges of spans/strings :-(   When streaming: looks like lag.
-       console.log("advance: "+this.span+" . "+this.pos)
-       this.noSideEffect=true
+       console.log("advance: 1 : "+this.span+" . "+this.pos)
+       //this.noSideEffect=true
        return this.getValue();
     }
 
@@ -1167,6 +1174,7 @@ export class Transpose implements Matrix{
           let last=0
           this.I.forEach((j,i)=>{
             const v= j.advance(this.i)
+            console.log("side@ "+i+" : "+j.noSideEffect)
             anyProgress||=j.noSideEffect // why is typeScript converting my method with sideEffects into this shortcut code? Just analyse the scopes, compiler!
             if (v!==0){
                 if (last===0){
