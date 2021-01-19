@@ -316,6 +316,9 @@ export class AllSeamless implements Seamless {
             if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
                 //console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
                 console.log('going to slice '+this.fillValues.map(fv=>" '"+fv.extends+"' slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+")"))
+                if (this.fillValues.some(fv=>fv.extends.length< pos - fv.start)){
+                    throw "out of bounds 1: "+filled+" was "+this.filled[0] // break point here to investigate stack
+                }
                 const cut = this.fillValues.map(fv => fv.extends.slice(this.pos_input - fv.start, pos - fv.start));
                 if (operation === null) {
                     this.concatter.push(cut[0]);console.log("push c: "+cut[0])
@@ -840,6 +843,7 @@ export class Row{
         // let acc=0
         let pos:number
         let pointer = this.data // code from sub
+        let check=this.starts
         // let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
         // let filled=false
         // //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
@@ -861,7 +865,19 @@ export class Row{
                     throw "all indizes should just stop before the end ii.from"
                 }
                 thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                {
+                    const round=(ii.from >> 1) << 1
+                    if (thi.extends.length < check[round+1]-check[round] ){
+                        throw "starts do not match  data.length "+ thi.extends.length+" <= "+check[round+1]+" - "+check[round] +" round : "+round 
+                    }
+
+                    if (thi.extends.length <= pos-check[round] ){
+                        throw "out of bounds 0. Filled should have toggled to false"
+                    }                    
+                }
+
                 pointer = that.data
+                check=that.starts
                 //console.log(" span.start: "+thi.start );
                 return thi
             })

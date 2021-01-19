@@ -226,7 +226,7 @@ describe('Multiply', () => {
 	it('integer scale', () => {
 		const dense = new Tridiagonal(size)
 		for(let i=0;i<size;i++){
-			dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
+			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
 		}
 		  const product = unit.MatrixProductUsingTranspose(dense)
 		  expect(product.getAt(0,0)).equal(20)
