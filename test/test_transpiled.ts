@@ -94,7 +94,7 @@ describe('Testing Seamless', () => {
  
     // end of  set-up
 
-    expect(sea.start_next.length).to.equal(0); // we switch from empty ( Matrix out of bounds has 0) to filled
+    // transparent box access too risky for usage //expect(sea.start_next.length).to.equal(0); // we switch from empty ( Matrix out of bounds has 0) to filled
     expect(sea.filled[1]).to.equal(false) // not yet trigger data concat !
     expect(sea.filled[0]).to.equal(false) // parameter
 

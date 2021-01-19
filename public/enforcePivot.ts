@@ -235,8 +235,29 @@ export interface Seamless{
     start_next: number[]
 }
 export class AllSeamless implements Seamless {
-    data_next: number[][] = []
-    start_next: number[] = []
+    private _data_next: number[][] = []
+    public get data_next(): number[][] {
+        if (!this.flushed){
+            throw "not sealed"}
+        return this._data_next
+    }
+    public data_push(value: number[]) {
+        this._data_next.push( value )
+        this.flushed=false
+    }
+    private _start_next: number[] = []
+    public get start_next(): number[] {
+        if (!this.flushed){
+            throw "not sealed"}
+        return this._start_next
+    }
+    public start_push(value: number) {
+        this._start_next.push(value)
+        this.flushed=false
+    }
+
+
+    flushed=true // I do not support live FIFO at the moment. All readers want to do forEach on the data. Data is short, I do not ever expect streams to occure in THIS class
     starts = 0 // whatIf
     length = 0 // whatIf  .. basically needs 3 passes for tight malloc =>  WhatIf:number
     // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
@@ -258,6 +279,7 @@ export class AllSeamless implements Seamless {
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
+        this.flushed=false
         console.log("should be [5] 2: "+_fillValues.map(f=>f.extends))
 
         //throw "nase" 
@@ -266,7 +288,7 @@ export class AllSeamless implements Seamless {
             console.log(" going from filled?:" + this.filled[1] + " to filled?: "+  this.filled[0] + " to filled: "+filled );
             console.log("should be [5] 6: "+this.fillValues.map(f=>f.extends)+" should be [5] 3: "+_fillValues.map(f=>f.extends))
 
-            if (this.pos_input>=0 && (this.filled[1]!=this.filled[0])) {this.start_next.push(this.pos_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
+            if (this.pos_input>=0 && (this.filled[1]!=this.filled[0])) {this.start_push(this.pos_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
  
             // properties? With delegates I get to use Arrays!
             // Test run: pos=1 fillValues.start=0 filled is homogenous .. concatter is already prepared to accept data
@@ -279,8 +301,8 @@ export class AllSeamless implements Seamless {
                          // from filled to gap .. flush.  Join encounters a border, determines "filled" and we can use the positios to cut out ranges in the source Rows
                         { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
                             const t = Array.prototype.concat.apply([], this.concatter)
-                            this.data_next.push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                            if (this.data_next.length > (this.start_next.length >>1)) { throw "I could not belive it, but log claims 1: "+this.data_next.length +" > "+ this.start_next.length +" >>1  "}
+                            this.data_push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            if (this._data_next.length > (this._start_next.length >>1)) { throw "I could not belive it, but log claims 1: "+this._data_next.length +" > "+ this._start_next.length +" >>1  "}
                             this.concatter = new Array<number[]>()
                         }
                     }
@@ -327,19 +349,22 @@ export class AllSeamless implements Seamless {
     }
 
     // better be sure to end with gap=true (from span end .. test?) or else call this
+    // Build pattern to avoid the state code in the accessor? 
     flush() {
         if (this.filled[1] /* condition derived from log while debugging. Maybe test? */) { // to keep even numbeer of open and close .. looks better in log .. also even worse than a seam (aesthetically) .  todo test for this
-            this.start_next.push(this.pos_input)
+            this.start_push(this.pos_input)
+            if ((this._start_next.length & 1) ===1) {throw "Matrix starts empty, and ends empty"}
             const t : number[]= Array.prototype.concat.apply([], this.concatter)
-            console.log("flush: "+this.start_next.join() + "->"+ t.join() +" by the way, filled: "+this.filled)
+            console.log("flush: "+this._start_next.join() + "->"+ t.join() +" by the way, filled: "+this.filled)
             // is filled, so there must be data available
             if (this.concatter.length<=0) {throw "with filled there needs to be data!"}
             
-            this.data_next.push(t)
-            if (this.data_next.length > (this.start_next.length >>1)) { throw "I could not belive it, but log claims 2: "+this.data_next.length +" > "+ this.start_next.length +" >>1  "}
+            this._data_next.push(t)
+            if (this._data_next.length > (this._start_next.length >>1)) { throw "I could not belive it, but log claims 2: "+this._data_next.length +" > "+ this._start_next.length +" >>1  "}
         }else{
             console.log("flush: not because stream is not active" )
         }
+        this.flushed=true
     }
 }
 
@@ -797,7 +822,7 @@ export class Row{
     }
     
     
-    innerProductColumn(that:Row ):number{
+    innerProductRows(that:Row ):number{
         const jop=new JoinOperatorIterator(this.starts,that.starts)
         // monkey patch the  indices
         // const pick=(data:number[][],i:FilledFrom)=>{
@@ -1059,10 +1084,10 @@ export class Tridiagonal implements Matrix{
             while(t.next()){ // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
                 //const acc=that.row.map((dump)=>0) 
                 result.forEach(r=> {
-                    const s=new Span<number>(1,t.i)
-                    s.extends=[r.ref.innerProductColumn(t.c)] // degenerated
+                    const s=new Span<number>(1,t.pos)
+                    s.extends=[r.ref.innerProductRows(t.c)] // degenerated
                     console.log(s.extends[0]); if ( isNaN( s.extends[0])) throw "NaN does not make sense in my algorithm"
-                    r.removeSeams(  [s],t.i, s.extends[0]!==0 ) 
+                    r.removeSeams(  [s],t.pos, s.extends[0]!==0 ) 
                 } )
                 // let acc:number
                 // result[0].removeSeams([new Span(1,t.i)],t.i,acc!==0)
@@ -1077,6 +1102,7 @@ export class Tridiagonal implements Matrix{
             const degen=new Tridiagonal(this.length())
             degen.row=result.map(r=>{
                 const row=new Row([])
+                r.flush()
                 row.starts=r.start_next  // I really miss constructor overloading                
                 row.data=r.data_next     // 0 is removed as "not filled" in the per element writing to r.removeSeams
                 return  row //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
@@ -1096,7 +1122,7 @@ class SeamlessWithRef extends AllSeamless{
 }
 
 // similar to jop, but simpler? Maybe it should become a base. jop with single input?
-class RowCursor{
+export /* for unit test */ class RowCursor{
    r:Row
    span:number=0
    pos=0
@@ -1161,7 +1187,7 @@ export class Transpose implements Matrix{
     M:Tridiagonal
     I:Array<RowCursor>
     c:Row  // column as Row
-    i=0
+    pos=-1
       constructor(M:Tridiagonal){
           this.M=M
           this.I=M.row.map(r=>new RowCursor(r))
@@ -1172,8 +1198,9 @@ export class Transpose implements Matrix{
           // we do not have starts yet:  //const s=new AllSeamless()
           this.c=new Row([]); // trim would mostly work, but what about tridiagonal + pitch and  then scale?
           let last=0
+          this.pos++ // so that this class, this.I and this.pos => user of this class  are all on the same page
           this.I.forEach((j,i)=>{
-            const v= j.advance(this.i)
+            const v= j.advance(this.pos)
             console.log("side@ "+i+" : "+j.noSideEffect)
             anyProgress||=j.noSideEffect // why is typeScript converting my method with sideEffects into this shortcut code? Just analyse the scopes, compiler!
             if (v!==0){
@@ -1190,7 +1217,7 @@ export class Transpose implements Matrix{
             last=v
         })
         if (last!==0) { this.c.starts.push(this.I.length) } // flush
-        this.i++
+        
         return anyProgress
       }
     getCellInRow(r: number): number {

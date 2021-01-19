@@ -1,4 +1,4 @@
-import { Tridiagonal, Row, Transpose } from '../public/enforcePivot';
+import { Tridiagonal, Row, Transpose, RowCursor } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
@@ -11,7 +11,7 @@ describe('Multiply', () => {
 		}
 		console.log("unit.row[0].starts[0] before "+unit.row[0].starts[0])
 	})
-	it('Transpose', () => {
+	it('Transpose diag', () => {
 		console.log("unit.row[0].starts[0] transpose "+unit.row[0].starts[0])
 		// swaps permute also
 		const trans = new Transpose(unit)
@@ -27,33 +27,181 @@ describe('Multiply', () => {
 
 	})
 
+	it('Row cursor for Transpose', () => {
+		{
+			const row=Row.Single(0,7)
+			const cursor=new RowCursor(row)
+			const v= cursor.advance(0)
+			expect(v).to.equal(7)
+		}
+		{
+			const row=Row.Single(1,8)
+			const cursor=new RowCursor(row)
+			let v= cursor.advance(0);expect(v).to.equal(0)
+			    v= cursor.advance(1);expect(v).to.equal(8)
+		}
+		{
+			const row=Row.Single(1,8)
+			row.starts[1]++;row.data[0].push(9)
+			const cursor=new RowCursor(row)
+			let i=0
+			let v= cursor.advance(i++);expect(v).to.equal(0)
+				v= cursor.advance(i++);expect(v).to.equal(8)
+				v= cursor.advance(i++);expect(v).to.equal(9)
+		}		
+		{
+			const row=Row.Single(0,8)
+			row.starts[1]++;row.data[0].push(9)
+			const cursor=new RowCursor(row)
+			let i=0
+			let v= cursor.advance(i++);expect(v).to.equal(8)
+				v= cursor.advance(i++);expect(v).to.equal(9)
+				v= cursor.advance(i++);expect(v).to.equal(0)
+		}
+	})
+
+	it('Transpose with row[0] completely filled', () => {
+		const prmu = new Tridiagonal(size)
+		let i=0
+		prmu.row[i++]=Row.Single(0,8)
+		prmu.row[0].data[0]=[7,8,9]
+		prmu.row[0].starts=[0,3]
+		prmu.row[i++]=Row.Single(2,2)
+		prmu.row[i++]=Row.Single(2,3)
+
+		const trans = new Transpose(prmu)
+		trans.next() // move into column 0
+		expect(trans.pos).to.equal(0)
+		let r=trans.c.get(0);expect(r).to.equal(7);trans.next()
+			r=trans.c.get(0);expect(r).to.equal(8);trans.next()
+		    r=trans.c.get(0);expect(r).to.equal(9)			
+	})
+
+	it('Transpose with col[0] completely filled', () => {
+		const prmu = new Tridiagonal(size)
+		let i=0
+		prmu.row[i++]=Row.Single(0,7)
+		prmu.row[i++]=Row.Single(0,8)
+		prmu.row[i++]=Row.Single(0,9)
+
+		const trans = new Transpose(prmu)
+		trans.next() // move into column 0
+		let r=trans.c.get(0);expect(r).to.equal(7)
+			r=trans.c.get(1);expect(r).to.equal(8)
+		    r=trans.c.get(2);expect(r).to.equal(9)			
+	})
+
+	it('Transpose with row[1] completely filled', () => {
+		const prmu = new Tridiagonal(size)
+		let i=0
+		prmu.row[i++]=Row.Single(2,2)
+		prmu.row[i++]=Row.Single(0,8)
+		prmu.row[1].data[0]=[7,8,9]
+		prmu.row[1].starts=[0,3]
+		prmu.row[i++]=Row.Single(2,3)
+
+		const trans = new Transpose(prmu)
+		trans.next() // move into column 0
+		let r=trans.c.get(1);expect(r).to.equal(7);trans.next()
+			r=trans.c.get(1);expect(r).to.equal(8);trans.next()
+		    r=trans.c.get(1);expect(r).to.equal(9)			
+	})
+
+	it('Transpose with row[1] completely filled and row[0] empty', () => {
+		const prmu = new Tridiagonal(size)
+		let i=0
+		prmu.row[i++]=Row.Single(0,0)
+		prmu.row[0].starts=[]
+		prmu.row[0].data=[]
+		prmu.row[i++]=Row.Single(0,8)
+		prmu.row[1].data[0]=[7,8,9]
+		prmu.row[1].starts=[0,3]
+		prmu.row[i++]=Row.Single(2,3)
+
+		const trans = new Transpose(prmu)
+		trans.next() // move into column 0
+		let r=trans.c.get(1);expect(r).to.equal(7);trans.next()
+			r=trans.c.get(1);expect(r).to.equal(8);trans.next()
+		    r=trans.c.get(1);expect(r).to.equal(9)			
+	})
+
+
+	it('Transpose with col[1] completely filled', () => {
+		const prmu = new Tridiagonal(size)
+		let i=0
+		prmu.row[i++]=Row.Single(1,7)
+		prmu.row[i++]=Row.Single(1,8)
+		prmu.row[i++]=Row.Single(1,9)
+
+		const trans = new Transpose(prmu)
+		trans.next() // move into column 0
+		trans.next() 
+		let r=trans.c.get(0);expect(r).to.equal(7)
+			r=trans.c.get(1);expect(r).to.equal(8)
+		    r=trans.c.get(2);expect(r).to.equal(9)			
+	})
+
+	it('Transpose that matrix for permutation', () => {
+		const prmu = new Tridiagonal(size)
+		let i=0
+		prmu.row[i++]=Row.Single(0,1)
+		prmu.row[i++]=Row.Single(2,2)
+		prmu.row[i++]=Row.Single(1,3)
+
+		const trans = new Transpose(prmu)
+		trans.next() // move into column 0
+		let r=trans.c.get(0);expect(r).to.equal(1);trans.next()
+			r=trans.c.get(2);expect(r).to.equal(3);trans.next()
+		    r=trans.c.get(1);expect(r).to.equal(2)			
+	})
+
+
+	it('Transpose Dense', () => {
+		const dense = new Tridiagonal(size)
+		for(let i=0;i<size;i++){
+			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
+		}
+		const trans = new Transpose(dense)
+		trans.next() // move into column 0
+		let r=trans.c.get(0);expect(r).to.equal(4);trans.next()
+			r=trans.c.get(2);expect(r).to.equal(9);trans.next()
+			r=trans.c.get(2);expect(r).to.equal(7)
+		
+		/*
+		475
+		586
+		697
+		*/
+	})
+
+
 	it('inner Procuct0', () => {
 		// swaps permute also
 		const a=Row.Single(0,1)
 		const b=Row.Single(0,2)
 
-		  let product = a.innerProductColumn(b)
+		  let product = a.innerProductRows(b)
 		  expect(product).equal(2)
 
 		const c=Row.Single(1,1)  
-		product = a.innerProductColumn(c)
+		product = a.innerProductRows(c)
 		expect(product).equal(0)
 		
 		b.starts[1]++
 		b.data[0].push(3)
-		product = a.innerProductColumn(b)
+		product = a.innerProductRows(b)
 		expect(product).equal(2)
 
-		product = c.innerProductColumn(b)
+		product = c.innerProductRows(b)
 		expect(product).equal(6)
 
-		product = c.innerProductColumn(c)
+		product = c.innerProductRows(c)
 		expect(product).equal(1)
 	})
 		it('inner Product  delayed', () => {
 		const ao=Row.Single(1,1)
 		const bo=Row.Single(2,2)		
-		let product=ao.innerProductColumn(bo)
+		let product=ao.innerProductRows(bo)
 		expect(product).equal(0)
 	})
 
@@ -66,6 +214,11 @@ describe('Multiply', () => {
 		prmu.row[i++]=Row.Single(1,1)
 
 		  const product = unit.MatrixProductUsingTranspose(prmu)
+		  // transparent box testing
+		  for(let i=0;i<3;i++){
+			  expect(product.row[i].starts).deep.equal(prmu.row[i].starts)
+		  }
+		  // opaque box texting
 		  expect(product.getAt(0,0)).equal(5)
 		  expect(product.getAt(1,2)).equal(5)
 	})
