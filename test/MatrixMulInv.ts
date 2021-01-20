@@ -1,4 +1,4 @@
-import { Tridiagonal, Row, Transpose, RowCursor } from '../public/enforcePivot';
+import { Tridiagonal, Row, Transpose, RowCursor, JopWithRefToValue } from '../public/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
@@ -179,6 +179,10 @@ describe('Multiply', () => {
 		// swaps permute also
 		const a=Row.Single(0,1)
 		const b=Row.Single(0,2)
+		const jop=new JopWithRefToValue(a,b)
+		console.log("lenght of  i: "+jop.i.length+" s "+jop.s.length + "  behind "+jop.behind)
+		expect(jop.next()).lt( jop.behind)
+
 
 		  let product = a.innerProductRows(b)
 		  expect(product).equal(2)
@@ -193,7 +197,7 @@ describe('Multiply', () => {
 		expect(product).equal(2)
 
 		product = c.innerProductRows(b)
-		expect(product).equal(6)
+		expect(product).equal(3)
 
 		product = c.innerProductRows(c)
 		expect(product).equal(1)
@@ -233,21 +237,76 @@ describe('Multiply', () => {
 		  expect(product.getAt(1,2)).equal(30)		
 	})
 
-	it('rotation 2pi/n', () => {
+	it('rotation pi', () => {
 		const rota = new Tridiagonal(size)
 		let i=-1
-		const angle=Math.PI/3
-		rota.row[++i]=new Row([]);rota.row[i].starts=[0,size];rota.row[i].data=[[+Math.cos(Math.PI/3),Math.sin(Math.PI/3)]]
-		rota.row[++i]=new Row([]);rota.row[i].starts=[0,size];rota.row[i].data=[[-Math.sin(Math.PI/3),Math.cos(Math.PI/3)]]
-		const product = unit.MatrixProductUsingTranspose(rota).MatrixProductUsingTranspose(rota).MatrixProductUsingTranspose(rota)
+		let angle=Math.PI
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
+		rota.row[++i]=Row.Single(2,1)
+
+		expect(rota.getAt(0,0)).approximately(-1,0.001)
+		expect(rota.getAt(1,1)).approximately(-1,0.001)
+		expect(rota.getAt(0,1)).approximately(0,0.001)
+		expect(rota.getAt(1,0)).approximately(0,0.001)
+		let product = unit.MatrixProductUsingTranspose(rota)
+		expect(rota.getAt(0,0)).approximately(-1,0.001)
+		expect(rota.getAt(1,1)).approximately(-1,0.001)
+		expect(rota.getAt(0,1)).approximately(0,0.001)
+		expect(rota.getAt(1,0)).approximately(0,0.001)
+
+		product.row.forEach(r=>{
+			console.log(" starts: "+r.starts+"  values: "+r.data)
+		})
+
 		expect(product.getAt(0,0)).approximately(-5,0.001)
-		expect(product.getAt(1,1)).approximately(-5,0.001)
-		expect(product.getAt(1,0)).approximately(0,0.001)
-		expect(product.getAt(0,1)).approximately(0,0.001)
+		let product2 = product.MatrixProductUsingTranspose(rota)
+
+		product2.row.forEach(r=>{
+			console.log(" starts: "+r.starts+"  values: "+r.data)
+		})			
+
+		expect(product2.getAt(0,0)).approximately(5,0.001)
+
+	
 	})	
 
+	it('rotation pi/2', () => {
+		const rota = new Tridiagonal(size)
+		let i=-1
+		let angle=Math.PI/2
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
+		rota.row[++i]=Row.Single(2,1)
+		let product = unit.MatrixProductUsingTranspose(rota)
+		expect(product.getAt(0,0)).approximately(0,0.001)
+		product = product.MatrixProductUsingTranspose(rota)
+		expect(product.getAt(0,0)).approximately(-5,0.001)
+	})	
+
+	it('rotation pi/3', () => {
+		const rota = new Tridiagonal(size)
+		let i=-1
+		let angle=Math.PI/3
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
+		rota.row[++i]=Row.Single(2,1)
+		let product = unit.MatrixProductUsingTranspose(rota)
+		product = product.MatrixProductUsingTranspose(rota)
+		product = product.MatrixProductUsingTranspose(rota)
+		expect(product.getAt(0,0)).approximately(-5,0.001)
+	})	
+
+	it('scale', () => {		
+		const single=Row.Single(2,3)
+		single.scale(5)
+		expect(single.get(2)).to.equal(15)
+	})
+
 	it('invert unit', () => {
+		expect(unit.getAt(0,0)).approximately(5,0.001)
 		const inverse=unit.inverse()
+		expect(unit.getAt(0,0)).approximately(1,0.001)
 		  expect(inverse.getAt(0,0)).approximately(0.2,0.001)
 		  expect(inverse.getAt(1,1)).approximately(0.2,0.001)
 	})
@@ -259,7 +318,7 @@ describe('Inverse', () => {
 		const size=3
 		const dense = new Tridiagonal(size)
 		for(let i=0;i<size;i++){
-			dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
+			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
 		}
 		const inverse=dense.inverse()
 		  const product = inverse.MatrixProductUsingTranspose(dense)

@@ -95,31 +95,52 @@ class FilledFrom implements DoublyIndirect,ValuesInSpan{
     } 
 }
 
+class NowNotOnlyStartInMatrixButAlsoValuesAtThatPos extends FilledFrom{
+    readonly values:number[][]
+
+    constructor(r: Row){
+        super(r.starts)
+        this.values=r.data // Todo: hide some data using private scope in base class
+    }
+}
+
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
 // Todo: sub uses this
 // Todo: swap uses this
 export class JoinOperatorIterator{
-    s:number[][]
-    i:FilledFrom[] // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+    s=new Array<number[]>()
+    i=new Array<FilledFrom>() // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     filled=0
     filled_last:number
-    behind:number
-    constructor(...s:number[][] /*, SummandForJoin=0 */){
-        //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
-        //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
-        this.s=s
-        this.behind=Math.max(...this.s.map(s=>s[s.length-1]))+1
-            //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
-            // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-   
-            this.i = this.s.map(starts=> new FilledFrom(starts) )
-            //this.i[0].SummandForJoin=SummandForJoin
-            //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
-            
-            //let story:number[]=[]
-            // ? let data_i=0
-            //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
-            // inner join ( sparse version )
+    behind=-1 // join operator, please leave me alone  :number
+
+    // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
+    constructor(...s:number[][]);
+    constructor(initi:boolean, ...s:number[][]);
+    constructor(){ //}...s:number[][]){
+        if (arguments.length>0){
+            let t=(typeof arguments[0] !== "boolean")  // I cannot find a different way
+            // for sub and innerProduct
+            let d=-1
+            for(let k=t?-1:0 ; ++k<arguments.length; ){
+                const u=arguments[k] as number[]
+                if (!Array.isArray(u)){
+                    throw " I try to capture the last parameters! That should lead to an array of arrays! "
+                }
+                // if (d>=0 && this.s[d]>u){
+                //     throw " starts need to grow monotonously! u: "+u
+                // }
+                this.s[++d]=u
+                if (t){
+                    this.i[d] =new  FilledFrom(u )  // I do not know. Maybe for swap? I am in the middle of refactor right now
+                }
+            }
+            console.log(" this.s :  "+this.s)
+            try{
+            console.log(" this.s[0] :  "+this.s[0])
+            }catch{}
+        this.behind=Math.max(...this.s.map(s=>s[s.length-1]))+1 
+        }
     }
 
     next():number{
@@ -219,6 +240,33 @@ export class JoinOperatorIterator{
             }
             return this.behind+1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
+}
+
+export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIterator {
+    // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
+    constructor(...r: Row[]){ //s: number[][])
+    // constructor(initi:boolean, ...s:number[][]);
+    // constructor()
+    //{ //}...s:number[][]){
+        super(false, ...r.map(r=>r.starts)) // base class is already complicated enough. Hide the values!  //  uh, messy. Maybe I just have bad luck with my flat parameters?
+        this.i=r.map(r=>new NowNotOnlyStartInMatrixButAlsoValuesAtThatPos(r))
+
+        // for (let k = arguments.length; --k >= 0;) {
+        //     const u = arguments[k] as number[]
+        //     this.i[k] = new NowNotOnlyStartInMatrixButAlsoValuesAtThatPos(u)  // I do not know. Maybe for swap? I am in the middle of refactor right now
+        //     throw "expand FilledFrom!"
+        // }
+    }
+
+//     static ZipValues(...row: Row[]) {
+//         var jop=new JopWithRefToValue(...row.map(r=>r.starts)) // jop only uses starts
+//         // but sub and innerProduct need a ref to the values
+//         this.i = this.s.map(starts=> new FilledFrom(starts) )
+
+// //        this.i.
+//         throw new Error('Method not implemented.')
+//     }
+//     value:number[][][]
 }
 
 export interface Seamless{
@@ -370,8 +418,6 @@ export class AllSeamless implements Seamless {
         this.flushed=true
     }
 }
-
-
 
 // speed optimization ( premature? )
 class Passes{
@@ -571,7 +617,7 @@ export class Row{
             //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
             // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
    
-            const jop=new JoinOperatorIterator(this.starts,that.starts) // source stream  ToDo use this instead of code below
+            const jop=new JopWithRefToValue(this,that) // source stream  ToDo use this instead of code below
             const drain=new AllSeamless() // target stream
 
             let i = 0 // this  Mybe use .values instead?
@@ -593,7 +639,7 @@ export class Row{
                 //     drain.removeSeams(these, nukeCol+1, false, factor /* sorry */, nukeCol); // delete cell
                 // } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
   
-                let pointer = this.data
+                //let pointer = this.data//;throw "this hack does not scale and especially does not work with filter"
                 // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
                 
                 if (jop.i.length != 2) throw "This is a binary operator!"
@@ -609,8 +655,8 @@ export class Row{
                     if (typeof ii.from === "undefined" ||  typeof ii.from !== "number"){
                         throw "all indizes should just stop before the end ii.from"
                     }
-                    thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
-                    pointer = that.data
+                    thi.extends = (ii as NowNotOnlyStartInMatrixButAlsoValuesAtThatPos).values[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                    //pointer = that.data
                     //console.log(" span.start: "+thi.start );
                     return thi
                 })
@@ -826,7 +872,8 @@ export class Row{
     
     
     innerProductRows(that:Row ):number{
-        const jop=new JoinOperatorIterator(this.starts,that.starts)
+        const jop=new JopWithRefToValue(this,that) //this.starts,that.starts)
+        //jop.ZipValues([this.data,that.data])
         // monkey patch the  indices
         // const pick=(data:number[][],i:FilledFrom)=>{
         //     if (data.length<=(i.from>>1)-1/*trial and error*/ || p<i.ex[i.from-2]){ //}.ValueSpanStartInMatrix){
@@ -842,8 +889,11 @@ export class Row{
         // unify sub and inner product?
         // let acc=0
         let pos:number
-        let pointer = this.data // code from sub
-        let check=this.starts
+
+        // throw " this does not work with filter! todo"
+        // let pointer = this.data // code from sub  todo here and there: extend or wrap JOP to add values
+        // let check=this.starts
+        
         // let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
         // let filled=false
         // //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
@@ -864,20 +914,20 @@ export class Row{
                 if (typeof ii.from === "undefined" ||  typeof ii.from !== "number"){
                     throw "all indizes should just stop before the end ii.from"
                 }
-                thi.extends = pointer[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                thi.extends = (ii as NowNotOnlyStartInMatrixButAlsoValuesAtThatPos).values/*pointer*/[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
                 {
                     const round=(ii.from >> 1) << 1
-                    if (thi.extends.length < check[round+1]-check[round] ){
-                        throw "starts do not match  data.length "+ thi.extends.length+" <= "+check[round+1]+" - "+check[round] +" round : "+round 
+                    if (thi.extends.length < ii.ex[round+1]-ii.ex[round] ){
+                        throw "starts do not match  data.length "+ thi.extends.length+" <= "+ii.ex[round+1]+" - "+ii.ex[round] +" round : "+round 
                     }
 
-                    if (thi.extends.length <= pos-check[round] ){
+                    if (thi.extends.length <= pos-ii.ex[round] ){
                         throw "out of bounds 0. Filled should have toggled to false"
                     }                    
                 }
 
-                pointer = that.data
-                check=that.starts
+                // pointer = that.data
+                // check=that.starts
                 //console.log(" span.start: "+thi.start );
                 return thi
             })
@@ -901,6 +951,7 @@ export class Row{
 
         }
         a.flush()
+        console.log(" before reduce : "+ a.data_next.map(d=>d[0]))
         return a.data_next.reduce((p,v)=>p+v[0],0)  // could ony sum up per span .. otherwise the type system gets very ugly. I do only expect a small number of spans. I would rather add a  reduce number of spans policy  than complicating this code
         //return acc
     }
@@ -934,10 +985,11 @@ export class Tridiagonal implements Matrix{
         return false
     }
 
-    setTo1(){
-        this.row.forEach((row,i)=>{
+    setTo1():Tridiagonal{
+        for(let i=this.row.length;--i>=0;){
             this.row[i]=Row.Single(i,1) //new Row(i,0,[[],[1],[]])
-        })
+        }
+        return this // enable chain
     }
 
     length():number{
@@ -1013,10 +1065,22 @@ export class Tridiagonal implements Matrix{
     }
     // due to pitch I expect the other 
     inverse(): Tridiagonal{
-        const inve=new Tridiagonal(this.row.length) // I may want to merge the runlength encoders?
+        const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
 
         for(let i=0;i<this.row.length;i++){
-            [this.row[i],inve.row[i]].forEach(side=>side.scale(1/this.row[i].get(i)))
+            if (inve.row.length<=i){
+                throw "outofBounds in inverse "+i
+            }
+            if (typeof this.row[i] === "undefined"){
+                throw "this is undefined: "+i
+            }
+            if (typeof inve.row[i] === "undefined"){
+                throw "inverse is undefined: "+i
+            }
+            const factor=1/this.row[i].get(i)
+            console.log("factor: "+factor+"  from "+this.row[i].data+ " and "+ inve.row[i].data);
+            [this.row[i],inve.row[i]].forEach(side=>side.scale(factor));
+            console.log("factor: "+factor+"   to  "+this.row[i].data+ " and "+ inve.row[i].data);
             for(let k=0;k<this.row.length;k++)if (k!==i){
                const f=this.row[k].get(i)
                if (f!==0){
@@ -1102,7 +1166,9 @@ export class Tridiagonal implements Matrix{
                 result.forEach(r=> {
                     const s=new Span<number>(1,t.pos)
                     s.extends=[r.ref.innerProductRows(t.c)] // degenerated
-                    console.log(s.extends[0]); if ( isNaN( s.extends[0])) throw "NaN does not make sense in my algorithm"
+                    console.log(s.extends[0]); if ( isNaN( s.extends[0])) {
+                        throw "NaN does not make sense in my algorithm"
+                    }
                     r.removeSeams(  [s],t.pos, s.extends[0]!==0 ) 
                 } )
                 // let acc:number
@@ -1173,6 +1239,9 @@ export /* for unit test */ class RowCursor{
        const stupidDebugger= ((this.span & 1) === 0) || (this.r.starts.length<=this.span)? 0  // gap
        : this.r.data[this.span>>1][this.pos]
        console.log(" "+((this.span & 1) === 0) +" || "+ (this.r.starts.length<=this.span) + " ? 0 : this.r.data[" + (this.span>>1) +"][" +this.pos +"] " )
+       if (typeof stupidDebugger==="undefined"){
+           throw " jop and filled should have prevented this out of bounds access"
+       }
        return stupidDebugger
     }
 
@@ -1219,7 +1288,7 @@ export class Transpose implements Matrix{
             const v= j.advance(this.pos)
             console.log("side@ "+i+" : "+j.noSideEffect)
             anyProgress||=j.noSideEffect // why is typeScript converting my method with sideEffects into this shortcut code? Just analyse the scopes, compiler!
-            if (v!==0){
+            if (v!==0 && typeof v !== "undefined"){
                 if (last===0){
                     this.c.starts.push(i)
                     this.c.data.push([])
