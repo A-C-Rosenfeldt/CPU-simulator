@@ -255,9 +255,30 @@ describe('Multiply', () => {
 		expect(rota.getAt(0,1)).approximately(0,0.001)
 		expect(rota.getAt(1,0)).approximately(0,0.001)
 
-		product.row.forEach(r=>{
+		product.row.forEach((r,i)=>{
 			console.log(" starts: "+r.starts+"  values: "+r.data)
+			if (i<2)
+			expect(r.starts).deep.eq([0,2])
 		})
+
+		// I got strange results in dense. Isolate the ingredients
+		const t=new Transpose(rota) // hoisting. Todo: Move dependet class up
+		t.next() // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
+		expect(t.c.starts).deep.eq([0,2])
+		expect(product.row[0].starts).deep.eq([0,2])
+		expect(product.row[0].data[0][0]).approximately(-5,0.001)
+		expect(product.row[0].data[0][1]).approximately( 0,0.001)
+		expect(product.row[0].starts).deep.eq([0,2])
+		expect(t.c.data[0][0]).approximately(-1,0.001)
+		expect(t.c.data[0][1]).approximately( 0,0.001)
+		const inner=product.row[0].innerProductRows(t.c)
+		/**
+		 * going to slice  '-5,6.123233995736766e-16' slice(0,2), '-1,-1.2246467991473532e-16' slice(0,2)
+			push r: -7.498798913309289e-32
+		 *  .. so okay. Aggregation was missing. As a small hint: A local variable was not used, maybe look out for warnings?
+		 */
+		expect(inner).approximately(5,0.001) // 2021-01-21 this was c.a. 0 .. before reduce : -7.498798913309289e-32
+
 
 		expect(product.getAt(0,0)).approximately(-5,0.001)
 		let product2 = product.MatrixProductUsingTranspose(rota)
@@ -319,9 +340,27 @@ describe('Inverse', () => {
 		const dense = new Tridiagonal(size)
 		for(let i=0;i<size;i++){
 			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
+			dense.row[i].data[0][i]+=3 // in my application the main diagonal is supposed to dominate. Todo: instead of "enforcePivot", maybe check Pivot beforehand?
 		}
 		const inverse=dense.inverse()
+        // for (let i = 0; i < size; i++) {
+		// 	expect(dense.row[i].starts).deep.eq( [0, size] );
+		// 	const literal=dense.row[i].data[0]
+		// 	console.log("should all be integer: " + literal)
+        //     expect(literal).deep.equal( [4 + i, 7 + i, 5 + i] );
+		// }
+
+		// restore dense ( todo later incorporate this into inverse. I mean, inplace mod should lead to identiy always..)
+		for(let i=0;i<size;i++){
+			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
+			dense.row[i].data[0][i]+=3 
+		}
+
 		  const product = inverse.MatrixProductUsingTranspose(dense)
+		//   for (let i = 0; i < size; i++) {
+        //     expect(dense.row[i].starts).deep.eq( [0, size] );
+        //     expect(dense.row[i].data[0]).deep.equal( [4 + i, 7 + i, 5 + i] );
+        // }
 		  expect(product.getAt(0,0)).approximately(1,0.001)
 		  expect(product.getAt(1,1)).approximately(1,0.001)
 	  })

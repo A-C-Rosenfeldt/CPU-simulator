@@ -373,11 +373,11 @@ export class AllSeamless implements Seamless {
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    operation && operation.clear() //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
+                    operation.clear() //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
                     for (let k = this.pos_input; k < pos; k++) {
                         let sum = 0
                         const retards = this.fillValues.map(fv => fv.extends[k - fv.start])
-                        const resultSpan = operation.operation(retards)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        operation.operation(retards)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
                         
                     }
                     this.concatter.push(operation.result);console.log("push r: "+operation.result)
@@ -665,7 +665,7 @@ export class Row{
                 // first pass, just store pos for slice()
 
             
-                const Sub=new ResultAdd()
+                const Sub=new ResultSub()
                 Sub.factor=factor
                 drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), Sub, nukeCol);       
                 // if ( jop.i[1][j] ){
@@ -1077,7 +1077,10 @@ export class Tridiagonal implements Matrix{
             if (typeof inve.row[i] === "undefined"){
                 throw "inverse is undefined: "+i
             }
-            const factor=1/this.row[i].get(i)
+            if (this.row[i].get(i)===0) {
+                throw "division by zero (matrix undefinite)"
+            }
+            const factor=1/this.row[i].get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
             console.log("factor: "+factor+"  from "+this.row[i].data+ " and "+ inve.row[i].data);
             [this.row[i],inve.row[i]].forEach(side=>side.scale(factor));
             console.log("factor: "+factor+"   to  "+this.row[i].data+ " and "+ inve.row[i].data);
@@ -1088,7 +1091,27 @@ export class Tridiagonal implements Matrix{
                 inve.row[k].sub(this.row[i],f)
                }
             }
+        
+            for(let k=0;k<this.row.length;k++){ //if (k!==i){
+                const f=this.row[k].get(i);
+                const s= (k===i) ?1:0;
+                if (Math.abs(f-s)>0.001){
+                    throw "column not empty i/live: "+f+" should be "+s
+                }
+             }
         }
+
+        console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
+        for(let i=0;i<this.row.length>>1;i++){
+            for(let k=0;k<this.row.length;k++){ //if (k!==i){
+                const f=this.row[k].get(i);
+                const s= (k===i) ?1:0;
+                if (Math.abs(f-s)>0.001){
+                    throw "column not empty i/delayed: "+f+" should be "+s
+                }
+             }
+        }
+
         return inve
     }
     // ToDo on demand
@@ -1104,19 +1127,20 @@ export class Tridiagonal implements Matrix{
     //}    
 
 
-    MatrixProduct(that:number[]|Tridiagonal) {
-        if (Array.isArray( that ) ) { // Poisson simulation uses columns
-            return this.row.map(r=>{
-                return r.innerProduct(that)
-            })
-        } else{ // mostly to test inverse
-            const degen=new Tridiagonal(this.length())
-            degen.row=this.row.map(r=>{
-                return  r.innerProduct_Matrix(that)
-            })
-            return degen
-        }            
-    }
+    // MatrixProduct(that:number[]|Tridiagonal) {
+    //     throw "not maintained"
+    //     if (Array.isArray( that ) ) { // Poisson simulation uses columns
+    //         return this.row.map(r=>{
+    //             return r.innerProduct(that)
+    //         })
+    //     } else{ // mostly to test inverse
+    //         const degen=new Tridiagonal(this.length())
+    //         degen.row=this.row.map(r=>{
+    //             return  r.innerProduct_Matrix(that)
+    //         })
+    //         return degen
+    //     }            
+    // }
 
 
     //product
@@ -1133,7 +1157,7 @@ export class Tridiagonal implements Matrix{
 
         for(let i=0;i<this.row.length>>1;i++){
             this.row[i].scale(1/this.row[i].get(i)) // uh rounding. At least our cell of interest should be exactly 1 after this. Or?
-            this.row[i].set(1,i); // combat rounding while still minimizing the number of divides
+            //this.row[i].set(1,i); // combat rounding while still minimizing the number of divides
             for(let k=0;k<this.row.length;k++)if (k!==i){
                const f=this.row[k].get(i)
                if (f!==0){
@@ -1143,7 +1167,28 @@ export class Tridiagonal implements Matrix{
                    throw "pivot is broken"
                }
             }
+
+            for(let k=0;k<this.row.length;k++){ //if (k!==i){
+                const f=this.row[k].get(i);
+                const s= (k===i) ?1:0;
+                if (Math.abs(f-s)>0.001){
+                    throw "column not empty live: "+f+" should be "+s
+                }
+             }
         }
+
+        console.log("inside inverse Half "+this.row[0].data[0][0])
+        for(let i=0;i<this.row.length>>1;i++){
+            for(let k=0;k<this.row.length;k++){ //if (k!==i){
+                const f=this.row[k].get(i);
+                const s= (k===i) ?1:0;
+                if (Math.abs(f-s)>0.001){
+                    throw "column not empty delayed: "+f+" should be "+s
+                }
+             }
+        }
+
+        throw "use other inverse"
         // in place //return inve
     }
 
@@ -1316,7 +1361,7 @@ export interface Result{
     clear():void
     operation(retards: number[]):void
 }
-class ResultAdd implements Result{
+class ResultSub implements Result{
  result = new Array<number>()
  clear(){this.result = new Array<number>()}
  factor:number 
@@ -1324,7 +1369,7 @@ class ResultAdd implements Result{
     if (this.factor === 0) { throw "why would someone do this" }
 
     retards[retards.length - 1] *= this.factor // maybe I should also know divisor so that i
-    const resultSpan = (retards.reduce((p, c) => p + c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+    const resultSpan = (retards.reduce((p, c) => p - c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
     this.result.push(resultSpan)
 }
 }
@@ -1333,7 +1378,8 @@ class ResultMul implements Result{
     result = [0] // degenerated .. sorry todo ? 
     clear(){this.result=[0]}
     operation(retards: number[]):void {
+        console.log(" ResultMul, retards: "+retards)
        const resultSpan = (retards.reduce((p, c) => p * c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
-       this.result[0]=(resultSpan)
+       this.result[0]+=(resultSpan)
    }
    }

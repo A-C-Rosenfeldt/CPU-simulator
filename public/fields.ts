@@ -846,7 +846,8 @@ export class FinFet{
     segments.forEach( segment=>{
       if (true /*source in other segment*/){
         var value=[3,4,5] //segments.getPreviousValue();
-        var homo=(new Tridiagonal(4)).MatrixProduct( value);
+        var homo=(new Tridiagonal(4)).MatrixProductUsingTranspose( value); // 
+        throw "the multiplication-method was not realy tested using value:Array"
 
       }      
     })
