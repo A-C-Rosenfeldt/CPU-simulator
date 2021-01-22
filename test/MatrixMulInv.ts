@@ -335,6 +335,79 @@ describe('Multiply', () => {
 })  
 
 describe('Inverse', () => {
+
+	it('rotation pi/3', () => {
+		const size=2
+		const dense = new Tridiagonal(size)
+		{
+		let i=-1
+		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4,5]]
+		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[8,9]]
+		}
+		const rota = new Tridiagonal(size)
+		{
+		let i=-1
+		let angle=Math.PI/3
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
+		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
+		}
+		let product = dense.MatrixProductUsingTranspose(rota)
+		product = product.MatrixProductUsingTranspose(rota)
+		product = product.MatrixProductUsingTranspose(rota)
+		expect(product.getAt(0,0)).approximately(-4,0.001)
+		expect(product.getAt(1,0)).approximately(-8,0.001)
+		expect(product.getAt(0,1)).approximately(-5,0.001)
+		expect(product.getAt(1,1)).approximately(-9,0.001)
+
+
+	})	
+
+	it('dense 1x1', () => {
+		const size=1
+		const dense = new Tridiagonal(size)
+		let i=-1
+		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4]]
+		const det=4
+		let inverse=dense.inverse()
+		let j=-1
+		console.log(inverse.row[++j].data[0].map(x=>x*det))
+
+		expect(inverse.row[j].data[0][0]*det).approximately(1,0.001)
+	})
+
+
+	it('dense 2x2', () => {
+		const size=2
+		const dense = new Tridiagonal(size)
+		let i=-1
+		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4,5]]
+		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[8,9]]
+		const det=4*9-5*8
+		let inverse=dense.inverse()
+		let j=-1
+		console.log("raw*det: " +inverse.row[++j].data[0].map(x=>x*det))
+		console.log("raw*det: "+inverse.row[++j].data[0].map(x=>x*det))
+
+		j=0
+		expect(inverse.row[j].data[0][0]*det).approximately(9,0.001)
+		expect(inverse.row[j].data[0][1]*det).approximately(-5,0.001)
+		j=1
+		expect(inverse.row[j].data[0][0]*det).approximately(-8,0.001)
+		expect(inverse.row[j].data[0][1]*det).approximately(4,0.001)
+
+		inverse=inverse.inverse()
+
+		console.log("raw*det: " +inverse.row[++j].data[0])
+		console.log("raw*det: "+inverse.row[++j].data[0])
+
+
+		j=0
+		expect(inverse.row[j].data[0][0]*1).approximately(4,0.001)
+		expect(inverse.row[j].data[0][1]*1).approximately(5,0.001)
+		j=1
+		expect(inverse.row[j].data[0][0]*1).approximately(8,0.001)
+		expect(inverse.row[j].data[0][1]*1).approximately(9,0.001)
+	})
 	it('Multiply with inverse (left and right) should result in unity ( within 1e-6 precsision )', () => {
 		const size=3
 		const dense = new Tridiagonal(size)

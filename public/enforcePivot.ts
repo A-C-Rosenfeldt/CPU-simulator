@@ -46,6 +46,10 @@ export class Span<T>{
     //string:number[]=[]
 }
 
+class SpanWithCommonFactor<T> extends Span<T>{
+    factor:number
+}
+
 // Consider: RowConstructor which takes Span instead of Array<Span> ( check for .Start )
 export function FromRaw<T>(...b:Array<T>):Span<T>{
     const s= new Span<T>(b.length,0);  // set prototype . Ducktyping alone won't call correct unshift
@@ -97,7 +101,7 @@ class FilledFrom implements DoublyIndirect,ValuesInSpan{
 
 class NowNotOnlyStartInMatrixButAlsoValuesAtThatPos extends FilledFrom{
     readonly values:number[][]
-
+    factor:number;
     constructor(r: Row){
         super(r.starts)
         this.values=r.data // Todo: hide some data using private scope in base class
@@ -243,6 +247,7 @@ export class JoinOperatorIterator{
 }
 
 export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIterator {
+    i:NowNotOnlyStartInMatrixButAlsoValuesAtThatPos[]
     // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
     constructor(...r: Row[]){ //s: number[][])
     // constructor(initi:boolean, ...s:number[][]);
@@ -321,20 +326,20 @@ export class AllSeamless implements Seamless {
     // robust code, cleaner logs, delay stuff all in one place: Delay in class AllSeamless
 
     removeSeams(//criterium: ((a: number) => boolean),
-        _fillValues: Span<number>[], // sourceStart: number[],
+        _fillValues: Span<number>[] | SpanWithCommonFactor<number>[], // sourceStart: number[],
         pos: number, filled: boolean,
         operation:Result=null, nukeCol?:number,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
         this.flushed=false
-        console.log("should be [5] 2: "+_fillValues.map(f=>f.extends))
+        console.log("should be [5] 2: "+(_fillValues as Span<number>[]).map(f=>f.extends + "  ,  "))
 
         //throw "nase" 
         if (this.pos_input < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
             
             console.log(" going from filled?:" + this.filled[1] + " to filled?: "+  this.filled[0] + " to filled: "+filled );
-            console.log("should be [5] 6: "+this.fillValues.map(f=>f.extends)+" should be [5] 3: "+_fillValues.map(f=>f.extends))
+            console.log("should be [5] 6: "+this.fillValues.map(f=>f.extends)+" should be [5] 3: "+(_fillValues as Span<number>[]).map(f=>f.extends))
 
             if (this.pos_input>=0 && (this.filled[1]!=this.filled[0])) {this.start_push(this.pos_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
  
@@ -363,7 +368,7 @@ export class AllSeamless implements Seamless {
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
             if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillValues.length>0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
                 //console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
-                console.log('going to slice '+this.fillValues.map(fv=>" '"+fv.extends+"' slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+")"))
+                console.log('going to slice '+this.fillValues.map(fv=>" '"+fv.extends+"' slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+" factor?: "+ (fv as SpanWithCommonFactor<number>).factor+")"))
                 if (this.fillValues.some(fv=>fv.extends.length< pos - fv.start)){
                     throw "out of bounds 1: "+filled+" was "+this.filled[0] // break point here to investigate stack
                 }
@@ -376,7 +381,8 @@ export class AllSeamless implements Seamless {
                     operation.clear() //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
                     for (let k = this.pos_input; k < pos; k++) {
                         let sum = 0
-                        const retards = this.fillValues.map(fv => fv.extends[k - fv.start])
+                        const retards = this.fillValues.map(fv => [fv.extends[k - fv.start], (fv as SpanWithCommonFactor<number>).factor])
+                        console.log("REusltSub0 :"+retards.map(r=>r[1]))
                         operation.operation(retards)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
                         
                     }
@@ -645,12 +651,14 @@ export class Row{
                 if (jop.i.length != 2) throw "This is a binary operator!"
                 // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
                 // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
+                jop.i[1].factor=factor
                 const these = jop.i.filter(ii=>ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                     //  const ii=jop.i[1][j]
                     if (typeof ii.ValueSpanStartInMatrix === "undefined" ||  typeof ii.ValueSpanStartInMatrix !== "number"){
                         throw "all indizes should just stop before the end ii.mp. From: "+ii.ValueSpanStartInMatrix
                     } 
-                    const thi = new Span<number>(0, ii.ValueSpanStartInMatrix)
+                    const thi = new SpanWithCommonFactor<number>(0, ii.ValueSpanStartInMatrix)
+                    thi.factor=ii.factor
                     
                     if (typeof ii.from === "undefined" ||  typeof ii.from !== "number"){
                         throw "all indizes should just stop before the end ii.from"
@@ -666,7 +674,7 @@ export class Row{
 
             
                 const Sub=new ResultSub()
-                Sub.factor=factor
+                // before filter Sub.factor=factor
                 drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), Sub, nukeCol);       
                 // if ( jop.i[1][j] ){
                 //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
@@ -723,7 +731,7 @@ export class Row{
             jop.i.forEach((j, k) => {
                 console.log( j.ValueSpanStartInMatrix + " <= " + pos + " < " + j.ex[j.from] + " from: " + j.from + " <= " + j.ex.length + " filled " + j.filled)
             })
-            console.log("") // spacer
+            //console.log("") // spacer
 
 
 
@@ -1087,8 +1095,10 @@ export class Tridiagonal implements Matrix{
             for(let k=0;k<this.row.length;k++)if (k!==i){
                const f=this.row[k].get(i)
                if (f!==0){
-                this.row[k].sub(this.row[i],f) // ToDo: nuke column
-                inve.row[k].sub(this.row[i],f)
+                [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
+                // duplicated code leads to bugs! 2020-01-20
+                // this.row[k].sub(this.row[i],f) // ToDo: nuke column
+                // inve.row[k].sub(this.row[i],f)
                }
             }
         
@@ -1359,27 +1369,36 @@ export class Transpose implements Matrix{
 export interface Result{
     result : Array<number> // concatter / seamless expects this for slice and stuff
     clear():void
-    operation(retards: number[]):void
+    operation(retards: number[][]):void
 }
 class ResultSub implements Result{
  result = new Array<number>()
  clear(){this.result = new Array<number>()}
- factor:number 
- operation(retards: number[]):void {
-    if (this.factor === 0) { throw "why would someone do this" }
+ //factor:number 
+ 
+ operation(retards: number[][]):void {
+    console.log("REusltSub0 :"+retards.map(r=>r[1]))
 
-    retards[retards.length - 1] *= this.factor // maybe I should also know divisor so that i
-    const resultSpan = (retards.reduce((p, c) => p - c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+    const resultSpan = retards.reduce(this.loop,0) 
     this.result.push(resultSpan)
+ }
+
+    private loop(p: number, c: number[]) : number {
+            console.log("ResultSub: " + p + " ( (" + typeof c[1] + " !== number || (" + c[1] + " as number)=== 0) ?")
+            return ((typeof c[1] !== "number" || (c[1] as number) === 0) ?
+            p + c[0]
+                : p-c[0] * c[1]
+            )        
+    }
 }
-}
+
 
 class ResultMul implements Result{
     result = [0] // degenerated .. sorry todo ? 
     clear(){this.result=[0]}
-    operation(retards: number[]):void {
+    operation(retards: number[][]):void {
         console.log(" ResultMul, retards: "+retards)
-       const resultSpan = (retards.reduce((p, c) => p * c)) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+       const resultSpan = retards.map(r=>r[0]).reduce((p, c) => p * c  /* , 1  reduce can't just spit out the only element if type is result of function. But then I do not want unecessary multiplication */ ) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
        this.result[0]+=(resultSpan)
    }
    }
