@@ -31,6 +31,8 @@ export class Span {
         this.extends.forEach(callbackfn);
     }
 }
+class SpanWithCommonFactor extends Span {
+}
 // Consider: RowConstructor which takes Span instead of Array<Span> ( check for .Start )
 export function FromRaw(...b) {
     const s = new Span(b.length, 0); // set prototype . Ducktyping alone won't call correct unshift
@@ -65,25 +67,45 @@ class FilledFrom {
         return this.ex[this.from - 1 /* anchor of span is on the low end, but join tracks the high end for the "end condition" .. todo: switch */];
     }
 }
+class NowNotOnlyStartInMatrixButAlsoValuesAtThatPos extends FilledFrom {
+    constructor(r) {
+        super(r.starts);
+        this.values = r.data; // Todo: hide some data using private scope in base class
+    }
+}
 // What is better: Iterator, or a forEach with callback? I want to use "this" for output => iterator;while
 // Todo: sub uses this
 // Todo: swap uses this
 export class JoinOperatorIterator {
-    constructor(...s /*, SummandForJoin=0 */) {
+    constructor() {
+        this.s = new Array();
+        this.i = new Array(); // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
         this.filled = 0;
-        //let start_next:number[]=new Array<number>() //        =this.starts.slice() // copy all elements
-        //let data_next:number[][]=new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
-        this.s = s;
-        this.behind = Math.max(...this.s.map(s => s[s.length - 1])) + 1;
-        //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
-        // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-        this.i = this.s.map(starts => new FilledFrom(starts));
-        //this.i[0].SummandForJoin=SummandForJoin
-        //new Array<number>(s.length).fill(0) // this  Mybe use .values instead?
-        //let story:number[]=[]
-        // ? let data_i=0
-        //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
-        // inner join ( sparse version )
+        this.behind = -1; // join operator, please leave me alone  :number
+        if (arguments.length > 0) {
+            let t = (typeof arguments[0] !== "boolean"); // I cannot find a different way
+            // for sub and innerProduct
+            let d = -1;
+            for (let k = t ? -1 : 0; ++k < arguments.length;) {
+                const u = arguments[k];
+                if (!Array.isArray(u)) {
+                    throw " I try to capture the last parameters! That should lead to an array of arrays! ";
+                }
+                // if (d>=0 && this.s[d]>u){
+                //     throw " starts need to grow monotonously! u: "+u
+                // }
+                this.s[++d] = u;
+                if (t) {
+                    this.i[d] = new FilledFrom(u); // I do not know. Maybe for swap? I am in the middle of refactor right now
+                }
+            }
+            console.log(" this.s :  " + this.s);
+            try {
+                console.log(" this.s[0] :  " + this.s[0]);
+            }
+            catch (_a) { }
+            this.behind = Math.max(...this.s.map(s => s[s.length - 1])) + 1;
+        }
     }
     next() {
         // negative position in matrix should work => todo test
@@ -168,34 +190,73 @@ export class JoinOperatorIterator {
         return this.behind + 1; //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
+export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIterator {
+    // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
+    constructor(...r) {
+        // constructor(initi:boolean, ...s:number[][]);
+        // constructor()
+        //{ //}...s:number[][]){
+        super(false, ...r.map(r => r.starts)); // base class is already complicated enough. Hide the values!  //  uh, messy. Maybe I just have bad luck with my flat parameters?
+        this.i = r.map(r => new NowNotOnlyStartInMatrixButAlsoValuesAtThatPos(r));
+        // for (let k = arguments.length; --k >= 0;) {
+        //     const u = arguments[k] as number[]
+        //     this.i[k] = new NowNotOnlyStartInMatrixButAlsoValuesAtThatPos(u)  // I do not know. Maybe for swap? I am in the middle of refactor right now
+        //     throw "expand FilledFrom!"
+        // }
+    }
+}
 export class AllSeamless {
     constructor() {
-        this.data_next = [];
-        this.start_next = [];
+        this._data_next = [];
+        this._start_next = [];
+        this.flushed = true; // I do not support live FIFO at the moment. All readers want to do forEach on the data. Data is short, I do not ever expect streams to occure in THIS class
         this.starts = 0; // whatIf
         this.length = 0; // whatIf  .. basically needs 3 passes for tight malloc =>  WhatIf:number
         // this may better be a function which accepts delegates and does for(let pass=0;;pass++){ over them
         //. Todo: Try both ways
         // two passes where motivated by memory allocation, but mess with the OOP structure
-        this.filled = [false, false];
-        this.pos_input = [-1, -1]; // needed for slice
+        this.filled = [false, false]; // todo: no array.. here we need an array to remember that old pos to know if we have to flush? 
+        this.pos_input = -1; // state is your enemy. Keep in sync with delayed Slice [-1,-1] // needed for slice
         //pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
         this.concatter = new Array();
+        this.fillValues = new Array(); // undefined is not the logical start value  // where to put this? Apparently sub also already delays  and  swap also needs it .. so better put in in Seamless? Caller just needs a simple reorder of calls. Todo in swap? Single Responsible .. logs sure look strange
     }
+    get data_next() {
+        if (!this.flushed) {
+            throw "not sealed";
+        }
+        return this._data_next;
+    }
+    data_push(value) {
+        this._data_next.push(value);
+        this.flushed = false;
+    }
+    get start_next() {
+        if (!this.flushed) {
+            throw "not sealed";
+        }
+        return this._start_next;
+    }
+    start_push(value) {
+        this._start_next.push(value);
+        this.flushed = false;
+    }
+    // it is important to only strong monotonic pos before using the data values for the last span
+    // swap has weak monotonic cutter for center (which may or may not be needed)
+    // robust code, cleaner logs, delay stuff all in one place: Delay in class AllSeamless
     removeSeams(//criterium: ((a: number) => boolean),
-    fillValues, // sourceStart: number[],
-    pos, filled, factor = 0, nukeCol, whatIf = false // expose the triviality of this premature optimization
+    _fillValues, // sourceStart: number[],
+    pos, filled, operation = null, nukeCol, whatIf = false // expose the triviality of this premature optimization
     ) {
-        console.log("should be [5] 2: " + fillValues.map(f => f.extends));
-        //throw "nase"
-        if (this.pos_input[0] < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
-            this.pos_input[1] = this.pos_input[0];
-            this.pos_input[0] = pos;
-            console.log(" going from filled?:" + this.filled[1] + " to filled?:" + this.filled[0]);
-            console.log("should be [5] 3: " + fillValues.map(f => f.extends));
-            if (this.pos_input[1] >= 0 && (this.filled[1] != this.filled[0])) {
-                this.start_next.push(this.pos_input[1]);
-            } // now that we advanced, lets note last border (if it was a real edge)
+        this.flushed = false;
+        console.log("should be [5] 2: " + _fillValues.map(f => f.extends + "  ,  "));
+        //throw "nase" 
+        if (this.pos_input < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
+            console.log(" going from filled?:" + this.filled[1] + " to filled?: " + this.filled[0] + " to filled: " + filled);
+            console.log("should be [5] 6: " + this.fillValues.map(f => f.extends) + " should be [5] 3: " + _fillValues.map(f => f.extends));
+            if (this.pos_input >= 0 && (this.filled[1] != this.filled[0])) {
+                this.start_push(this.pos_input);
+            } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
             // properties? With delegates I get to use Arrays!
             // Test run: pos=1 fillValues.start=0 filled is homogenous .. concatter is already prepared to accept data
             if (this.filled[1] && !this.filled[0]) { // switched before advance 
@@ -209,7 +270,10 @@ export class AllSeamless {
                         // from filled to gap .. flush.  Join encounters a border, determines "filled" and we can use the positios to cut out ranges in the source Rows
                         { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
                             const t = Array.prototype.concat.apply([], this.concatter);
-                            this.data_next.push(t); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            this.data_push(t); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            if (this._data_next.length > (this._start_next.length >> 1)) {
+                                throw "I could not belive it, but log claims 1: " + this._data_next.length + " > " + this._start_next.length + " >>1  ";
+                            }
                             this.concatter = new Array();
                         }
                     }
@@ -219,30 +283,34 @@ export class AllSeamless {
             //!whatIf &&
             // 2021-01-03 pulled before concat
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
-            if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.delayedSlice.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
-                console.log("should be [5] 4: " + this.delayedSlice.map(f => f.extends));
-                console.log('going to slice ' + this.delayedSlice.map(fv => "slice(" + (this.pos_input[1] - fv.start) + "," + (pos - fv.start) + ")"));
-                const cut = this.delayedSlice.map(fv => fv.extends.slice(this.pos_input[1] - fv.start, pos - fv.start));
-                if (factor === 0) {
+            if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
+                //console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
+                console.log('going to slice ' + this.fillValues.map(fv => " '" + fv.extends + "' slice(" + (this.pos_input - fv.start) + "," + (pos - fv.start) + " factor?: " + fv.factor + ")"));
+                if (this.fillValues.some(fv => fv.extends.length < pos - fv.start)) {
+                    throw "out of bounds 1: " + filled + " was " + this.filled[0]; // break point here to investigate stack
+                }
+                const cut = this.fillValues.map(fv => fv.extends.slice(this.pos_input - fv.start, pos - fv.start));
+                if (operation === null) {
                     this.concatter.push(cut[0]);
+                    console.log("push c: " + cut[0]);
                 }
                 else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    const result = new Array(); // this sets length, not capacity: pos - this.pos_input[1])
-                    for (let k = this.pos_input[1]; k < pos; k++) {
+                    operation.clear(); //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
+                    for (let k = this.pos_input; k < pos; k++) {
                         let sum = 0;
-                        const retards = fillValues.map(fv => fv.extends[k - fv.start]);
-                        if (factor !== 0) {
-                            retards[retards.length - 1] *= factor; // maybe I should also know divisor so that i
-                        }
-                        result.push(retards.reduce((p, c) => p + c)); // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        const retards = this.fillValues.map(fv => [fv.extends[k - fv.start], fv.factor]);
+                        console.log("REusltSub0 :" + retards.map(r => r[1]));
+                        operation.operation(retards); // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
                     }
-                    this.concatter.push(result);
+                    this.concatter.push(operation.result);
+                    console.log("push r: " + operation.result);
                 }
             } /*else*/
             { // flush buffer. Be sure to call before closing stream!
             }
+            this.pos_input = pos;
             // Keep this below to get consisten logs
             // Delay three positions because: Confirm by advance (3), compare with previous value (2)
             // Caller already delays "filled" in the sources by appropriating inverting bit0 of index into starts[]
@@ -250,24 +318,32 @@ export class AllSeamless {
             this.filled[1] = this.filled[0]; // last possible moment. Quite some lag to compensate
             this.filled[0] = filled;
             // match value delay to position delay
-            this.delayedSlice = fillValues;
+            this.fillValues = _fillValues; // Todo: hide using inner function
         }
     }
     // better be sure to end with gap=true (from span end .. test?) or else call this
+    // Build pattern to avoid the state code in the accessor? 
     flush() {
         if (this.filled[1] /* condition derived from log while debugging. Maybe test? */) { // to keep even numbeer of open and close .. looks better in log .. also even worse than a seam (aesthetically) .  todo test for this
-            this.start_next.push(this.pos_input[0]);
+            this.start_push(this.pos_input);
+            if ((this._start_next.length & 1) === 1) {
+                throw "Matrix starts empty, and ends empty";
+            }
             const t = Array.prototype.concat.apply([], this.concatter);
-            console.log("flush: " + this.start_next.join('') + "->" + t.join('') + " by the way, filled: " + this.filled);
+            console.log("flush: " + this._start_next.join() + "->" + t.join() + " by the way, filled: " + this.filled);
             // is filled, so there must be data available
             if (this.concatter.length <= 0) {
                 throw "with filled there needs to be data!";
             }
-            this.data_next.push(t);
+            this._data_next.push(t);
+            if (this._data_next.length > (this._start_next.length >> 1)) {
+                throw "I could not belive it, but log claims 2: " + this._data_next.length + " > " + this._start_next.length + " >>1  ";
+            }
         }
         else {
             console.log("flush: not because stream is not active");
         }
+        this.flushed = true;
     }
 }
 // speed optimization ( premature? )
@@ -298,6 +374,7 @@ export class Row {
                 //const ranpe=ranpe.slice(0,ranpe.length)
                 // only string has trim(). And it can't even return the number of trimmed items
                 // trim 0 values
+                // todo: better two passes: over s and s reverse. That min stuff looks strange
                 s.forEach((t, i) => {
                     if (t !== 0) {
                         for (let d = 0; d < 2; d++) {
@@ -327,35 +404,6 @@ export class Row {
             //     this.data.push(s.slice(range[0],range[1]))
             // }
         }
-        // this.data=start.map(s=>s.slice()) // convert Span to base class  ES6: [...s] Do I like it?
-        // // 2020-11-19 ToDo: This is to complicated: does not work well with vertical edges
-        // //this.starts=[].concat.apply([],this.data.map(d=>[pos-Math.floor(d.length/2),pos+Math.ceil(d.length/2)]))
-        // // var aggregate=data.map(d=>d.length)
-        // // {
-        // //     let i=0
-        // //     let a=aggregate[i++]
-        // //     do{
-        // //     }
-        // // }
-        // // Better do: start of diagonal range  and from there  run length encoding of zeros
-        // this.starts=[].concat.apply([],start.map(d=>[d.start,d.start+d.length]))      
-        // //this.starts=new Array(6).fill(pos)
-        // // {
-        // //     const fitch = forwardpitch
-        // //     this.starts[0] -= pitch + data[0].length
-        // //     this.starts[1] -= pitch + data[0].length
-        // //     this.starts[4] += fitch + data[1].length
-        // //     this.starts[5] += fitch + data[1].length
-        // // }
-        // // // for diagonal-only construction
-        // // if (this.starts[1]>this.starts[2]){
-        // //     this.starts[0]-=this.starts[1]-this.starts[2]
-        // //     this.starts[1]=this.starts[2]
-        // // }
-        // // if (this.starts[4]<this.starts[3]){
-        // //     this.starts[5]-=this.starts[4]-this.starts[3]
-        // //     this.starts[4]=this.starts[3]
-        // // }
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce((v1, v0) => v0 >= v1 ? v0 : Number.MAX_SAFE_INTEGER, 0) === Number.MAX_SAFE_INTEGER) {
             console.log(this.starts);
@@ -378,9 +426,6 @@ export class Row {
                 return null;
         }
         ;
-        // if (segment & 1){ // it is different for --   compared to ++
-        //     return null
-        // }
         return [segment, at - this.starts[segment]];
     }
     get(at) {
@@ -477,17 +522,17 @@ export class Row {
         // not using passes right now. Maybe need to add aflush . for (let pass = 0; pass < 2; pass++) {
         //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
         // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-        const jop = new JoinOperatorIterator(this.starts, that.starts); // source stream  ToDo use this instead of code below
+        const jop = new JopWithRefToValue(this, that); // source stream  ToDo use this instead of code below
         const drain = new AllSeamless(); // target stream
         let i = 0; // this  Mybe use .values instead?
         let a = 0; // that
         let story = [];
         let gap = 0;
         //let data_i=0
-        let concatter = new Array(); //,cut1:number[];
+        //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
         let pos;
         //=new Array<Span<number>>()
-        let these = [];
+        // was the old way to keep Seamless smaller. TDD at its worst I guess. Trapped me in Swap. \\let these:Span<number>[]=[]
         // Maybe we should check for input data. No idea what jop does without input though.
         while ((pos = jop.next()) < jop.behind) { // last is just after the end in Matrix {  pos behind does not deliver any results with slice. We have the extra flush method to avoid application of superfical parameters
             // inverting is supposed to clear (upper or lower) triangles completely
@@ -495,29 +540,33 @@ export class Row {
             //     drain.removeSeams(these, nukeCol, !jop.i[0].every(v => v.filled === false), factor /* sorry */, nukeCol);
             //     drain.removeSeams(these, nukeCol+1, false, factor /* sorry */, nukeCol); // delete cell
             // } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
-            console.log(" pos: " + pos + " we just transitioned to: " + !jop.i.every(v => v.filled === false) + " sources to fill from: {" + these.map(t => ("start: " + t.start) + (",len: " + t.extends.length)) + "}");
-            // first pass, just store pos for slice()
-            drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), factor /* sorry */, nukeCol);
-            let pointer = this.data;
+            //let pointer = this.data//;throw "this hack does not scale and especially does not work with filter"
             // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
             if (jop.i.length != 2)
                 throw "This is a binary operator!";
             // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
             // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
-            these = jop.i.filter(ii => ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            jop.i[1].factor = factor;
+            const these = jop.i.filter(ii => ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 //  const ii=jop.i[1][j]
                 if (typeof ii.ValueSpanStartInMatrix === "undefined" || typeof ii.ValueSpanStartInMatrix !== "number") {
                     throw "all indizes should just stop before the end ii.mp. From: " + ii.ValueSpanStartInMatrix;
                 }
-                const thi = new Span(0, ii.ValueSpanStartInMatrix);
+                const thi = new SpanWithCommonFactor(0, ii.ValueSpanStartInMatrix);
+                thi.factor = ii.factor;
                 if (typeof ii.from === "undefined" || typeof ii.from !== "number") {
                     throw "all indizes should just stop before the end ii.from";
                 }
-                thi.extends = pointer[ii.from >> 1]; // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
-                pointer = that.data;
+                thi.extends = ii.values[ii.from >> 1]; // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                //pointer = that.data
                 //console.log(" span.start: "+thi.start );
                 return thi;
             });
+            console.log(" pos: " + pos + " we just transitioned to: " + !jop.i.every(v => v.filled === false) + " sources to fill from: {" + these.map(t => ("start: " + t.start) + (",len: " + t.extends.length)) + "}");
+            // first pass, just store pos for slice()
+            const Sub = new ResultSub();
+            // before filter Sub.factor=factor
+            drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), Sub, nukeCol);
             // if ( jop.i[1][j] ){
             //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
             //     thi.extends=pointer.data[jop.i[j]>>1]
@@ -532,193 +581,14 @@ export class Row {
         // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
         if (!jop.i.every(v => v.filled === false))
             throw "last boundary should be a closing one";
-        /*
-                    
-                        switch( jop.filled_last & 3){
-                            case 1:drain.removeSeams(this.data[jop.i[0]>>1],this.starts[i],pos, jop.filled !== 0 ); break;
-                            case 2:drain.removeSeams(that.data[jop.i[1]>>1],that.starts[a],pos,jop.filled !== 0 );break;
-                            case 3:break;
-                            //default: drain.removeSeams([],0,pos,jop.filled !== 0 );break; // Todo: reorder parameters
-                        }
-                        if (  (jop.filled & 3 ) ){
-                            if (jop.filled & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
-                            console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
-                            let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
-                            if (jop.filled & 2){
-                                for(let b=0;b<cut.length;b++){
-                                    console.log("b "+b)
-                                    const t=that.data[a>>1][b+(story[1]-that.starts[a])]
-                                    if (factor){
-                                        cut[b] -= factor*t
-                                    }else{
-                                        //throw "use [get;set;trim] instead"
-                                        cut[b] += t  // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
-                                    }
-                                }
-                            }
-                            drain.removeSeams(cut, pos,pos, jop.filled !== 0 )
-                            concatter.push(cut)
-                            // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice
-                        }else{
-                            
-                            if (pass1gap & 2){
-                                console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
-                                concatter.push(that.data[a>>1].slice(story[1]-that.starts[a],story[0]-that.starts[a]))
-                            }
-                            // else{
-                            //     ts.push(Array(story[0]-story[1]).fill(0))
-                            // }
-                        }
-                    }).bind(this)(i-2,a-2)
-                        }
-                    }
-        
-                    // inner join ( sparse version )
-                    do {
-                        // console.log("i "+i+" a "+a)
-                        const pass1gap=gap;
-        
-                        //do
-                        {
-                            // trying to avoid infinity, null and undefined for better readability
-                            let I:number=that.starts[that.starts.length-1]+1
-                            let A:number=this.starts[this.starts.length-1]+1
-                            if (i < this.starts.length){
-                                I = this.starts[i]
-                            }
-                            if (a < that.starts.length){
-                                A = that.starts[a]
-                            }
-        
-                            if (I > A) {
-                                a++; gap ^= 2; story[0] = A
-                            }else{
-                                i++; gap ^= 1; story[0] = I
-                                if (I === A) {
-                                    a++; gap ^= 2
-                                }
-                            }
-                        }//while(false)
-                        
-                        //target value
-                        if (pass === 1 && story.length===2 /* in pass=0."micro pass"=0 story is not completely filled because border swim in a soup.  This needs reversed story ) { // polymorphism?
-                            console.log( 'story '+story[1]+' '+story[0] +' gap '+pass1gap);
-        
-                            // function construct only used to retard i and a by two and keep the names. Alternatively I could do a-- and start_next.reverse() or something. Important: ts.push();this.data[index].concat(ts)
-                            (function trailing(i:number,a:number){
-        
-                                if (pass1gap & 1){  // This is an abbreviation for: "In pass=1 we need the gap value one turn older than the story[] value"
-                                    console.log('this.data['+i+'>>1].slice('+story[1]+'-'+this.starts[i]+','+story[0]+'-'+this.starts[i]+')')
-                                    let cut= this.data[i>>1].slice(story[1]-this.starts[i],story[0]-this.starts[i]) // Todo: double buffer? No ts is already the second buffer and non-sparse can only grow (at the moment)
-                                    if (pass1gap & 2){
-                                        for(let b=0;b<cut.length;b++){
-                                            console.log("b "+b)
-                                            const t=that.data[a>>1][b+(story[1]-that.starts[a])]
-                                            if (factor){
-                                                cut[b] -= factor*t
-                                            }else{
-                                                //throw "use [get;set;trim] instead"
-                                                cut[b] += t  // see class seamless!  actually I have to change some more code // field.group, field.swap, matrix.set
-                                            }
-                                        }
-                                    }
-                                    concatter.push(cut)
-                                    // old version, which uh, ugly: data_next[data_i].splice(story[1]-(start_next[data_i<<1]),cut0.length,...cut0);           // todo: use start_next to  decide   .. until data is filled: splice
-                                }else{
-                                    if (pass1gap & 2){
-                                        console.log('ts.push(that.data['+a+'>>1].slice('+story[1]+'-'+that.starts[a]+','+story[0]+'-'+that.starts[a]+'))')
-                                        concatter.push(that.data[a>>1].slice(story[1]-that.starts[a-1],story[0]-that.starts[a]))
-                                    }
-                                    // else{
-                                    //     ts.push(Array(story[0]-story[1]).fill(0))
-                                    // }
-                                }
-                            }).bind(this)(i-2,a-2)
-        
-                            console.log('this.starts['+n+'] === story['+0+']')
-                            console.log('if'+this.starts[n]+' === '+story[0])
-                            while (this.starts[n] === story[0]) {
-                                console.log('ts.length: '+data_next.length)
-                                if ((n & 1) === 1) {
-                                    const index=n>>1
-                                    const rValue=Array.prototype.concat.apply([],data_next)
-                                    console.log('pass '+pass+' data '+this.data.map(d=>d.length).join()+'   ['+index+'] = '+rValue)
-                                    this.data[index]=Array.prototype.concat.apply([],data_next)
-                                        data_next=[]
-                                }
-                                n++
-                            }
-                        }
-        
-                        // target address. Mostly runs first, but data_next.push runs later
-                        if ( (pass1gap === 0 ) !== (gap === 0) ) { // switching from gap mode to filled values mode and back
-                            if (pass===0){
-                                start_next.push(story[0]) // note border
-                            }else{
-                                if (gap===0){ // target value needs to process the end of the span and thus be in a gap. We do a trick here: first initialization of concatter
-                                    //if (pass===0){
-                                        //data_next.push(new Array<number>(story[0] - start_next[start_next.length-1])) // create scratchpad to avoid creation of new arrays by concat()
-                                        //Todo: combine data and start in class span for a single push?
-                                    //}else{
-                                        data_next.push(Array.prototype.concat.apply([],concatter)) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-        
-                                        concatter=new Array<number[]>()
-                                    //}
-                                }
-                            }
-                        } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                        story[1] = story[0] // the end of the gap becomes the start of the value-span
-        
-                        //  else { // pass=0, but this belongs to the block outside below the while loops.
-                        //     if (gap === 0) { // gap indicated gap in the output. Gap.bit=0 means: There is a gap. May want to rename variable. Only when both inputs have a gap, does the output have one ( in pass=0 anyway because "Data" (values) come in pass=1)
-                        //         // we get here only after processing the first starts of the input rows. So on the first "inner pass" in pass=0, story[1] will be set in the other branch
-                        //         start_next=start_next.concat(story)
-                        //     } //else { // not a gap
-                        //     //     story[1] = story[0] // the end of the gap becomes the start of the value-span. we looked back ( larger index => earlier to avoid negative indices when possible)
-                        //     // }
-        
-                        //     // // Special code for Tridagonal
-                        //     // if (gap !== 0) {
-                        //     //     story[1] = story[0] // we looked back
-                        //     // } else { // we record gaps
-                        //     //     const pointer = gaps[i < 3 ? 0 : 1].slice(1, 2)
-                        //     //     if (pointer[0] - pointer[1] > story[0] - story[1]) {
-                        //     //         gaps[i < 3 ? 0 : 1] = [i].concat(story)
-                        //     //     }
-                        //     // }
-                        // }
-                        // // if before was a gap, but now is no gap
-                        // if (pass1gap === 0 && gap !== 0) {
-        
-                        // } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
-                    } while (i < this.starts.length || a < that.starts.length);
-        
-        
-                    // Not needed for RLE
-                    // if (pass===0){
-                    //     // what to do if there are no gaps?
-                    //     // main diagonal takes it!
-                    //     // similar to constructor, but sadly not the same
-                    //     throw "now RLE"
-                    //     this.starts= new Array(this.starts.length).
-                    //     fill(Math.min(this.starts[0                     ],that.starts[0]),0).
-                    //     fill(Math.max(this.starts[this.starts.length-1  ],that.starts[this.starts.length-1  ]),3)
-        
-                    //     if (gaps){
-                    //         for(let side=0;side<2;side++){
-                    //         if (gaps[side] && gaps[side].length>0){
-                    //             this.starts.splice(1+3*side,0,...gaps[side])
-                    //         }
-                    //         }
-                    //     }
-                    // }
-        */
         // flip buffers
         this.starts = drain.start_next;
         this.data = drain.data_next;
         console.log("now in sub: " + this.starts.join('') + "->" + this.data.join(''));
     }
     shiftedOverlay(length, delayedSWP, spans_new_Stream) {
+        if (spans_new_Stream.length !== 2)
+            throw "spans_new_Stream.length !== 2";
         var delayedRow = new Row([]);
         // rename trick //const row=this
         delayedRow.data = this.data;
@@ -744,7 +614,7 @@ export class Row {
             jop.i.forEach((j, k) => {
                 console.log(j.ValueSpanStartInMatrix + " <= " + pos + " < " + j.ex[j.from] + " from: " + j.from + " <= " + j.ex.length + " filled " + j.filled);
             });
-            console.log(""); // spacer
+            //console.log("") // spacer
             // console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
             // console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
             if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
@@ -783,13 +653,30 @@ export class Row {
         }
         // todo:  eat zero values   as  in place
         //const row_new=new Row(spans_new) // does trim 0 valus, but cannot fuse spans via start
+        if (spans_new_Stream.length !== 2)
+            throw "spans_new_Stream.length !== 2  1";
         spans_new_Stream.forEach(AS => AS.flush()); // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
-        this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next); // todo: inheritance from common base due to same private data.            
+        this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next); // todo: inheritance from common base due to same private data.
+        try {
+            console.log(this.starts.length + " = " + spans_new_Stream[0].start_next.length + " + " + spans_new_Stream[1].start_next.length);
+        }
+        catch (_a) {
+            console.log("span did not have two spans");
+        }
         console.log("row.starts: " + (this.starts));
         if (this.starts.filter(r => r < 0).length > 0) {
             throw "shifting forth and back  does not  match " + spans_new_Stream.map(s => "[" + s.start_next + "]"); //this.starts // 0,-2,3,1
         }
-        this.data = Array.prototype.concat.apply(spans_new_Stream.map(ns => ns.data_next));
+        this.data = Array.prototype.concat.apply([], spans_new_Stream.map(ns => ns.data_next));
+        try {
+            console.log(this.data.length + " = " + spans_new_Stream[0].data_next.length + " + " + spans_new_Stream[1].data_next.length); // 2=0+1
+        }
+        catch (_b) {
+            console.log("data did not have two spans");
+        }
+        if (this.data.length > (this.starts.length >> 1)) {
+            throw "I could not belive it, but log claims 0: " + this.data.length + " > " + this.starts.length + " >>1  ";
+        }
     }
     // parent needs to add Matrix.length
     holdBothsides(i) {
@@ -831,35 +718,107 @@ export class Row {
         });
         return acc;
     }
-    // only used for test. The other matrix will be an inverted Matrix, which is no sparse
+    // only used for test. The other matrix will be an inverted Matrix, which is not sparse
     innerProduct_Matrix(M) {
-        const accs = new Span(M.length(), 0);
-        for (let acc_i = 0; acc_i < M.length(); acc_i++) {
+        //const accs=new Span<number>(M.length(),0)
+        //for (let acc_i = 0; acc_i < M.length(); acc_i++)
+        // todo class cursor with ref to row
+        const cursors = new Array(M.length()).fill(0); // other source is not sparse => no jop  
+        const accs = M.row.map((row, acc_i) => {
             let acc = 0;
             this.data.forEach((d, i) => {
                 d.forEach((cell, j) => {
-                    acc += cell * M.getAt(j + this.starts[i << 1], acc_i);
+                    acc += cell * row[j + this.starts[i << 1]].get(acc_i); // M.getAt(j+this.starts[i<<1], acc_i)
+                    // todo: don't dive into  row.find all the time. 
                 });
             });
-            accs[acc_i] = acc;
-        }
+            //accs[acc_i]=
+            return acc;
+        });
+        // not sparse .. huh?
         {
             let a = new Array(3); //=[[],[],[]];
             a[0] = new Span(0, 0); //.start=0)
-            a[1] = accs;
-            a[2] = new Span(0, accs.extends.length);
+            //a[1]=accs
+            //a[2]=new Span<number>(0,accs.extends.length)
             const row = new Row(a); //0,0,[[],[],[]])
             //row.data[1]=accs
             return row;
         }
     }
+    innerProductRows(that) {
+        const jop = new JopWithRefToValue(this, that); //this.starts,that.starts)
+        //jop.ZipValues([this.data,that.data])
+        // monkey patch the  indices
+        // const pick=(data:number[][],i:FilledFrom)=>{
+        //     if (data.length<=(i.from>>1)-1/*trial and error*/ || p<i.ex[i.from-2]){ //}.ValueSpanStartInMatrix){
+        //         throw "not in order: "+data.length+" <= "+i.from + ">>1 || "+p+" < "+i.ValueSpanStartInMatrix+" !"
+        //     }
+        //     console.log(data.length+" "+i.from + " >>1)-1/*trial and error*/][" + p + " - " + i.ex[i.from-1])
+        //     return data[(i.from>>1)-1/*trial and error*/][p-i.ex[i.from-2]] //i.ValueSpanStartInMatrix]
+        // }
+        const a = new AllSeamless();
+        // so this is the same as sub/Seamless. It only changes the innerloop. I could not finde a simpler solution to the underlying structure 2021-01-16
+        // unify sub and inner product?
+        // let acc=0
+        let pos;
+        // throw " this does not work with filter! todo"
+        // let pointer = this.data // code from sub  todo here and there: extend or wrap JOP to add values
+        // let check=this.starts
+        // let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
+        // let filled=false
+        // //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
+        while ((pos = jop.next()) < jop.behind) {
+            //const interfaceIsSharedWithSub = new Array<Span<number>>()
+            const filled = !jop.i.some(i => (i.from & 1) === 0);
+            console.log(pos + " " + jop.i[0].from + " 01 " + jop.i[1].from + " filled: " + filled);
+            const these = jop.i.filter(ii => ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+                // code from sub
+                //  const ii=jop.i[1][j]
+                if (typeof ii.ValueSpanStartInMatrix === "undefined" || typeof ii.ValueSpanStartInMatrix !== "number") {
+                    throw "all indizes should just stop before the end ii.mp. From: " + ii.ValueSpanStartInMatrix;
+                }
+                const thi = new Span(0, ii.ValueSpanStartInMatrix);
+                if (typeof ii.from === "undefined" || typeof ii.from !== "number") {
+                    throw "all indizes should just stop before the end ii.from";
+                }
+                thi.extends = ii.values /*pointer*/[ii.from >> 1]; // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                {
+                    const round = (ii.from >> 1) << 1;
+                    if (thi.extends.length < ii.ex[round + 1] - ii.ex[round]) {
+                        throw "starts do not match  data.length " + thi.extends.length + " <= " + ii.ex[round + 1] + " - " + ii.ex[round] + " round : " + round;
+                    }
+                    if (thi.extends.length <= pos - ii.ex[round]) {
+                        throw "out of bounds 0. Filled should have toggled to false";
+                    }
+                }
+                // pointer = that.data
+                // check=that.starts
+                //console.log(" span.start: "+thi.start );
+                return thi;
+            });
+            const mul = new ResultMul();
+            a.removeSeams(these, pos, jop.i.every(v => v.filled /* differs from sub */), mul /*inject multiply */); //, factor /* sorry */, nukeCol);
+            // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
+            //     if (p < 0) throw "something is wrong with filled"
+            //     for (; p < pos; p++) {
+            //         acc += pick(this.data, j.i[0]) *
+            //             pick(clmn.data, j.i[1])
+            //         if (isNaN(acc)) {
+            //             throw "Two lines abo ve: !j.i.some(i=>!i.filled    is buggy .Nan due to: " + this.data + "," + j.i[0] + "," + clmn.data + "," + j.i[1]
+            //         }
+            //         p++ // delay like the first in sub and swap?
+            //     }
+            // }
+            // p = pos
+        }
+        a.flush();
+        console.log(" before reduce : " + a.data_next.map(d => d[0]));
+        return a.data_next.reduce((p, v) => p + v[0], 0); // could ony sum up per span .. otherwise the type system gets very ugly. I do only expect a small number of spans. I would rather add a  reduce number of spans policy  than complicating this code
+        //return acc
+    }
 }
 Row.printScale = 30;
-// class RowTest{
-//     data(){
-//         let row=new Row(3,4,[[0.25],[0.25],[0.25],[0.25]]);
-//     }
-// }
 export class Tridiagonal {
     constructor(length) {
         this.row = new Array(length);
@@ -876,9 +835,10 @@ export class Tridiagonal {
         return false;
     }
     setTo1() {
-        this.row.forEach((row, i) => {
+        for (let i = this.row.length; --i >= 0;) {
             this.row[i] = Row.Single(i, 1); //new Row(i,0,[[],[1],[]])
-        });
+        }
+        return this; // enable chain
     }
     length() {
         return this.row.length;
@@ -948,17 +908,51 @@ export class Tridiagonal {
     }
     // due to pitch I expect the other 
     inverse() {
-        const inve = new Tridiagonal(this.row.length); // I may want to merge the runlength encoders?
+        const inve = new Tridiagonal(this.row.length).setTo1(); // I may want to merge the runlength encoders?
         for (let i = 0; i < this.row.length; i++) {
-            [this.row[i], inve.row[i]].forEach(side => side.scale(1 / this.row[i].get(i)));
+            if (inve.row.length <= i) {
+                throw "outofBounds in inverse " + i;
+            }
+            if (typeof this.row[i] === "undefined") {
+                throw "this is undefined: " + i;
+            }
+            if (typeof inve.row[i] === "undefined") {
+                throw "inverse is undefined: " + i;
+            }
+            if (this.row[i].get(i) === 0) {
+                throw "division by zero (matrix undefinite)";
+            }
+            const factor = 1 / this.row[i].get(i); // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
+            console.log("factor: " + factor + "  from " + this.row[i].data + " and " + inve.row[i].data);
+            [this.row[i], inve.row[i]].forEach(side => side.scale(factor));
+            console.log("factor: " + factor + "   to  " + this.row[i].data + " and " + inve.row[i].data);
             for (let k = 0; k < this.row.length; k++)
                 if (k !== i) {
                     const f = this.row[k].get(i);
                     if (f !== 0) {
-                        this.row[k].sub(this.row[i], f); // ToDo: nuke column
-                        inve.row[k].sub(this.row[i], f);
+                        [this.row, inve.row].forEach(side => side[k].sub(side[i], f));
+                        // duplicated code leads to bugs! 2020-01-20
+                        // this.row[k].sub(this.row[i],f) // ToDo: nuke column
+                        // inve.row[k].sub(this.row[i],f)
                     }
                 }
+            for (let k = 0; k < this.row.length; k++) { //if (k!==i){
+                const f = this.row[k].get(i);
+                const s = (k === i) ? 1 : 0;
+                if (Math.abs(f - s) > 0.001) {
+                    throw "column not empty i/live: " + f + " should be " + s;
+                }
+            }
+        }
+        console.log("inside Tridiagonal.inverse " + this.row[0].data[0][0]);
+        for (let i = 0; i < this.row.length >> 1; i++) {
+            for (let k = 0; k < this.row.length; k++) { //if (k!==i){
+                const f = this.row[k].get(i);
+                const s = (k === i) ? 1 : 0;
+                if (Math.abs(f - s) > 0.001) {
+                    throw "column not empty i/delayed: " + f + " should be " + s;
+                }
+            }
         }
         return inve;
     }
@@ -971,25 +965,23 @@ export class Tridiagonal {
     // LU   or the recipe in Wikipedia: First do L to get the determinant. But our code cannot catch this exception, so why bother? With L matrix I would need to keep a book about finished rows 
     // Pivot is a can of worms
     //}    
-    MatrixProduct(that) {
-        if (Array.isArray(that)) { // Poisson simulation uses columns
-            return this.row.map(r => {
-                return r.innerProduct(that);
-            });
-        }
-        else { // mostly to test inverse
-            const degen = new Tridiagonal(this.length());
-            degen.row = this.row.map(r => {
-                return r.innerProduct_Matrix(that);
-            });
-            return degen;
-        }
-    }
+    // MatrixProduct(that:number[]|Tridiagonal) {
+    //     throw "not maintained"
+    //     if (Array.isArray( that ) ) { // Poisson simulation uses columns
+    //         return this.row.map(r=>{
+    //             return r.innerProduct(that)
+    //         })
+    //     } else{ // mostly to test inverse
+    //         const degen=new Tridiagonal(this.length())
+    //         degen.row=this.row.map(r=>{
+    //             return  r.innerProduct_Matrix(that)
+    //         })
+    //         return degen
+    //     }            
+    // }
     //product
     //Tridiagonal|
     // }
-    inverseInConcert() {
-    }
     // dead end. This creates a lot of unnecessary calls to class jop and seamless 
     // // Note how the filenam as of 20201124 still contains "enforcePivot", but that responsibility lies fully within field.cs
     // export class MatrixTupelWithCommonSpans extends Tridiagonal{
@@ -997,7 +989,7 @@ export class Tridiagonal {
         //const inve=new Tridiagonal(this.row.length) // I may want to merge the runlength encoders?
         for (let i = 0; i < this.row.length >> 1; i++) {
             this.row[i].scale(1 / this.row[i].get(i)); // uh rounding. At least our cell of interest should be exactly 1 after this. Or?
-            this.row[i].set(1, i); // combat rounding while still minimizing the number of divides
+            //this.row[i].set(1,i); // combat rounding while still minimizing the number of divides
             for (let k = 0; k < this.row.length; k++)
                 if (k !== i) {
                     const f = this.row[k].get(i);
@@ -1009,8 +1001,185 @@ export class Tridiagonal {
                         throw "pivot is broken";
                     }
                 }
+            for (let k = 0; k < this.row.length; k++) { //if (k!==i){
+                const f = this.row[k].get(i);
+                const s = (k === i) ? 1 : 0;
+                if (Math.abs(f - s) > 0.001) {
+                    throw "column not empty live: " + f + " should be " + s;
+                }
+            }
         }
+        console.log("inside inverse Half " + this.row[0].data[0][0]);
+        for (let i = 0; i < this.row.length >> 1; i++) {
+            for (let k = 0; k < this.row.length; k++) { //if (k!==i){
+                const f = this.row[k].get(i);
+                const s = (k === i) ? 1 : 0;
+                if (Math.abs(f - s) > 0.001) {
+                    throw "column not empty delayed: " + f + " should be " + s;
+                }
+            }
+        }
+        throw "use other inverse";
         // in place //return inve
+    }
+    // both left half and full innerProduct (not really now, but it is --after all-- a Matrix) may make sense
+    // inner product works, if the other matrix/vector is shorter. From a math point of view, I would need a Transpose function ( ToDo on demand )
+    MatrixProductUsingTranspose(that) {
+        if (Array.isArray(that)) { // Poisson simulation uses columns
+            throw "Why would you even consider Transpose when you have dense arrays?";
+            // return this.row.map(r=>{
+            //     return r.innerProduct(that)
+            // })
+        }
+        else { // mostly to test inverse
+            const t = new Transpose(that); // hoisting. Todo: Move dependet class up
+            const result = this.row.map(r => new SeamlessWithRef(r));
+            let safety = 10;
+            while (t.next()) { // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
+                //const acc=that.row.map((dump)=>0) 
+                result.forEach(r => {
+                    const s = new Span(1, t.pos);
+                    s.extends = [r.ref.innerProductRows(t.c)]; // degenerated
+                    console.log(s.extends[0]);
+                    if (isNaN(s.extends[0])) {
+                        throw "NaN does not make sense in my algorithm";
+                    }
+                    r.removeSeams([s], t.pos, s.extends[0] !== 0);
+                });
+                // let acc:number
+                // result[0].removeSeams([new Span(1,t.i)],t.i,acc!==0)
+                if (safety < 1) {
+                    console.log("endless loop");
+                }
+                if (safety-- < 0) {
+                    throw "endless loop";
+                }
+            }
+            // SEamless to Row .. todo how?
+            const degen = new Tridiagonal(this.length());
+            degen.row = result.map(r => {
+                const row = new Row([]);
+                r.flush();
+                row.starts = r.start_next; // I really miss constructor overloading                
+                row.data = r.data_next; // 0 is removed as "not filled" in the per element writing to r.removeSeams
+                return row; //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
+            });
+            return degen;
+        }
+    }
+}
+class SeamlessWithRef extends AllSeamless {
+    constructor(ref) {
+        super();
+        this.ref = ref;
+    }
+}
+// similar to jop, but simpler? Maybe it should become a base. jop with single input?
+export /* for unit test */ class RowCursor {
+    constructor(r) {
+        this.span = 0;
+        this.pos = 0;
+        this.noSideEffect = true;
+        this.r = r;
+    }
+    advance(i) {
+        this.noSideEffect = false;
+        this.noSideEffect = this.span < this.r.starts.length; // delay: Was there an advance before we got to the current position?  // this looks suspectivly like Seamless. Or more like jop. jop over all rows, but without the slice .. only subscript operator
+        // ensure edge to track
+        // only accept seamless
+        while (this.r.starts[this.span] <= i) { // always track the next edge. otherwise first letter becomes a special case
+            if (this.r.starts.length <= this.span) {
+                console.log("advance: no");
+                return this.getValue();
+            }
+            this.span++;
+        }
+        if (this.span === 0) {
+            console.log("advance: 0 : " + this.span + " . ");
+            return 0;
+        }
+        this.pos = i - this.r.starts[this.span - 1]; // trying to avoid simple copy.   Here again the problem of left and right edges of spans/strings :-(   When streaming: looks like lag.
+        console.log("advance: 1 : " + this.span + " . " + this.pos);
+        //this.noSideEffect=true
+        return this.getValue();
+    }
+    getValue() {
+        const stupidDebugger = ((this.span & 1) === 0) || (this.r.starts.length <= this.span) ? 0 // gap
+            : this.r.data[this.span >> 1][this.pos];
+        console.log(" " + ((this.span & 1) === 0) + " || " + (this.r.starts.length <= this.span) + " ? 0 : this.r.data[" + (this.span >> 1) + "][" + this.pos + "] ");
+        if (typeof stupidDebugger === "undefined") {
+            throw " jop and filled should have prevented this out of bounds access";
+        }
+        return stupidDebugger;
+    }
+}
+// Iterator over Matrix which keeps O() for debug, log, performance
+export class Transpose {
+    constructor(M) {
+        this.pos = -1;
+        this.M = M;
+        this.I = M.row.map(r => new RowCursor(r));
+    }
+    next() {
+        let anyProgress = false;
+        // we do not have starts yet:  //const s=new AllSeamless()
+        this.c = new Row([]); // trim would mostly work, but what about tridiagonal + pitch and  then scale?
+        let last = 0;
+        this.pos++; // so that this class, this.I and this.pos => user of this class  are all on the same page
+        this.I.forEach((j, i) => {
+            const v = j.advance(this.pos);
+            console.log("side@ " + i + " : " + j.noSideEffect);
+            anyProgress || (anyProgress = j.noSideEffect); // why is typeScript converting my method with sideEffects into this shortcut code? Just analyse the scopes, compiler!
+            if (v !== 0 && typeof v !== "undefined") {
+                if (last === 0) {
+                    this.c.starts.push(i);
+                    this.c.data.push([]);
+                }
+                this.c.data[this.c.data.length - 1].push(v);
+            }
+            else {
+                if (last !== 0) {
+                    this.c.starts.push(i);
+                }
+            }
+            last = v;
+        });
+        if (last !== 0) {
+            this.c.starts.push(this.I.length);
+        } // flush
+        return anyProgress;
+    }
+    getCellInRow(r) {
+        return this.I[r].getValue();
+    }
+}
+class ResultSub {
+    constructor() {
+        this.result = new Array();
+    }
+    clear() { this.result = new Array(); }
+    //factor:number 
+    operation(retards) {
+        console.log("REusltSub0 :" + retards.map(r => r[1]));
+        const resultSpan = retards.reduce(this.loop, 0);
+        this.result.push(resultSpan);
+    }
+    loop(p, c) {
+        console.log("ResultSub: " + p + " ( (" + typeof c[1] + " !== number || (" + c[1] + " as number)=== 0) ?");
+        return ((typeof c[1] !== "number" || c[1] === 0) ?
+            p + c[0]
+            : p - c[0] * c[1]);
+    }
+}
+class ResultMul {
+    constructor() {
+        this.result = [0]; // degenerated .. sorry todo ? 
+    }
+    clear() { this.result = [0]; }
+    operation(retards) {
+        console.log(" ResultMul, retards: " + retards);
+        const resultSpan = retards.map(r => r[0]).reduce((p, c) => p * c /* , 1  reduce can't just spit out the only element if type is result of function. But then I do not want unecessary multiplication */); // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+        this.result[0] += (resultSpan);
     }
 }
 //# sourceMappingURL=enforcePivot.js.map
