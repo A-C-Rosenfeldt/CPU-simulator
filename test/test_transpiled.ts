@@ -232,7 +232,7 @@ describe('Doing some linAlg', () => {
       let warn = true;
       expect(result).to.equal(5);
       result = unit.getAt(0, 1);
-      expect(result).to.equal(5);
+      expect(result).to.equal(-5);
 
     });
 });

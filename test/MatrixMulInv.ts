@@ -396,7 +396,7 @@ describe('Inverse', () => {
 		expect(inverse.row[j].data[0][1]*det).approximately(4,0.001)
 
 		inverse=inverse.inverse()
-
+		j=-1
 		console.log("raw*det: " +inverse.row[++j].data[0])
 		console.log("raw*det: "+inverse.row[++j].data[0])
 
