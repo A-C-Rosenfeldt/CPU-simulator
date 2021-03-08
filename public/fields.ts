@@ -129,9 +129,10 @@ class Mirror{
 var globalTime:number;
 
 
-class /*SemiconductorMetal*/ Contact{
+
+class /*SemiconductorMetal*/ Contact {
   matrix:Tridiagonal; // the matrix is shared by all contacts
-  column:number[];
+  column:number[]; // dated maybe? A column full of contacts? But I only have sparse contacts and be have two in complex gates
   /*
   contacts lead to shielded wires. So the differential equation needs to exhbit the impedance: 
     Current flows => voltage appears  .. 
@@ -645,6 +646,12 @@ export class Field extends FieldToDiagonal {
   }    )
     return matrix
   }
+
+  // Test order is: FieldToMatrix, Matrix inverse
+// There is no common interface later on because 50Ohm contact ends on the other side of the linear equation
+// still polymorph? I man, Contact just adds a serial resistor in front of low impedance contact.
+  public lowImpedanceContactVoltages:number[]
+  // which numbers in the string literal correspond to low impedance? GND, VCC and for historical reasons: +12 +5 0 -5 -12
 }
 
 // this example is later cut and refused (as in fuse, to weld) as needed
