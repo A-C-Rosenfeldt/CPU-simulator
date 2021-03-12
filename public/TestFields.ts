@@ -1,5 +1,5 @@
 import { Row } from './enforcePivot.js';
-import { StaticField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js'
+import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js'
 import { main } from './GL.js';
 //import 'assert'
 
@@ -12,7 +12,7 @@ ctx.stroke();
 let y=10
 
 {
-    const scala=new StaticField(exampleField)
+    const scala=new MapForField(exampleField)
     var image=scala.Print() // check 2020082401039
     ctx.putImageData( image, 1, y+=6 );
 
