@@ -17,6 +17,10 @@ class LowImpedanceContact extends Contact{
   */
 }
 
+class Paint{
+  contact:Contact|number
+  coords:number[]
+}
 
 export class FieldWMatrix extends Field{
   // aparently there are all methods in field. They are just not called. Pull them into this?
@@ -61,60 +65,34 @@ constructor(touchTypedDescription:string[], contacts:Contact[] /* derived class 
   }
 
   // no input from matrix. Move to super?
-  floodfill():void{
+  floodfills(): void {
     // floating gates can only be detected in a serial fashion. Or la
 
     // I need outOfBound code  like in FieldToDiagonal.ToSparseMatrix. This time: outOfBoundsRead => NaN
-   
 
-    const seeds=new Array<number[]>()
+
+    const seeds = new Array<Paint>()
     //this.fieldInVarFloats[0][0].Contact=1 // setAt is method of array, but no of string
+
+    // I assume that the author manages only one contact point .. so here we gather like 10 coordinates
     this.IterateOverAllCells((i_mat: Tupel, i: number, k: number) => {
-      const c=i_mat.Contact
+      const c = i_mat.Contact
       if (c) {
-        seeds.push([i,k])
-      }}
-      )
-
-      while(seeds.length>0){
-        const coords=seeds.pop()
-        const c=coords[0]
-        let i=coords[1]
-        let k=coords[2]
-        // loop starts in middle row for simple backtracing structure
-        // check is cheap and so I do not need to store d and e
-        // I can use d easily. Sorry for the mess.
-        let d = 0
-        let e=-1
-        if (coords.length > 4 ){
-          d=coords[3]
-          e=coords[4]
-        }
-        for ( ; d <= 1; d+= d===0 ? -1: 2) {
-          let row = this.fieldInVarFloats[i + d]
-          if (row) {
-            (d===0) || (e=0)
-            for ( ; e < 2; e+=2) {
-              const cell = row[k+e]
-              if (cell) {
-                const cc = cell.Contact
-                if (!cc) {
-                  seeds.push([c,i,k,d,e]);
-                  i+=d
-                  k+=e
-
-                  // simulate C# / yield  in   typescript by doing a reset of the direction
-                  d=0
-                  e=-1
-                  // we stay in row, not needed: break // boundary check
-                }
-              }
-            }
-          }
-        }
+        seeds.push({contact:c, coords:[i, k]})  // ToDo: How to match contact with column in Matrix? The relation / mapping can have both types, can't it 
       }
+    })
 
+    this.floodFill(seeds)
 
+    let cc=0
+    // looking for floats
+    this.IterateOverAllCells((i_mat: Tupel, i: number, k: number) => {
+      const c = i_mat.Contact
+      if (i_mat.BandGap === 0 && !c) {
+        seeds.push({contact:cc++, coords:[i, k]}) // voltage is shared (cc is corresponding column in LinAlg), but needs to be calculated. Charge density is a field, but sum is constrained to 0 (add row).
+        this.floodFill(seeds)
+      }
+    })
 
     // Alternatives
     //  foreachCell{if(digit) while(!stack.empty) four directions} }; forEach(Cell){'m' ? floodfill}
@@ -128,6 +106,47 @@ constructor(touchTypedDescription:string[], contacts:Contact[] /* derived class 
     // Exception: Short-cut . So I do not know what the author of the map wants to tell me with this
   }
 
+
+  private floodFill(seeds: Paint[]) {
+    while (seeds.length > 0) {
+      const paint = seeds.pop()
+      const c = paint.contact
+      const coords=paint.coords
+      let i = coords[1]
+      let k = coords[2]
+      // loop starts in middle row for simple backtracing structure
+      // check is cheap and so I do not need to store d and e
+      // I can use d easily. Sorry for the mess.
+      let d = 0
+      let e = -1
+      if (coords.length > 4) {
+        d = coords[3]
+        e = coords[4]
+      }
+      for (; d <= 1; d += d === 0 ? -1 : 2) {
+        let row = this.fieldInVarFloats[i + d]
+        if (row) {
+          (d === 0) || (e = 0)
+          for (; e < 2; e += 2) {
+            const cell = row[k + e]
+            if (cell) {
+              const cc = cell.Contact
+              if (!cc) {
+                seeds.push({contact:c, coords:[i, k, d, e]})
+                i += d
+                k += e
+
+                // simulate C# / yield  in   typescript by doing a reset of the direction
+                d = 0
+                e = -1
+                // we stay in row, not needed: break // boundary check
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 // Partial differential equation
