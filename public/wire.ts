@@ -1,13 +1,21 @@
 /*
 For the electrodes I average U over all cells. Then impedance => current (in the global current timeStep)
 */
-import {FinFet} from './fields.js'
+import {Contact} from './fields.js'
+import {FinFet} from './fieldStatic.js'
+
+// Todo: For Display I want to draw wires next to the patches. Use curves? Use less ressources? Bridges => netlist . How to edit?
 
 class Device{
     ref:FinFet;
-    position:number;
+    contact:Contact
+    constructor(ref:FinFet,position:number){
+        this.ref=ref
+        this.contact=ref.contacts[position]
+    }
 }
 export class Wire{
+    contacts:Device[]
     // these have fixed impedance. Carrier=Voltage
     // static
     length:number=100;
@@ -47,3 +55,70 @@ export class Wire{
 
     // contacts point here. Only single link.  devices:Device[];
 }
+
+// todo: generate coax field to patch to PDE
+
+class /*SemiconductorMetal*/ DynamicContact extends Contact {
+    matrix:Tridiagonal; // the matrix is shared by all contacts
+    column:number[]; // dated maybe? A column full of contacts? But I only have sparse contacts and be have two in complex gates
+    /*
+    contacts lead to shielded wires. So the differential equation needs to exhbit the impedance: 
+      Current flows => voltage appears  .. 
+    // .. relative to the voltage in the cable. This voltage is the sum of the forward and backwards signal 
+       (I will use voltage for it => no sign change on the end).
+    // When the differential equation is solved, this will be the case. 
+       Shielded wires act as resistors to the voltage comming in (both sides). Current comes in from both sides.
+    // This would have to be modelled like 2 times the voltage as a source and then a resistor connected 
+       to the semiconductor (to get absolute and differential voltage right).
+    // termination at the end is made by means of transistors. 
+    */
+    Flow(voltageInSemi : number){ // flow into the node
+  
+      var voltages=this.wire.getVoltage(this.wirePos);
+  
+      // ODE
+      var currentIntoSemi=voltages.map(v => v-voltageInSemi /* /R */ );
+  
+      // After solution of local voltage and current: Set outgoing signals on each side.
+      // Since the wire uses a rotating pointer into a fixed array, we need to update the values
+      // Otherwise the signal would just pass through us.
+      this.wire.setCurrent(this.wirePos,currentIntoSemi); // Todo: Wire is connected via R (parallel R made of both directions). So: set current in Flow step, get voltage in Field step
+  
+      // equation from above as matrix. Square to be invertable
+      const R=//[
+        //,[,],
+        [-1/* new col only  */,+1 /*new col and row*/] // we only add I to the homognous side.
+      //];
+      //this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
+      // new interface to Row
+      const a=new Array<Span<number>>(3)
+      a[0]=new Span<number>(0,0)
+      a[1]=FromRaw<number>(-1,+1)//R)
+      a[2]=new Span<number>(0,0)
+      this.matrix.row.push(new Row(a));
+  
+      //matrix.appendOnDiagonal(R); //I
+      const VoltageInWire=3;
+      this.column.concat(R.map(r=>VoltageInWire*r) /*, 2 ???]*/);
+    }
+   // static properties
+  
+   // this is added to the matrix (not the map)
+   OdeInhomogenous: number = 3; // Voltage in cable
+   Ode__homogenous: number = 50; // Impedance
+    
+  
+   // owned by FinFet
+    wire: Wire; // ref to. Hmm who owns a wire?
+    wirePos: number; // we just store the position on the wire also her
+  
+    semiPos: number;
+    //fromVss: number; // length=2
+    
+    // dynamic variables -- these need to be solved by the matrix inverter. All currents are calculated within
+   // voltages: number[]; // Signals coming from both sides
+    //currents: number[]; // The solution is quite simple: A passing current going through the wire and the current coming from the semiconductor split between two equal resistors in parallel.
+  
+  
+  
+  }

@@ -129,74 +129,9 @@ class Mirror{
 var globalTime:number;
 
 
+export class Contact{}
 
-class /*SemiconductorMetal*/ Contact {
-  matrix:Tridiagonal; // the matrix is shared by all contacts
-  column:number[]; // dated maybe? A column full of contacts? But I only have sparse contacts and be have two in complex gates
-  /*
-  contacts lead to shielded wires. So the differential equation needs to exhbit the impedance: 
-    Current flows => voltage appears  .. 
-  // .. relative to the voltage in the cable. This voltage is the sum of the forward and backwards signal 
-     (I will use voltage for it => no sign change on the end).
-  // When the differential equation is solved, this will be the case. 
-     Shielded wires act as resistors to the voltage comming in (both sides). Current comes in from both sides.
-  // This would have to be modelled like 2 times the voltage as a source and then a resistor connected 
-     to the semiconductor (to get absolute and differential voltage right).
-  // termination at the end is made by means of transistors. 
-  */
-  Flow(voltageInSemi : number){ // flow into the node
-
-    var voltages=this.wire.getVoltage(this.wirePos);
-
-    // ODE
-    var currentIntoSemi=voltages.map(v => v-voltageInSemi /* /R */ );
-
-    // After solution of local voltage and current: Set outgoing signals on each side.
-    // Since the wire uses a rotating pointer into a fixed array, we need to update the values
-    // Otherwise the signal would just pass through us.
-    this.wire.setCurrent(this.wirePos,currentIntoSemi); // Todo: Wire is connected via R (parallel R made of both directions). So: set current in Flow step, get voltage in Field step
-
-    // equation from above as matrix. Square to be invertable
-    const R=//[
-      //,[,],
-      [-1/* new col only  */,+1 /*new col and row*/] // we only add I to the homognous side.
-    //];
-    //this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
-    // new interface to Row
-    const a=new Array<Span<number>>(3)
-    a[0]=new Span<number>(0,0)
-    a[1]=FromRaw<number>(-1,+1)//R)
-    a[2]=new Span<number>(0,0)
-    this.matrix.row.push(new Row(a));
-
-    //matrix.appendOnDiagonal(R); //I
-    const VoltageInWire=3;
-    this.column.concat(R.map(r=>VoltageInWire*r) /*, 2 ???]*/);
-  }
- // static properties
-
- // this is added to the matrix (not the map)
- OdeInhomogenous: number = 3; // Voltage in cable
- Ode__homogenous: number = 50; // Impedance
-  
-
- // owned by FinFet
-  wire: Wire; // ref to. Hmm who owns a wire?
-  wirePos: number; // we just store the position on the wire also her
-
-  semiPos: number;
-  //fromVss: number; // length=2
-  
-  // dynamic variables -- these need to be solved by the matrix inverter. All currents are calculated within
- // voltages: number[]; // Signals coming from both sides
-  //currents: number[]; // The solution is quite simple: A passing current going through the wire and the current coming from the semiconductor split between two equal resistors in parallel.
-
-
-
-}
-
-
-class Tupel{
+export class Tupel{
     // coulomb / m³  or whatever. Same unit for both
     Carrier : number[]; // for 6502 nfets: all negative. But I need double buffer
     Current: number[]; // for both directions (x,y)
@@ -208,6 +143,7 @@ class Tupel{
     BandGap: number; // Voltage. 0=metal. 1=Si. 3=SiO2
     
     RunningNumberOfJaggedArray: number;
+  Contact: Contact;
 
     ToTexture(raw : Uint8Array, p:number )
     {
@@ -268,7 +204,7 @@ export class MapForField{
   maxStringLenght:number
   flatLength:number
   // EG exampleField
-  constructor(touchTypedDescription:string[]){
+  constructor(touchTypedDescription:string[],contacts:Contact[]){
     this.maxStringLenght=Math.max.apply(null, touchTypedDescription.map(t=>t.length))
     this.flatLength=touchTypedDescription.map(t=>t.length).reduce((a,c)=>a+c,0)
     this.touchTypedDescription=touchTypedDescription
@@ -339,8 +275,8 @@ export class MapForField{
 export class FieldToDiagonal extends MapForField {
   fieldInVarFloats: Tupel[][] = []
 
-  constructor(touchTypedDescription: string[]) {
-    super(touchTypedDescription);
+  constructor(touchTypedDescription: string[], contacts:Contact[]) {
+    super(touchTypedDescription, contacts); // ToDo: This parameter feedthrough came accidentally
     //this.fieldInVarFloats[0][0]=new Tupel()
     this.ConstTextToVarFloats();
   }
@@ -349,6 +285,8 @@ export class FieldToDiagonal extends MapForField {
   preprocessChar(char: string) {
     return char
   }
+
+  contacts:Contact[]
 
   // need to store the electric field somewhere
   // Bandgap may stay in text? But this strange replacement function?
@@ -369,9 +307,9 @@ export class FieldToDiagonal extends MapForField {
         tu.Potential = 0  // field
         tu.Doping = c === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
 
-        const contact=Number.parseInt(str[k])
-        if (! Number.isNaN(contact)){
-          (tu as Metal).contact=this.lowimpedanceContacts // Todo call virtual function. We do not have contacts yet
+        const contactId=Number.parseInt(str[k])
+        if (! Number.isNaN(contactId)){
+          (tu as Metal).contact=this.contacts[contactId] // Todo call virtual function. We do not have contacts yet
         }
 
         row[k] = tu;

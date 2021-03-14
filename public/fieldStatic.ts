@@ -3,14 +3,18 @@ import {Wire} from './wire.js'  // kind of hoisting. I need to criss cross impor
 import {SimpleImage} from './GL'
 import './field/semiconductor.js'
 import './field/metal.js'
-import { Field } from './fields.js'
+import { Field , Contact, Tupel} from './fields.js'
 
-class LowImpedanceContact /* implements Contact ?*/{
-	voltage:number
+class LowImpedanceContact extends Contact{
+  voltage:number
+  /*
+  for coax with impedance
 	coords:number[];
 	constructor(x:number,y:number){
+    super()
 		this.coords=[x,y]
-	}
+  }
+  */
 }
 
 
@@ -28,30 +32,99 @@ public lowImpedanceContacts:LowImpedanceContact[]
 // which numbers in the string literal correspond to low impedance? GND, VCC and for historical reasons: +12 +5 0 -5 -12
 // Or more like 5 and 3.3 ?
 
-constructor(touchTypedDescription:string[]){
-	const lowImpedanceContacts=new LowImpedanceContact[10]
+constructor(touchTypedDescription:string[], contacts:Contact[] /* derived class can pass wireContact */){
+  /*
+   super does all this now
+	const contacts=new LowImpedanceContact[10]
 	const pureLocal=new Array<string>(touchTypedDescription.length)
 
 	for(let y=0;y<touchTypedDescription.length;y++){
 		const line=touchTypedDescription[y]
-		pureLocal[y]=line.replace(/\d/,(match, /* no parentheses in our regex */ offset)=> {
-      lowImpedanceContacts[Number.parseInt(match)] = new LowImpedanceContact(y, offset)
-      return 'm' /* todo this does not work. I need a bidirectional reference => fields.ts/class Tupel*/}
+		pureLocal[y]=line.replace(/\d/,(match,  offset)=> {
+      contacts[Number.parseInt(match)] = new LowImpedanceContact(y, offset)
+      return 'm' // todo this does not work. I need a bidirectional reference => fields.ts/class Tupel}
       )
-	}
-	super(touchTypedDescription);
+  }
+  */
 
-	this.lowImpedanceContacts=lowImpedanceContacts
+ if (!contacts){ // undefined because no parameter given or  (null because i dunno? )
+  contacts = []
+  for(let i=0;i<5;i++){
+    const c=new LowImpedanceContact();
+    c.voltage=i // keep it simple.
+    Contact[i]=c;
+  }
+ }
+
+	super(touchTypedDescription, contacts);
+
   }
 
   // no input from matrix. Move to super?
   floodfill():void{
+    // floating gates can only be detected in a serial fashion. Or la
+
+    // I need outOfBound code  like in FieldToDiagonal.ToSparseMatrix. This time: outOfBoundsRead => NaN
+   
+
+    const seeds=new Array<number[]>()
+    //this.fieldInVarFloats[0][0].Contact=1 // setAt is method of array, but no of string
+    this.IterateOverAllCells((i_mat: Tupel, i: number, k: number) => {
+      const c=i_mat.Contact
+      if (c) {
+        seeds.push([i,k])
+      }}
+      )
+
+      while(seeds.length>0){
+        const coords=seeds.pop()
+        const c=coords[0]
+        let i=coords[1]
+        let k=coords[2]
+        // loop starts in middle row for simple backtracing structure
+        // check is cheap and so I do not need to store d and e
+        // I can use d easily. Sorry for the mess.
+        let d = 0
+        let e=-1
+        if (coords.length > 4 ){
+          d=coords[3]
+          e=coords[4]
+        }
+        for ( ; d <= 1; d+= d===0 ? -1: 2) {
+          let row = this.fieldInVarFloats[i + d]
+          if (row) {
+            (d===0) || (e=0)
+            for ( ; e < 2; e+=2) {
+              const cell = row[k+e]
+              if (cell) {
+                const cc = cell.Contact
+                if (!cc) {
+                  seeds.push([c,i,k,d,e]);
+                  i+=d
+                  k+=e
+
+                  // simulate C# / yield  in   typescript by doing a reset of the direction
+                  d=0
+                  e=-1
+                  // we stay in row, not needed: break // boundary check
+                }
+              }
+            }
+          }
+        }
+      }
+
+
+
     // Alternatives
     //  foreachCell{if(digit) while(!stack.empty) four directions} }; forEach(Cell){'m' ? floodfill}
     //  cellular automata: [black, white].{forEach( checker board  -- 4 directions -- )} . min max value for ordinates of cells with dangling bounds (may grow +1 per cycle) and for m. Floats are difficult to follow
-    //  turtle: follow fill path. Follow turns. Number of suspect cells needs to go to zero. Does not work, we need to detect floats ( and want for error message to author )
+    //  turtle: follow fill path. Follow turns. Number of suspect cells needs to go to zero.
     //    At dead end: shoot over, scan whole map with the direction where the current on is line
     //      if we reach the border => like in cellular reduce min max value.
+    //    for floats and to avoid an initial search for a contact, I need to be rename patches ( relation  patches n : 1 contact)
+    //     second pass: replace flaot contacts with real contact ( only member of float ) if that is not null
+    //     shortcut: set real contact on higher number.
     // Exception: Short-cut . So I do not know what the author of the map wants to tell me with this
   }
 
