@@ -13,7 +13,7 @@ import { ContactedField } from '../public/fieldStatic'
 
 // Static field
 
-const tri=new Field(fieldTobeSquared)  // from TestFields.ts 
+const tri=new Field(fieldTobeSquared,null)  // from TestFields.ts 
 
 // create the laplacian: from public testFields
 // const NoSwap=new Field(bandsGapped)
@@ -30,7 +30,7 @@ tri.SortByKnowledge()
 
 // TL;DR
 // I use curved space. Field from neighbouring patches is injected as m fields with given voltage. Internally the patch does not know if metal border is contact to wire or to patch.
-// One problem is the dielectric in a coaxial wire ( "contact" ). So I do not want to put the burden of my coax wire shortcut calcs onto the complicated PDE solver
+// This does not work due to the arbitrary shape of the electrodes: One problem is the dielectric in a coaxial wire ( "contact" ). So I do not want to put the burden of my coax wire shortcut calcs onto the complicated PDE solver
 // Coax has to set the voltage ( linear interpolation to  tame the dynamics and MVP) and expose the result as metal.
 // So there can be isolated metal on the border? For TouchTyped I would have to write 01234 . But we use
 // Sequence
@@ -65,9 +65,9 @@ tri.SortByKnowledge()
 // Cauchy: Single side. May be interesting for an antenna maybe? Not in current scope
 
  // charge density is not calculated for zero in curved space LaPlacian. Voltage is taken from contact[0]
-const metalScalar:string[]=['m'];
-const insulatorScalar:string[]=['i'];
-const degneratedVector:string[]=['mm'];
+const metalScalar:string[]=['m'];  // curved space degenerated => voltage=0=charge
+const insulatorScalar:string[]=['i']; // curved space degenerated =>  voltage=0=charge
+const degneratedVector:string[]=['mm']; // test floodfill float , huh
 const degneratedMatrix:string[]=['mm','mm'];
 
 // LaPlace does indeed work here because we get 1 on the main diagonal
@@ -80,14 +80,17 @@ const insulator:string[]=['mim']; // So it seems that this would not clear the d
 // I don't like the global coupling. It should be clear for a human from a local look to the map what happens
 // With 50% probability I will have patches
 // swap within one side would not change .. yeah but we deliberately change to the other side of the equation
+// Maybe I should just log at which line Matrix inverse fails. After all it goes from top to bottom -- left to right. Useful for degubbing
 
-const contacts2d_testcase:string[]=['0i1'];
+const contacts2d_testcase:string[]=['0i1']; // test floodfill, degenerated
 // so order: first do metal contacts and then try to add i going from highest LaPlace to lowest ( with zero, charge does not couple to voltage at all).
 
  // first case where charge and voltage are interlaced left and right
 const bulk=['iii','iii','iii']
 const metal=['mmm','mmm','mmm']
-const contacts=['mmm','iii','mmm'] // two contacts. What do with i on border? Do not set voltage .. curved space would work, after all
+const contacts=['m0m','iii','m1m'] // two contacts. What do with i on border? Do not set voltage .. curved space would work, after all
+// real floodfill application
+
 
 
 // undefined? Boundary condition Curved space vs ground. voltage=contact[0] || 0  . This fits best with coax cables and metal boxes in RF devices

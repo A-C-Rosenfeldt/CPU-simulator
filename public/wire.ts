@@ -6,15 +6,46 @@ import {FinFet} from './fieldStatic.js'
 
 // Todo: For Display I want to draw wires next to the patches. Use curves? Use less ressources? Bridges => netlist . How to edit?
 
-class Device{
+class Segment{}
+// parallel wires going around stuff. Not really MVP
+class Coax extends Segment{
+    impedance:number
+}
+class Arc extends Coax{
+    center:number[]
+    angle:number
+}
+// shortest path through free space
+class Line extends Coax{
+    nextPoint:number[] // use z dimension to give hints at crossings
+} 
+
+// speed of light is for the eye to follow, but also for physics ( Cray )
+// impedance is already important to explain amplifiers on 6502
+// that is a directed signal and 6502 does not have resistors
+// simplified Device
+class Y extends Segment{
+
+}
+class Device extends Y{
     ref:FinFet;
     contact:Contact
     constructor(ref:FinFet,position:number){
+        super()
         this.ref=ref
         this.contact=ref.contacts[position]
     }
+
+    impedance=1 // needed for Y. Without Y: 1 == 50 Ohm
+    layout:Segment // reference start of segment for taps. Taps are instantanous
 }
-export class Wire{
+
+
+
+class WireLayout{
+    points:Segment
+}
+export class Wire extends WireLayout{
     contacts:Device[]
     // these have fixed impedance. Carrier=Voltage
     // static
@@ -24,6 +55,7 @@ export class Wire{
     impedance:number=50; // Ohm. I set it to 1 internally.
 
     constructor(length:number){
+        super()
         this.length=length;
         this.flow =new Array(this.length*2)  //,new Array(this.length)];
         //this.terminatedByPullUp=[false,false];
