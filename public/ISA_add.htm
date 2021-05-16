@@ -1,0 +1,120 @@
+<html>
+    <head>
+        <title>6502 ISA converted to load-store</title>
+        <style>
+            table,th,td{
+                border: 1px blue solid;
+                border-collapse: collapse;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>registers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Lo</th><th></th><th>long</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>P</td><td></td><td>Programm counter</td></tr>
+                <tr><td>B</td><td></td><td>Accumulator { Buffer:Counter } </td></tr>
+                <tr><td>X</td><td></td><td>IndeX</td></tr>
+                <tr><td>Y</td><td></td><td>another Index</td></tr>
+                <tr><td>S</td><td></td><td>Stack Pointer</td></tr>
+                <tr><td>F</td><td></td><td>Status Flags: ZNCVID  (oVerflow)</td></tr>
+            </tbody>
+        </table>
+
+        <h1>Instruction encoding</h1>
+        Instructions with two source registers use each bit to select between two possible source for each input of the ALU.  Default accessible register (general purpose) are BCXY.
+        Abbreviations: Immediate. Cnd=Condition. Function "Lambda" L. D is direction, 0: towards GeneralPuroposeReg, towards Flags, towards Registers (first wins)
+
+		<h2>Adder chain: 5 bits * 3 </h2>
+		<p>
+			<ol>
+			<li> immediate?  +
+		</li><li> + reg: Bit[2] ( reg==0 is interpreted as value=0 when intermediate is a source)
+		</li><li>memory, direction ( direction useless without memory=1)
+		</li><li> target reg
+		</li>
+			</ol>
+		</p>
+
+		<h2>reg [cmp,test] reg. 4 bits  </h2>
+		<p>
+			reg0, reg1 . If reg0 &lt; reg1 then this is CMP else it is Test.
+			
+			The 4 reg=reg cases CMP to immediate.
+		</p>
+
+		<h2>+= stuff. 4 bits for registers * 5 for operations </h2>
+		<p>With itself = immediate</p>
+		<p> &amp;=, |=, ^=    :  3 </p>
+		<p> += (with itself is allowed)  -=  : 2 </p>
+
+		<h2> see below : 2 </h2>
+		FlagStuff needs 4 bit. And then there are 4 jumps and stack stuff: register=2 ( S=flags ). Direction.
+
+		<h2> single reg: 4 bit * 5 </h2>
+		<p> So we have ++, --,  &gt; &gt; , neg,  not, Test immediate </p>
+
+		<h2>sum</h2>
+		We have 4bits: 5 + 2 +5 +1  + 6 = 19 > 16  :-(  . 
+
+		<br>
+		<br>
+        <table>
+            <thead>
+                <tr>
+                    <th>OP Code</th><th>Function (SubOp)</th><th>source Register(s)</th><th>Direction</th><th>Target Register</th><th>Immediate</th><th>Explaination</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>LLL&lt;110</td><td>R={B C} R={X Y}</td><td></td><td>TT</td><td></td><td>Register, Register => (Register) Operation. 8:16 bit limitation is motivated by relative addressing</td></tr>
+                <tr><td>1110</td><td></td><td>RR</td><td></td><td>LL</td><td></td><td>CMP, BIT , low byte only .. </td></tr>
+                <tr><td>1111</td><td></td><td>L</td><td>D</td><td>TT</td><td></td><td>Rotation through carry in Direction, AS</td></tr>
+                <tr><td>01</td><td>LL</td><td>R</td><td>D</td><td>T</td><td>0</td><td>Pointer Operation. R={X,Y}, T={B,BC}  </td></tr>
+                <tr><td>01</td><td>LL</td><td>R</td><td>D</td><td>T</td><td>1</td><td>Index Operation</td></tr>
+                <tr><td>001</td><td></td><td></td><td>RR</td><td>TT</td><td>0</td><td>Copy to register</td></tr>
+                <tr><td>001</td><td></td><td></td><td>LL</td><td>TT</td><td>1</td><td>immediate value</td></tr>
+                <tr><td>0001</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
+                <tr><td>0001</td><td></td><td></td><td>D=0</td><td>FF</td><td>V</td><td>Get Flag aka If FFlag==Value? Branch!</td></tr>                
+            </tbody>
+        </table>
+        <h2> trying to unify S with X and Y</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>OP Code</th><th>Function (SubOp)</th><th>source Register(s)</th><th>Direction</th><th>Function2</th><th>Target Register</th><th>Explaination</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr style="border-top: 2px solid black;"><td>0000</td><td></td><td></td><td>D=1</td><td>FF</td><td>V</td><td>Set Flag FF={CVDI} to Value</td></tr>
+                <tr><td>0000</td><td></td><td></td><td>D=0</td><td>FF</td><td>V</td><td>Get Flag aka If FFlag==Value? Branch!</td></tr>
+            </tbody>
+
+        </table>     
+        
+        <h3>Details about stack based Instructions: Wrong combination of ++ and D is reversed and second function activated</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Original function</th><th>reversed</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <tr><td>JSR</td><td>BRK</td></tr>
+                    <tr><td>RTS</td><td>RTI</td></tr>
+                    <tr><td>PHX</td><td>PHB</td></tr>
+                    <tr><td>PLX</td><td>PLB</td></tr>                    
+                </tr>
+            </tbody>
+        </table> 
+
+<a href="ISA16.htm">16 bit words</a>
+<a href="Layout.htm">16 bit words</a>
+    </body>
+</html>
