@@ -1085,7 +1085,7 @@ export class Tridiagonal implements Matrix{
             if (typeof inve.row[i] === "undefined"){
                 throw "inverse is undefined: "+i
             }
-            if (this.row[i].get(i)===0) {
+            if (Math.abs(this.row[i].get(i))<0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
                 throw "division by zero (matrix undefinite)"
             }
             const factor=1/this.row[i].get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)

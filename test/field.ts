@@ -3,6 +3,9 @@ import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, ba
 import { main } from '../public/GL.js';
 import { ContactedField } from '../public/fieldStatic'
 
+import { expect } from 'chai';
+import 'mocha';
+
 // swap column test .. I mean not the bare swap dealing with RLE, but the interpretation of the map
 
 // There is no extra test data.
@@ -100,9 +103,23 @@ const contacts=['m0m','iii','m1m'] // two contacts. What do with i on border? Do
 
 // check voltage==0 && charge==0
 
-const checkContact=new ContactedField(metalScalar)
+describe('sort columns all on one side', () => {
+	it('should return hello world 2020-11-19 18:35', () => {
+  
+	const checkContact=new ContactedField(metalScalar)
 
-checkContact.lowImpedanceContacts[0].voltage=3.3
+	checkContact.lowImpedanceContacts[0].voltage=1
+	const m=checkContact.ToDoubleSquareMatrixSortByKnowledge()
+	// check
+	m.
+
+    //const scalar=new Tridiagonal(1)
+    //scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
+    const result = 4//scalar.getAt(0,0) //hello();
+    expect(result).to.equal(4);
+  });
+
+});
 
 // FinFet has contacts, so try the cases above with contact to anything != GND
 

@@ -36,7 +36,7 @@ public lowImpedanceContacts:LowImpedanceContact[]
 // which numbers in the string literal correspond to low impedance? GND, VCC and for historical reasons: +12 +5 0 -5 -12
 // Or more like 5 and 3.3 ?
 
-constructor(touchTypedDescription:string[], contacts:Contact[] /* derived class can pass wireContact */){
+constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class can pass wireContact */){
   /*
    super does all this now
 	const contacts=new LowImpedanceContact[10]
