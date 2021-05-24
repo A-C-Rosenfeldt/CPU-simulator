@@ -17,16 +17,36 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>P</td><td></td><td>Programm counter</td></tr>
-                <tr><td>B</td><td></td><td>Accumulator { Buffer:Counter } </td></tr>
+                <tr><td>B</td><td></td><td>Buffer </td></tr>
+                <tr><td>B</td><td></td><td>Counter  </td></tr>
                 <tr><td>X</td><td></td><td>IndeX</td></tr>
                 <tr><td>Y</td><td></td><td>another Index</td></tr>
+                <tr><td>Z</td><td></td><td>another Index</td></tr>
                 <tr><td>S</td><td></td><td>Stack Pointer</td></tr>
                 <tr><td>F</td><td></td><td>Status Flags: ZNCVID  (oVerflow)</td></tr>
+                <tr><td>P</td><td></td><td>Programm counter</td></tr>
             </tbody>
         </table>
 
         <h1>Instruction encoding</h1>
+
+        <p>register , source register , 2 bit opCode. For memory access one bit of the opCode is direction [ load | store ]</p>
+
+        <h2>default ops</h2>
+        <table>
+            <tbody>
+                <tr><td>Source:</td><td>S    </td><td>P             </td><td>F  </td><td>X  </td><td>C  </td><td>B  </td></tr>
+                <tr><td>S      </td><td>     </td><td>JSR           </td><td>   </td><td>   </td><td>   </td><td>   </td></tr>
+                <tr><td>P      </td><td>RTS  </td><td>JMP           </td><td>BNE</td><td>   </td><td>   </td><td>   </td></tr>
+                <tr><td>F      </td><td>pop F</td><td>SEC           </td><td>   </td><td>   </td><td>   </td><td>   </td></tr>
+                <tr><td>X      </td><td>pop  </td><td>load immediate</td><td>   </td><td>X++</td><td>=C  </td><td>   </td></tr>
+                <tr><td>C      </td><td>pop  </td><td>load immediate</td><td>   </td><td>[X]</td><td>C++ </td><td>C+=B</td></tr>
+                <tr><td>B      </td><td>pop  </td><td>load immediate</td><td>   </td><td>[X]</td><td>B+=C</td><td>B++</td></tr>
+            </tbody>
+        </table>
+        
+
+
         Instructions with two source registers use each bit to select between two possible source for each input of the ALU.  Default accessible register (general purpose) are BCXY.
         Abbreviations: Immediate. Cnd=Condition. Function "Lambda" L. D is direction, 0: towards GeneralPuroposeReg, towards Flags, towards Registers (first wins)
 
