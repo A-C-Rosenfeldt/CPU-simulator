@@ -35,16 +35,20 @@
         <h2>default ops</h2>
         <table>
             <tbody>
-                <tr><td>Source:</td><td>S    </td><td>P             </td><td>F  </td><td>X  </td><td>C  </td><td>B  </td></tr>
-                <tr><td>S      </td><td>     </td><td>JSR           </td><td>   </td><td>   </td><td>   </td><td>   </td></tr>
-                <tr><td>P      </td><td>RTS  </td><td>JMP           </td><td>BNE</td><td>   </td><td>   </td><td>   </td></tr>
-                <tr><td>F      </td><td>pop F</td><td>SEC           </td><td>   </td><td>   </td><td>   </td><td>   </td></tr>
-                <tr><td>X      </td><td>pop  </td><td>load immediate</td><td>   </td><td>X++</td><td>=C  </td><td>   </td></tr>
-                <tr><td>C      </td><td>pop  </td><td>load immediate</td><td>   </td><td>[X]</td><td>C++ </td><td>C+=B</td></tr>
-                <tr><td>B      </td><td>pop  </td><td>load immediate</td><td>   </td><td>[X]</td><td>B+=C</td><td>B++</td></tr>
+                <tr><td>Source:            </td><td>S    </td><td>P              </td><td>F / X two addressing modes ab X</td><td>X value </td><td>C  </td><td>B  </td><td>Y [Y] </td><td>Z [Z] </td></tr>
+                <tr><td>S/logical B für BYZ</td><td>++ +=</td><td>JSR,BRK,RTS,RTI</td><td>/4 BRANCH                      </td><td>   </td><td>   </td><td>   </td></tr>
+                <tr><td>P/logical C für BYZ</td><td>RTS  </td><td>JMP (indirect) </td><td>4 BNE                          </td><td>   </td><td>   </td><td>   </td></tr>
+                <tr><td>F/logical Y ab F   </td><td>pop F</td><td>4 SEC          </td><td>/4 CLC                            </td><td>   </td><td>   </td><td>   </td></tr>
+                <tr><td>X                  </td><td>pop  </td><td>load immediate</td><td>                                </td><td>X++</td><td>=C  </td><td>   </td></tr>
+                <tr><td>C                  </td><td>pop  </td><td>load immediate</td><td>              [X]               </td><td>   </td><td>C++ </td><td>C+=B</td></tr>
+                <tr><td>B                  </td><td>pop  </td><td>load immediate</td><td>              [X]               </td><td> </td><td>B+=C</td><td>B++</td></tr>
+                <tr><td>Y                  </td></tr>
+                <tr><td>Z                  </td></tr>
             </tbody>
         </table>
         
+        Registers. 5 Regions to detekt ( via the PLA ) and then change registers.
+        Then there is a region with a lot of special operations ( PF region).
 
 
         Instructions with two source registers use each bit to select between two possible source for each input of the ALU.  Default accessible register (general purpose) are BCXY.
