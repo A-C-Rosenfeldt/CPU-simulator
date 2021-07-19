@@ -1,5 +1,71 @@
 
 /*
+Flat surface emitts electrons at each cell and every time step.
+Electrons span quads. This leads to tapes.
+
+Can I live with only flat cathodes? Yes
+Can I live with Quad LoD ?
+    Time Lod: 
+
+Charge position correction: With time steps. GPU is more important.
+Space Charge: expansion in the inner part .. but low charge
+Focussing: Why would you do that?
+I need compensating space charge. Real tubes are 3d so have a 2d film for electrons. Projection of 3d vs doping. Doping probably. Current limiting by space charge still works. No HEMT, yet.
+
+So anyway: Trajectory simulation with quads spanned. 
+    Quads -> grid Field
+    Verlet integration for the electrons based on grid field
+        since electron points are off-grid anyway, we don't suffer additional disadvantage from delta being diffused by bilinear interpolation
+    Field based on .. for precise timing on the point charge. We appreciate the diffusion due to the grid. Nothing more needed.
+        We can always substract the influence of a single electron from the field to get the Force for Verlet.
+
+Quads are only used for display. Track-density = reciprok => color
+
+So maybe even (soft) limit the velocity of electrons to grid-size = mean free path in real solids-
+Charge-charge repulsion within the grid. So the tracks move as a whole. You could sample the field in the mean of the old vertices. Each vertex is only allowed to move in uh exception cascade unitl the middle normal of its edges.
+*/
+
+class Electron{
+    public Verlet(){
+        // Verlet integration senses the field at the current position for velocity+=accelertion,
+        // but then takes a step back for the position and then: position+=2*velocity .
+
+    }
+    public SenseField(){
+        // subtract own field from global field to remove noise due to grid. Also electrons don't feel their own field.
+    }
+    public electronInAdjacentTrajectory:Electron; // ref
+}
+
+class Trajectory{
+    // Although I was burned with fixed constants in the Matrix code, I (still) need them in the simulation code
+    public readonly length=12;
+    public electrons:Electron[]= new Electron[length]
+    public Propagate(){
+        // forEach does not work .. or shift at read? Electrons which did not hit the anode just vanish ( traps in semi / residual gas in tube )
+        this.electrons.forEach(electron => {
+            electron.Verlet();
+        });
+    }
+}
+
+class Cathode{
+    public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
+    public flow:Trajectory[]=new Trajectory[this.width];
+
+    public RenderMesh(): number{
+        // Join trajectories which may go at different speed
+        // Now I ( we all ) remember that the join algorithm does spontanous symmetry breaking, but otherwise its for in for.
+        // Still we could try to generallize code use in Matrix.Add()
+        // So, how to join here. We have no equi, but an only slightly more complicated rate adjuster
+        // Wikipedia starts with a simple algorithm where the https://en.wikipedia.org/wiki/Circumscribed_circle
+        // Of each triangle is checked to be free of other nodes. Correct by flip.
+        // So every time step we go along the trajectory and check for flips.
+        return 3; // 1/[x+1]-[x]  // zero distance would have infinite energy due to charge-charge repulsion
+    }
+}
+
+/*
 
 So I've got some divergence which cannot be explained
 So I put a field of a positve charge onto it => divergence gone
