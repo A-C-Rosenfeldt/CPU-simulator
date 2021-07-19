@@ -10,11 +10,14 @@
     <!-- node app.js -->
 
     <h3>WebGl for printf</h3>
+    Just setting RGB on a line of pixels and let the browser display a square canvas on screen. <br/>
     <canvas id="GlCanvas" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
-    <p class="bandGap_insulator"> Isolator </p>
-
+    <p class="bandGap_insulator"> Insulator </p>
+    Color Codes: red=bandgap, blue = charge density
     <canvas id="FieldGl0" width="100" height="100" style="border:1px solid #000000;" class=""></canvas>
+    This field will be converted to matrix in the section after the next section
     <br/>
+    <h3> display values in a matrix and then add a row to another. Test spare-datastructure </h3>
     <canvas id="MatrixCanvasGl"  width="100" height="100" style="border:1px solid #914242;"  class=""></canvas>     
     <canvas id="MatrixCanvasGl0" width="100" height="100" style="border:1px solid #24803f;"  class=""></canvas>     
     <canvas id="MatrixCanvasGl1" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>         
@@ -22,15 +25,18 @@
     <canvas id="MatrixCanvasGl15" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
     <canvas id="MatrixCanvasGlSwap" width="100" height="100" style="border:1px solid #23E;"  class=""></canvas>
     <canvas id="MatrixCanvasGlSwapMiddle" width="100" height="100" style="border:1px solid #28E;"  class=""></canvas>
-
+    There do exist test cases or matrix inversion. I have no pivot, so can only test small rotations.
     <script src="TestGL.js" type="module" ></script>
-    <br/>  
+    <br/>
+    So checking the Canvas by drawing a line, then checking if a single entry in matrix is displayed ( dispalyed down here because it is boring) <br/>
     <canvas id="MatrixCanvas" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>    
     <script src="TestEnforcePivot.js" type="module" ></script>
   
     <canvas id="FieldsCanvas" width="100" height="100" style="border:1px solid #000000;" class=""></canvas>
     <script src="TestFields.js" type="module" ></script>
 
+    <br/> Now some bands generated from the field above. Uh, not the whole because the pixel would get too small.
+    <br/> 
     <canvas id="FieldGl0_field" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
     <canvas id="FieldGl0_mat" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
     <canvas id="FieldGl0_tri" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
