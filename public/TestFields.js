@@ -40,5 +40,15 @@ let y = 10;
     main('FieldGl0_tri_blank', imageGl);
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
     //squared=diag.ToMatrix()
+
+
+    // simple Greens function with individual cells around s "arena"
+    // for i=0;i<10
+    // const arena0 = new Field(arena);
+    // // reproduce stuff from above
+    // var arenaM = arena0.ToSparseMatrix();
+    // arenaM.row[0].
+    // problem: Add cables? But what if I want to externalize doping?
+    
 }
 //# sourceMappingURL=TestFields.js.map

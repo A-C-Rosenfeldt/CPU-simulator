@@ -375,8 +375,9 @@ export class FieldToDiagonal extends MapForField {
     return matrix
   }
 
+  // Poisson for bound ( and jagged ) array.
   // override ToDiagonalMatrix
-  ToSparseMatrix(): Tridiagonal {
+  ShapeToSparseMatrix(): Tridiagonal {
     // Tridiagonal instead of:  call meander in FinFet
     // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
     // 
@@ -449,10 +450,44 @@ export class FieldToDiagonal extends MapForField {
 
 
 export class Field extends FieldToDiagonal {
-  ToDoubleSquareMatrixSortByKnowledge(): Tridiagonal[]{
-    const m=this.ToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
+  ToDoubleSquareMatrixSortByKnowledge_naive(): Tridiagonal[]{
+
+    this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )
+    // Now the shape on left hand side should have "holes"? Jagged is not enough to describe this .. Jagged is all I got for free from the programming language
+    const m=this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
+
+    // array: position in Matrix
+
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
-    Field.AugmentMatrix(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
+    Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
+                            //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
+    this.SortByKnowledge(m)  // I still need the mapping to loop over and set random values ( with a given seed )
+    // Okay not really. We not only don't solve for U at electrode cells, but also don't try to satisfy poisson there
+    // So in reality we filter and we do it in Field and not in some Matrix code. Matrix inversion needs square matrix and it is already difficult enough to detect indefinite matrices ( where they coome from ) that I do not want LU stuff for fixed values which only happen in tests.
+    // But the matrix columns are not swapped, but they are del
+    
+    m.inverse
+    var statics=[3,4,5] // this -> static value vector
+    m.MatrixProductUsingTranspose(statics);
+
+    // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
+    // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns
+    // So why not already supply the known columns and avoid this  unmotivated  create new unity matrix in Gauss-Jordan?
+    // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
+    // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
+    throw "not implemented"
+    return null
+  }
+
+  CreateSides(){
+    // SortByKnowledge  does it all
+    //  M.swapColumns(startsToSwap,dropColumn) 
+  }  
+  
+  ToDoubleSquareMatrixSortByKnowledge_ConnectedElectrodes(): Tridiagonal[]{
+    const m=this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
+    // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
+    Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
                             //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
     this.SortByKnowledge(m)  // depending on bandgap we know voltage or density. Once again we create an index
     
@@ -490,7 +525,7 @@ export class Field extends FieldToDiagonal {
 
   // for testing. Pure function
   // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
-  public static AugmentMatrix(M:Tridiagonal){
+  public static AugmentMatrix_with_Unity(M:Tridiagonal){
     M.row.forEach((r,i)=>{
       r.data.push([1])
       const s=M.row.length+i
@@ -522,7 +557,10 @@ export class Field extends FieldToDiagonal {
   private M:Tridiagonal;
   private i:number;
 
-  public SortByKnowledge(M:Tridiagonal){
+  // Sort by knowledge may be a reason to use a single matrix and a zero vector on the other side of the equation
+  // Depending on the number of (un) known  ( var  vs const )  columns ( at least in tests, maybe also in later applications),
+  // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
+  public SortByKnowledge(M:Tridiagonal, dropColumn=false){
     this.M=M;
 
     M.row.forEach((r,i)=>{
@@ -537,7 +575,7 @@ export class Field extends FieldToDiagonal {
         return b // lame, I know. Side-effects are just easier 
       },false)
       // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
-      M.swapColumns(startsToSwap)
+      M.swapColumns(startsToSwap,dropColumn)  // so this works on two matrices, right? Starts to swap tells us which field cells just keep their value ( in case of dropColumn)
     })
   }
 
@@ -595,6 +633,13 @@ export const bandsGapped:string[]=[
  'siii',  // we assume homognous electric field between plates (the side walls of the gates)
  'i-is', // gate
  'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
+];
+
+export const arena:string[]=[
+  'mmmm', // contact
+  'miim',  // we assume homognous electric field between plates (the side walls of the gates)
+  'miim', // gate
+  'mmmm', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part 
 ];
 
 var html = `

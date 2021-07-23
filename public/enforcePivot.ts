@@ -699,7 +699,8 @@ export class Row{
         console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
 
-    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[]) {
+    // why overlay? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
+    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[], dropColumn=false) {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
         // rename trick //const row=this
@@ -1007,7 +1008,7 @@ export class Tridiagonal implements Matrix{
         return this.row[row].get(column);
     }
 
-    public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */){
+    public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */, dropColumn=false){
         if (swapHalf.length>0){ // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
         let //adapter=[]
         // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
@@ -1031,7 +1032,7 @@ export class Tridiagonal implements Matrix{
             const length=this.row.length ; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
             
             // todo: this becomes a method of class Row
-            row.shiftedOverlay(length, delayedSWP, spans_new_Stream)
+            row.shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn)
             //return spans_new_Stream
         })
 }}
@@ -1204,7 +1205,7 @@ export class Tridiagonal implements Matrix{
 
     // both left half and full innerProduct (not really now, but it is --after all-- a Matrix) may make sense
     // inner product works, if the other matrix/vector is shorter. From a math point of view, I would need a Transpose function ( ToDo on demand )
-
+    // !! not in-place !!
     MatrixProductUsingTranspose(that:number[]|Tridiagonal):Tridiagonal {
   
         if (Array.isArray( that ) ) { // Poisson simulation uses columns

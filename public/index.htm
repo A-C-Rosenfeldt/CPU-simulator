@@ -35,13 +35,20 @@
     <canvas id="FieldsCanvas" width="100" height="100" style="border:1px solid #000000;" class=""></canvas>
     <script src="TestFields.js" type="module" ></script>
 
-    <br/> Now some bands generated from the field above. Uh, not the whole because the pixel would get too small.
+    <br/> Now some bands generated from a smaller ( 4x4 ) field .
+    But what part? How to see? Test? I should start with simple boundary and not electrodes and then plot the field. There are tests like that which in first pass exposed indefinite matrix
     <br/> 
     <canvas id="FieldGl0_field" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
     <canvas id="FieldGl0_mat" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
     <canvas id="FieldGl0_tri" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
     <canvas id="FieldGl0_NoSwap" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
     <canvas id="FieldGl0_tri_blank" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+    <br/>
+     But first we check the matrix by changing voltages on cells.
+    Now rows appear as Green functions. (there do exist test cases already, but we want eye candy) <br/>
+
+
+    ToDoubleSquareMatrixSortByKnowledge() connects metal.<br/>
 
     <!-- would need  MDN.createWebGLProgramFromIds() --><script id="vertex-shader" type="x-shader/x-vertex"></script>
 
