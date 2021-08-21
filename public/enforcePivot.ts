@@ -20,7 +20,7 @@ import {SimpleImage} from './GL'
 export class Span<T>{
     extends: Array<T>  // we duplicate part of the interface in order to never need to copy the items
     start:number
-    // doesn't work length:number
+    // doesn't work:  length:number
     unshift(...items: T[]): number{
         if (this.start){
             if (--this.start<0) {throw "below bounds" }
@@ -445,57 +445,86 @@ export class Row{
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
     // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
-    constructor(start:Span<number>[]){//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
+    constructor(start:Span<number>[] | number[][] ){//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
         // Basically we could deal with 0 in data and 0 in range, but then we could just go back to full matrix
         // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
 
         // check for bounds
         // todo: remove zero length
-        // fuse spans
-        for(let pass=0;;pass++){
-            let counter=0
-            start.forEach(s=>{
-                const range=[s.extends.length,0]
-                //const ranpe=ranpe.slice(0,ranpe.length)
-                // only string has trim(). And it can't even return the number of trimmed items
+        // trim 0 values
+        this.starts=new Array() //counter<<1)  does not work for both types
+        this.data=new Array() //counter)
+        
+        {//for(let pass=0;;pass++){
+            let danglingBond=-1
+            
+            start.forEach( (s: (Span<number> | number[] ))  =>{
 
-                // trim 0 values
-                // todo: better two passes: over s and s reverse. That min stuff looks strange
-                s.forEach((t,i)=>{
-                    if (t!==0){
-                        for(let d=0;d<2;d++){
-                            range[d]=Math.min(range[d],i)  // what is this?
-                            i=-i
-                        }                    
+                if (Array.isArray( s )){
+                    if (s[1] != 0){
+                        if (s[0]==danglingBond+1){
+                                {//if (pass===1){
+                                    this.starts[this.starts.length-1]++
+                                    this.data[this.data.length].push(s[1])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                                }
+                        }else{
+                            {//if (pass===1){
+                                this.starts.push(s[0],s[0]+1) // should be  in placw
+                                this.data.push([s[1]])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                            }
+                           
+                        }
+                        danglingBond=s[0]
                     }
-                })
+                }else{
+                    const range=[s.extends.length,0]
+                    //const ranpe=ranpe.slice(0,ranpe.length)
+                    // only string has trim(). And it can't even return the number of trimmed items
 
-                // if after trim length still > 0 ( range is a closed interval)
-                if (range[0]<=-range[1]){
+                    // trim 0 values
+                    // todo: better two passes: over s and s reverse. That min stuff looks strange
+                    s.forEach((t,i)=>{
+                        if (t!==0){
+                            for(let d=0;d<2;d++){
+                                range[d]=Math.min(range[d],i)  // what is this?
+                                i=-i
+                            }                    
+                        }
+                    })
 
-                    if (pass===1){
-                        this.starts.splice(counter<<1,2,s.start+range[0],s.start+1-range[1]) // should be  in placw
-                        const part= s.extends.slice(range[0],1-range[1]) as Array<number> //  slice seems to return span.
-                        // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
-                        this.data[counter]=part //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                    // if after trim length still > 0 ( range is a closed interval)
+                    if (range[0]<=-range[1]){
+
+                        {//if (pass===1){
+                            const start=[s.start+range[0],s.start+1-range[1]] // should be  in placw
+                            const value= s.extends.slice(range[0],1-range[1]) as Array<number> //  slice seems to return span.
+                            // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
+                            if (start[0]==danglingBond+1){
+                                this.starts[this.starts.length-1]++
+                                this.data[this.data.length].concat(value)
+                            }else{
+                                this.starts.push(...start)
+                                this.data.push(value) //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
+                            }
+                            danglingBond=s[0]
+                        }
                     }
-                    counter++
                 }
             })
 
-            if (pass>0){
-                break
-            }
-            this.starts=new Array(counter<<1)
-            this.data=new Array(counter)
-            
+            // if (pass>0){
+            //     break
+            // }
+
             // fun=(s:Span<number>,range)=>{
             //     this.starts.push(s.start+range[0],s.start-range[1])
             //     this.data.push(s.slice(range[0],range[1]))
             // }
         }
         
+        // no such elegant method this.removeSeams() // seamless should be called to become seamless
+
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce<number>((v1,v0)=>v0>=v1? v0 : Number.MAX_SAFE_INTEGER,0) === Number.MAX_SAFE_INTEGER ) {
             console.log(this.starts)
