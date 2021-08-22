@@ -91,7 +91,7 @@ export class Wire extends WireLayout{
 // todo: generate coax field to patch to PDE
 
 class /*SemiconductorMetal*/ DynamicContact extends Contact {
-    matrix:Tridiagonal; // the matrix is shared by all contacts
+
     column:number[]; // dated maybe? A column full of contacts? But I only have sparse contacts and be have two in complex gates
     /*
     contacts lead to shielded wires. So the differential equation needs to exhbit the impedance: 

@@ -65,27 +65,42 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
   }
 
   // no input from matrix. Move to super?
+  // find conected ( via edges ) conductive parts "m"etal   ( not number = metal on given potential )
+  // How do I store the info? State is my enemy..
+  // Matrix{ lhs rhs } does only care for number (known U) vs m ( metal piece)
+  // only m uses floodfill.
+  // call from contact? So floating metal piece gets a contact?
+  // how do we express: Q sum over all cells = lastFrame Q ? Just add a Row to the Matrix!
+  // how do we express: U == contact .. Though why do I want to solve it right now?
+  //   coax with wave resistance is a bit different then ground contact with capacitor!
+  // So we start with the latter: U is known. Q is not constrained.
+  // the former adds Ohmic equation => U and Q are both unknonw?
+  // This method needs to be called inside loop over field every timeStep. Mark cells for timeStep fill?
+  // This sets U in the phase between Matrix stuff. Either ohmic or all to contact.U .
   floodfills(): void {
-    // floating gates can only be detected in a serial fashion. Or la
+    //   the connected gates are filled in a  common implementation with backtracking
+    // this fits well with run-time usage. I go through all gates sequentally
 
     // I need outOfBound code  like in FieldToDiagonal.ToSparseMatrix. This time: outOfBoundsRead => NaN
 
+    const seeds = new Array<Paint>()  // So I don't want to paint it.
+    // Instead I use double buffer on field coordinates
+    // and I set U on the field
 
-    const seeds = new Array<Paint>()
     //this.fieldInVarFloats[0][0].Contact=1 // setAt is method of array, but no of string
 
-    // I assume that the author manages only one contact point .. so here we gather like 10 coordinates
+    // looking for connected electrodes . I assume that the author manages only one contact point .. so here we gather like 10 coordinates
     this.IterateOverAllCells((i_mat: Tupel, i: number, k: number) => {
       const c = i_mat.Contact
       if (c) {
         seeds.push({contact:c, coords:[i, k]})  // ToDo: How to match contact with column in Matrix? The relation / mapping can have both types, can't it 
       }
     })
+    let U:number=0 // potential
+    let Q=this.floodFill(seeds,U) // simple depth first search ideal for small electrodes.
 
-    this.floodFill(seeds)
-
+    // looking for floats    // floating gates can only be detected in a serial fashion.
     let cc=0
-    // looking for floats
     this.IterateOverAllCells((i_mat: Tupel, i: number, k: number) => {
       const c = i_mat.Contact
       if (i_mat.BandGap === 0 && !c) {
@@ -107,7 +122,10 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
   }
 
 
-  private floodFill(seeds: Paint[]) {
+  // ToDo: Go back to single seed so that I can use it in between Matrix phases to distribute U
+  // Either place U and Q in Paint or pull out the loop
+  private floodFill(seeds: Paint[], potential:number):number {
+    let Q=0;
     while (seeds.length > 0) {
       const paint = seeds.pop()
       const c = paint.contact
@@ -140,12 +158,17 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
                 d = 0
                 e = -1
                 // we stay in row, not needed: break // boundary check
-              }
+
+                // Payload
+                Q+=cell.Carrier[1]-cell.Carrier[0]
+                cell.Potential=potential;
+              }else{throw "short cut;"}
             }
           }
         }
       }
     }
+    return Q;
   }
 }
 

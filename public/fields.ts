@@ -129,7 +129,11 @@ class Mirror {
 var globalTime: number;
 
 
-export class Contact { }
+export class Contact {
+x:number;y:number;  // bond wire landing position on the map
+
+matrix:Tridiagonal; // I am not sure about this one. the matrix is shared by all contacts
+ }
 
 export class Tupel {
   // coulomb / m³  or whatever. Same unit for both
@@ -173,7 +177,11 @@ export class Tupel {
 
 // Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
 class Metal extends Tupel {
-  contact: Contact;
+
+  // I think I don't use an index, but reuse floodfill every frame
+  // contact: Contact;  // because the reverse link is as difficult
+  floodedInEven: boolean; // double buffer
+
   ToTexture(raw: Uint8Array, p: number) {
     raw[p + 3] = 255;
     raw[p + 0] = 0; //this.BandGap*255/3;
@@ -294,15 +302,18 @@ export class FieldToDiagonal extends MapForField {
     this.touchTypedDescription.forEach((str, i) => {
       const row = new Array<Tupel>(str.length) //[]=[]
       // JS is strange still. I need index:      for (let c of str) 
-      const c = str.replace(/\d/, 'm')
+      const c = str.replace(/\d/, 'm')  // this is potential. Not index into wire. Wire as bonding position instead
       for (let k = 0; k < str.length; k++) {
         //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
-        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])
+        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]], ['M', 0]])
 
         const tu = c[k] === str[k] ? new Tupel() : new Metal();
 
         tu.BandGap = bandgaps.get(c[k])
-        tu.Potential = 0  // field
+        if (tu instanceof Metal)
+          tu.Potential = Number.parseFloat( str[k] )  // field :  case: static electrode, random value for test, connected to wire
+        else
+          tu.Potential = 0 // random is not good for testing. I stick with this 
         tu.Doping = c === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
 
         const contactId = Number.parseInt(str[k])
