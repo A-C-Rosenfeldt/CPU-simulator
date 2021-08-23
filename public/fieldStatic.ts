@@ -95,17 +95,32 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
       if (c) {
         seeds.push({contact:c, coords:[i, k]})  // ToDo: How to match contact with column in Matrix? The relation / mapping can have both types, can't it 
       }
+      i_mat.RunningNumberOfJaggedArray // Negative only for literal potential ( important stepping stone). Don't fill literals (todo)! 
+      // we know that Q and U exchange places for insulator vs metal
+      // so now for an electrode: U is not on the lhs
     })
     let U:number=0 // potential
     let Q=this.floodFill(seeds,U) // simple depth first search ideal for small electrodes.
+    // So should I specialize this to ohmic contact so that I can solve it in the matrix? Seems easy
+    // So for both 
+    //   I need access to the Matrix and the positions therein. I have
+    // see above: i_mat.RunningNumberOfJaggedArray
+    //   
 
-    // looking for floats    // floating gates can only be detected in a serial fashion.
+    // looking for floats    // floating gates can only be detected in a serial fashion. // only do this at init
     let cc=0
     this.IterateOverAllCells((i_mat: Tupel, i: number, k: number) => {
       const c = i_mat.Contact
       if (i_mat.BandGap === 0 && !c) {
         seeds.push({contact:cc++, coords:[i, k]}) // voltage is shared (cc is corresponding column in LinAlg), but needs to be calculated. Charge density is a field, but sum is constrained to 0 (add row).
-        this.floodFill(seeds)
+        let Q=this.floodFill(seeds, i_mat.Potential ) 
+        if (Q>0){// steepest descent to explain our problem
+        }else{
+
+        }
+        // floats act like a semiconductor cell in curved space
+        // 
+        // we should not call this in between the steps
       }
     })
 

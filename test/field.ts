@@ -25,7 +25,7 @@ const tri=new Field(fieldTobeSquared,null)  // from TestFields.ts
 
 // in that function use: const c = str[k] 
 // and call this:
-tri.SortByKnowledge()
+tri.GroupByKnowledge()
 // or is it a pipe?
 
 // from simple to complex

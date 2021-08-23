@@ -147,7 +147,7 @@ export class Tupel {
   BandGap: number; // Voltage. 0=metal. 1=Si. 3=SiO2
 
   RunningNumberOfJaggedArray: number;  // It is not only about he jaggies, but we skip metal cells held at staic potential
-  Contact: Contact | Number;
+  Contact: Contact | number;
 
   ToTexture(raw: Uint8Array, p: number) {
     raw[p + 3] = 255;
@@ -553,10 +553,15 @@ export class Field extends FieldToDiagonal {
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
     Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
     //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
-    this.SortByKnowledge(m)  // I still need the mapping to loop over and set random values ( with a given seed )
+    this.GroupByKnowledge(m)  // I still need the mapping to loop over and set random values ( with a given seed )
     // Okay not really. We not only don't solve for U at electrode cells, but also don't try to satisfy poisson there
     // So in reality we filter and we do it in Field and not in some Matrix code. Matrix inversion needs square matrix and it is already difficult enough to detect indefinite matrices ( where they coome from ) that I do not want LU stuff for fixed values which only happen in tests.
     // But the matrix columns are not swapped, but they are del
+
+    // for extended electrode (not literal Potential) we now have U on the known side .. which is not really true 
+    // we compact the known site to a single U and sort it back onto the unkonw side?
+    //  floodfill  - columns ->  add up cells inside each row belonging to the columns  ( right multiply a U spread matrix, which is not square)
+    //   right multiply changes number of columns .. number of rows still match lhs
 
     m.inverse
     var statics = [3, 4, 5] // this -> static value vector
@@ -581,7 +586,7 @@ export class Field extends FieldToDiagonal {
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
     Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
     //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
-    this.SortByKnowledge(m)  // depending on bandgap we know voltage or density. Once again we create an index
+    this.GroupByKnowledge(m)  // depending on bandgap we know voltage or density. Once again we create an index
 
     m.inverse
 
@@ -652,7 +657,7 @@ export class Field extends FieldToDiagonal {
   // Sort by knowledge may be a reason to use a single matrix and a zero vector on the other side of the equation
   // Depending on the number of (un) known  ( var  vs const )  columns ( at least in tests, maybe also in later applications),
   // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
-  public SortByKnowledge(M: Tridiagonal, dropColumn = false) {
+  public GroupByKnowledge(M: Tridiagonal, dropColumn = false) {
     this.M = M;
 
     M.row.forEach((r, i) => {
