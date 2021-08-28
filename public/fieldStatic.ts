@@ -162,10 +162,10 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
           (d === 0) || (e = 0)
           for (; e < 2; e += 2) {
             const cell = row[k + e]
-            if (cell) {
+            if (cell && cell.BandGap==0) {
               const cc = cell.Contact
               if (!cc) {
-                seeds.push({contact:c, coords:[i, k, d, e]})
+                seeds.push({contact:c /* dupe */, coords:[i, k, d, e]})
                 i += d
                 k += e
 
@@ -177,7 +177,9 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
                 // Payload
                 Q+=cell.Carrier[1]-cell.Carrier[0]
                 cell.Potential=potential;
-              }else{throw "short cut;"}
+              }else{
+                if (cc!=c) throw "short cut;"; 
+              }
             }
           }
         }
@@ -220,6 +222,14 @@ export class FinFet{
   // border special
   // trying to replace  if  with data indirection
   public DoAllXandThenYOrSo(ode:PDE){
+
+
+    // Multiply with the Matrix from field.ts . So where is Tridiagonal Matrix here?. Why is this file called Static
+
+
+
+
+
     const pitch=10;
     const width=10;
     var directions=[1,pitch];

@@ -128,14 +128,24 @@ class Mirror {
 //  Yeah that creates a cross with jaggy diagonals. <- not in MVP because I can use metal instead
 var globalTime: number;
 
+export class LinkIntoMatrix {
+  RunningNumberOfJaggedArray: number;  // It is not only about he jaggies, but we skip metal cells held at staic potential
+  // I don't need this to be here because it extends to all cells of the electrode. I helps to solve the U, Q distribution. I need to reference it in the next frame ( same row? ) and I need a link from connection to Matrix ah..
+  //  RunningNumberOfDustributedElectrode: number=-1; // electrode: ( connectionCell | first cell found on scan ) has number > 0  ( because JaggedArray is set first and starts with 0)
 
-export class Contact {
-x:number;y:number;  // bond wire landing position on the map
+}
+export class Contact extends LinkIntoMatrix {
+  x: number; y: number;  // bond wire landing position on the map
+  RunningNumberOfWireU: number;
+  
+  // Dynamic contact has a first version of the ohmic Matrix code. Now I moved it closer to the "curved field" code to keep an eye on the invertablity of the matrix
+  Q_lastFrame: number; // floating
+  U_Bias: number; // Ohmic t
+  // So if code is in Contact ( child of ~ ), it needs a link. Since clean code keeps parameters at a minimum, it is a field
+  matrix: Tridiagonal; // I am not sure about this one. the matrix is shared by all contacts
+}
 
-matrix:Tridiagonal; // I am not sure about this one. the matrix is shared by all contacts
- }
-
-export class Tupel {
+export class Tupel extends LinkIntoMatrix {
   // coulomb / m³  or whatever. Same unit for both
   Carrier: number[]; // for 6502 nfets: all negative. But I need double buffer
   Current: number[]; // for both directions (x,y)
@@ -143,11 +153,10 @@ export class Tupel {
   static bufferId: number = 0
   ChargeDensity = () => this.Carrier[Tupel.bufferId] + this.Doping;
 
-  Potential: number;  // Voltage relative to ground
+// Potential = 0, Contact!=null ( after floodfill ) => Potential is stored in contact   .. or first scanned cell for float. Why again don't floats need a contact ah, I want easy map drawing.
+  Potential: number;  // Voltage relative to ground .  
   BandGap: number; // Voltage. 0=metal. 1=Si. 3=SiO2
-
-  RunningNumberOfJaggedArray: number;  // It is not only about he jaggies, but we skip metal cells held at staic potential
-  Contact: Contact | number;
+  Contact: Contact | number; // Do I like that this repeats the "LinkIntoMatrix"? Tupel owns Contact. No problem, as lifecycle is app lifecycle ( no frame or phase stuff ). A Wire could be an owner, but Wire is optional. Only Tupel is required, at least make sure it is the one first encountered on scan? No, still looking at possiblity to unite skins into one cell-based style.
 
   ToTexture(raw: Uint8Array, p: number) {
     raw[p + 3] = 255;
@@ -311,7 +320,7 @@ export class FieldToDiagonal extends MapForField {
 
         tu.BandGap = bandgaps.get(c[k])
         if (tu instanceof Metal)
-          tu.Potential = Number.parseFloat( str[k] )  // field :  case: static electrode, random value for test, connected to wire
+          tu.Potential = Number.parseFloat(str[k])  // field :  case: static electrode, random value for test, connected to wire
         else
           tu.Potential = 0 // random is not good for testing. I stick with this 
         tu.Doping = c === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
@@ -415,10 +424,22 @@ export class FieldToDiagonal extends MapForField {
       for (; i_pre < i + 2; i_pre++) {
         const str = this.fieldInVarFloats[i_pre]
         for (let k = 0; k < str.length; k++) { // dupe
-          if (typeof str[k].Contact === 'object') { // dupe for pull aka potential
-            str[k].RunningNumberOfJaggedArray = i_mat_pre++
+          if (typeof str[k].Contact === 'object') { // flood fill has to marked all cells belonging to that electrode/contact
+            str[k].RunningNumberOfJaggedArray = i_mat_pre++  // production
+            // so I want to sort by local first and by type ( electrode ) second, to get a mostly diagonal matrix
+            const ccc=(str[k].Contact as Contact) ;
+            if (ccc.x==k && ccc.y==i_pre){ // how do we 
+              ccc.RunningNumberOfJaggedArray = i_mat_pre++ // This adds a row with last
+              // this works because we add U and Q (from this cell). I only store one index because every entry is on the diagonal ( trace )
+              // Q is here for metal anyway
+              // U is here for the whole electrode  ()
+              ccc.RunningNumberOfWireU=i_vec_pre++ // how do I store ref to known U of last frame? 
+                // Now I wonder how access goes? MatrixMultiplication would usually go along a row and MAC the products.
+                // But now it seems that we cannot pull the columns effectively?
+              // the matrix on the rhs ( known ) is rectangular. We know the y ordinate needs to be the same as on lhs, but x is also needed to integrate with curved space and static electrodes
+            }
           } else {
-            str[k].RunningNumberOfJaggedArray = - i_vec_pre++
+            str[k].RunningNumberOfJaggedArray = - i_vec_pre++ // test & tune ( in combination with doping )
             // todo: MAC on the vector
           }
         }
@@ -503,7 +524,7 @@ export class FieldToDiagonal extends MapForField {
                 const i_vec = vec.RunningNumberOfJaggedArray
                 if (i_vec < 0) {   // so negative indices point to the rhs ( vector )
                   // U -> u
-                  vector[-i_vec] += span[si].extends[sk] * vec.Potential // default =0     //  For test I really need values, no reference to wire
+                  vector[-i_vec] += span[si].extends[sk] * vec.Potential // default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
                 } else {
                   // fill the diagonal. Even after jaggies and discarded holes ( electrodes ), for inversion, the diagonal needs to collect all the ++
                   if (setCells[setCells.length - 1][0] < i_mat && i_mat < i_vec) {
@@ -558,14 +579,29 @@ export class Field extends FieldToDiagonal {
     // So in reality we filter and we do it in Field and not in some Matrix code. Matrix inversion needs square matrix and it is already difficult enough to detect indefinite matrices ( where they coome from ) that I do not want LU stuff for fixed values which only happen in tests.
     // But the matrix columns are not swapped, but they are del
 
-    // for extended electrode (not literal Potential) we now have U on the known side .. which is not really true 
+    // for extended electrode (not literal Potential) we now have U on the known side .. which is mostly true 
     // we compact the known site to a single U and sort it back onto the unkonw side?
+    // Q is unknown. That Matrix stays almost square. We can clean rows and columns on the unknown site with a nonsquare matrix on the rhs.
     //  floodfill  - columns ->  add up cells inside each row belonging to the columns  ( right multiply a U spread matrix, which is not square)
+    // How do I call floodfill from here. Import goes the other way.
     //   right multiply changes number of columns .. number of rows still match lhs
 
+    // Why do my two cases ( float with fixed SUM(Q)  |   connected via R to an U) keep the Matrix square
+    //  ( I can write this code because I test the rest with cell potential )
+    // So fixed SUM(Q) = Q_{t-1}  ( steht das nicht schon irgendwo? ). Q is lhs an multiplies with unity so far.
+    //   Now all the Q on lhs create a new Row and sum up to Q from last frame (+ Delta Q due to charge carriers). Still square because we are allowed to move U to unknown ( lhs )
+    //    I will switch Q and U between the sides later anyway .. think: value/unit. So no Problem to have Q on the other side
+    //     But is it square? It adds row and column on the right. It adds one row to the left hmm
+    // With R:  Q_withCarriers +  ( U-U_connected ) / R  // this is the new row. It is even normal with Q on lhs and R on rhs
+    //   Here also U moves over to lhs and makes our matrix square => invertable
+    // The above method GroupByKnowledge() looks good. We just add our row, won't we?
     m.inverse
     var statics = [3, 4, 5] // this -> static value vector
     m.MatrixProductUsingTranspose(statics);
+
+    // Todo
+    //this.GroupByKnowledge(m): Swap two times to get back to U and Q
+    // how do we get back the compact U .. also a second path? How do we skip the staticU cells? cell.RunningNumberOfJaggedArray! Each electrode needs a second RunningNumb
 
     // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
     // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns
@@ -694,10 +730,13 @@ export class Field extends FieldToDiagonal {
     return null
   }
 
-
-
   bufferId = 0; // like field in interlaced video. Used to double buffer the carriers
+
+  // I feel like there already needs to be some code. For example:  fieldStatic.ts/
+
 }
+
+
 
 // this example is later cut and refused (as in fuse, to weld) as needed
 // ToDo: The number does not make any sense anymore
