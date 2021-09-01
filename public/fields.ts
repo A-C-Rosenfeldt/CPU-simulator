@@ -617,14 +617,14 @@ export class Field extends FieldToDiagonal {
     //  M.swapColumns(startsToSwap,dropColumn) 
   }
 
-  ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes(): Tridiagonal[] {
+  ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes(): Tridiagonal {
     const m = this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
     Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
     //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
     this.GroupByKnowledge(m)  // depending on bandgap we know voltage or density. Once again we create an index
 
-    m.inverse
+    // Maybe  CleanCode will kick in, until then I want Matlab notebook stuff in  main(). Also one of the reason for this exercise:  m.inverse
 
     // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
     // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns
