@@ -3,7 +3,7 @@ import {Wire} from './wire.js'  // kind of hoisting. I need to criss cross impor
 import {SimpleImage} from './GL'
 import './field/semiconductor.js'
 import './field/metal.js'
-import { Field , Contact, Tupel} from './fields.js'
+import { Field , Contact, Tupel, Metal} from './fields.js'
 
 class LowImpedanceContact extends Contact{
   voltage:number
@@ -77,7 +77,7 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
   // the former adds Ohmic equation => U and Q are both unknonw?
   // This method needs to be called inside loop over field every timeStep. Mark cells for timeStep fill?
   // This sets U in the phase between Matrix stuff. Either ohmic or all to contact.U .
-  floodfills(): void {
+  floodfills(floodedInEven: boolean): void {
     //   the connected gates are filled in a  common implementation with backtracking
     // this fits well with run-time usage. I go through all gates sequentally
 
@@ -162,7 +162,7 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
           (d === 0) || (e = 0)
           for (; e < 2; e += 2) {
             const cell = row[k + e]
-            if (cell && cell.BandGap==0) {
+            if (cell && cell instanceof Metal ) { //} cell.BandGap==0) {
               const cc = cell.Contact
               if (!cc) {
                 seeds.push({contact:c /* dupe */, coords:[i, k, d, e]})
@@ -173,6 +173,11 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
                 d = 0
                 e = -1
                 // we stay in row, not needed: break // boundary check
+
+                // filling 
+                //  I need some clearing for the next frame
+                //  this cannot be "Contact" because that would be a single interface in the map
+
 
                 // Payload
                 Q+=cell.Carrier[1]-cell.Carrier[0]
@@ -188,6 +193,9 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
     return Q;
   }
 }
+
+// Maybe later I should compare this grid based version. Make it a shader! Be more realistic for silicon
+// But till then, it does not look as cool and intutive like a small number of fast moving electrons. Electrons with inertia. See semiconductor.ts
 
 // // Partial differential equation
 // class PDE{

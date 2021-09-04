@@ -25,8 +25,13 @@ So maybe even (soft) limit the velocity of electrons to grid-size = mean free pa
 Charge-charge repulsion within the grid. So the tracks move as a whole. You could sample the field in the mean of the old vertices. Each vertex is only allowed to move in uh exception cascade unitl the middle normal of its edges.
 */
 
+import { Tridiagonal } from "../enforcePivot";
+import { ContactedField } from "../fieldStatic";
+
 class Electron{
-    public Verlet(){
+    location:Array<number>=[0,0];
+    derivatives=[this.location] // Verlet does not use this
+    public Verlet(precedessor:Electron,successor:Electron){
         // Verlet integration senses the field at the current position for velocity+=accelertion,
         // but then takes a step back for the position and then: position+=2*velocity .
 
@@ -35,25 +40,65 @@ class Electron{
         // subtract own field from global field to remove noise due to grid. Also electrons don't feel their own field.
     }
     public electronInAdjacentTrajectory:Electron; // ref
+
+    public Set2(delta:Array<number>){
+        this.location.forEach((me,i)=>{
+            me=2*delta[i]
+        })
+    }
+
+    public Sub(delta:Array<number>){
+        this.location.forEach((me,i)=>{
+            me-=delta[i]
+        })
+    }
 }
 
+// With Navier Stokes and co. you can either sit at a location or on a particle. The code for the former is in fieldStatic.ts ( bottom, commented out)
+// Here we go with particles, which should be faster and maybe even give a coherent ( haha ) motion when jumping into coax cable.
 class Trajectory{
     // Although I was burned with fixed constants in the Matrix code, I (still) need them in the simulation code
     public readonly length=12;
     public electrons:Electron[]= new Electron[length]
-    public Propagate(){
+    cellPosition:number[]; // todo: Link to cell for the current to take effect. 
+    direction: number;  // cell borders. |Speed| = 1
+    // Emission: One particle per frame.  todo Current is R * electricField? Fiddle with value until space charge effects start to fade.
+    public Propagate(field: Tridiagonal){
         // forEach does not work .. or shift at read? Electrons which did not hit the anode just vanish ( traps in semi / residual gas in tube )
+        for(let i=0;i<this.electrons.length;i++){
+            this.electrons[i].Set2(this.electrons[i-1].location)
+            this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
+            0 ;//
+
+
+
+            //let tupel=[4,5]
+            field.getAt.apply(null, this.electrons[i-1].location) ;
+              // bilinear interpolation
+
+            // mimic Poisson. Start values? Don't I need Verlet anyway?
+            2*this.electrons[i]-
+            this.electrons[i-]-  // current frame. V
+            this.electrons[i+1]
+        }
         this.electrons.forEach(electron => {
             electron.Verlet();
         });
     }
 }
 
-class Cathode{
+export class Cathode{
     public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
     public flow:Trajectory[]=new Trajectory[this.width];
+    field: Tridiagonal;
+
+    constructor(field:  Tridiagonal  ){
+        this.field=field
+    }
 
     public RenderMesh(): number{
+
+        this.flow[0].Propagate(this.field)
         // Join trajectories which may go at different speed
         // Now I ( we all ) remember that the join algorithm does spontanous symmetry breaking, but otherwise its for in for.
         // Still we could try to generallize code use in Matrix.Add()

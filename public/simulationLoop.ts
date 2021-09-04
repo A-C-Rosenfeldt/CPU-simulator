@@ -1,10 +1,12 @@
 import { Tridiagonal } from './enforcePivot.js';
 import { Field , bandsGapped, Contact, Tupel} from './fields.js'
-import { ContactedField, FinFet } from './fieldStatic'
+import { ContactedField } from './fieldStatic'
+import { Cathode } from './field/semiconductor'
 class Simulation{
 	keyPressed:boolean;
 	run(){
 		const map=new ContactedField(bandsGapped,null) // load map
+		let floodedInEven: boolean = true;
 		map.floodfills(0) // floodfill 1/2
 		let mat:Tridiagonal=map.ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes()  // create Matrix
 		mat.inverse() // Todo: Remove interal link. This file demonstrates the (performance) idea that the expensive  inverse()  only happens on load, not within step or even phase
@@ -15,7 +17,7 @@ class Simulation{
 			if (this.keyPressed || sensible-- <0){ window.clearInterval(id)}
 			 //  multiply with Matrix
 			map.floodfills(1) // floodfill to copy back matrix values to map for display ( or modify display code? )
-			propapageParticleSystem(); // 
+			const c=new Cathode(map); //propapageParticleSystem(); // 
 			//  store values on contacts ( Q or what)			
 			//let fet=new FinFet() // OhmCarriers like NavierStokes is done. GPU friendly? But on JS I prefer particles like in Blender..  . carriers? out of loop? 
 			//fet.DoAllXandThenYOrSo(pde);
