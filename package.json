@@ -15,7 +15,7 @@
     "express": "^4.17.1",
     "mocha": "^8.1.1",
     "ts-node": "^9.0.0",
-    "typescript": "^4.0.2"
+    "typescript": "^4.4.2"
   },
   "mochaExplorer.files": "test/**/*.ts",
   "mochaExplorer.require": "ts-node/register",
@@ -27,7 +27,7 @@
       "files": "test/**/*.ts",
       "require": "ts-node/register",
       "env": {
-        "TS_NODE_PROJECT":"tsconfig.test.json"        
+        "TS_NODE_PROJECT": "tsconfig.test.json"
       }
     }
   },
@@ -35,8 +35,8 @@
     "files": "test/**/*.ts",
     "require": "ts-node/register",
     "env": {
-    	"TS_NODE_PROJECT":"tsconfig.test.json",
-      "TS_NODE_PREFER_TS_EXTS":true
+      "TS_NODE_PROJECT": "tsconfig.test.json",
+      "TS_NODE_PREFER_TS_EXTS": true
     }
   },
   "scripts": {

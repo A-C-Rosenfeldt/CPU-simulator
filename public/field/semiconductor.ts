@@ -26,10 +26,11 @@ Charge-charge repulsion within the grid. So the tracks move as a whole. You coul
 */
 
 import { Tridiagonal } from "../enforcePivot";
+import { FieldToDiagonal } from "../fields";
 import { ContactedField } from "../fieldStatic";
 
 class Electron{
-    location:Array<number>=[0,0];
+    location:[number,number] /* Tupel instead of Array<number> */ =[0,0];
     derivatives=[this.location] // Verlet does not use this
     public Verlet(precedessor:Electron,successor:Electron){
         // Verlet integration senses the field at the current position for velocity+=accelertion,
@@ -63,7 +64,7 @@ class Trajectory{
     cellPosition:number[]; // todo: Link to cell for the current to take effect. 
     direction: number;  // cell borders. |Speed| = 1
     // Emission: One particle per frame.  todo Current is R * electricField? Fiddle with value until space charge effects start to fade.
-    public Propagate(field: Tridiagonal){
+    public Propagate(field: FieldToDiagonal){
         // forEach does not work .. or shift at read? Electrons which did not hit the anode just vanish ( traps in semi / residual gas in tube )
         for(let i=0;i<this.electrons.length;i++){
             this.electrons[i].Set2(this.electrons[i-1].location)
@@ -73,7 +74,42 @@ class Trajectory{
 
 
             //let tupel=[4,5]
-            field.getAt.apply(null, this.electrons[i-1].location) ;
+            // at least I need to round location. Otherwise getAt will fail. floor and ceil define that potential is at floor?
+            const corner=new Array<Array<number>>();
+            {
+                const l=this.electrons[i-1].location
+                for(let d=0;d<2;d++){
+                    corner.push( [Math.floor( l[d] ), Math.ceil( l[d] ) ] )
+                    //if (ceil==floor)
+                    const frac=(l[d]-corner[corner.length-1][0])
+                    // swap?
+                    // ConstTextToVarFloats
+                    field[corner[1][1-d]-corner[0][1-d]]
+                }
+            }
+
+            // I think one can read this as all corner. Again, for breaks symmetry. Though I need it for partial differntation
+
+            {
+                const l=this.electrons[i-1].location.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );
+                
+                let delta=0;
+                let cols:Array<Array<number>>=[[],[]]
+                for(let orientation=0;orientation<=1;orientation++){
+                    for(let y=1;y>=0;y--){
+                        const row=field.fieldInVarFloats[l[1].i+y]
+                        delta +=  (row[l[0][0]+1].Potential -row[l[0][0]].Potential)*l[orientation].f
+                        l[orientation].f=1-l[orientation].f // interpolation ( not-so-functional coding style )
+
+                        // transpose. Hmm I have transpose for RLE Matrix, but not for jagged array?
+                        for(let x=0;x<=1;x++){
+                            cols[x].push(row[x].Potential)
+                        }
+                    }
+                }
+            }
+
+            field.getAt(...this.electrons[i-1].location) ; // Electron should always be within a field. Right now cells are supposed to be squares. They have a potential. I need the field. So I need neighbours. Plural? Staggered cells bilinear? Does also work in 3d
               // bilinear interpolation
 
             // mimic Poisson. Start values? Don't I need Verlet anyway?
