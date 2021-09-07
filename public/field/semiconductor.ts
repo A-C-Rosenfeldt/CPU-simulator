@@ -69,66 +69,70 @@ class Trajectory{
         for(let i=0;i<this.electrons.length;i++){
             this.electrons[i].Set2(this.electrons[i-1].location)
             this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
-            0 ;//
+            
 
 
 
             //let tupel=[4,5]
             // at least I need to round location. Otherwise getAt will fail. floor and ceil define that potential is at floor?
-            const corner=new Array<Array<number>>();
-            {
-                const l=this.electrons[i-1].location
-                for(let d=0;d<2;d++){
-                    corner.push( [Math.floor( l[d] ), Math.ceil( l[d] ) ] )
-                    //if (ceil==floor)
-                    const frac=(l[d]-corner[corner.length-1][0])
-                    // swap?
-                    // ConstTextToVarFloats
-                    field[corner[1][1-d]-corner[0][1-d]]
-                }
-            }
+            // const corner=new Array<Array<number>>();
+            // {
+            //     const l=this.electrons[i-1].location
+            //     for(let d=0;d<2;d++){
+            //         corner.push( [Math.floor( l[d] ), Math.ceil( l[d] ) ] )
+            //         //if (ceil==floor)
+            //         const frac=(l[d]-corner[corner.length-1][0])
+            //         // swap?
+            //         // ConstTextToVarFloats
+            //         field[corner[1][1-d]-corner[0][1-d]]
+            //     }
+            // }
 
             // I think one can read this as all corner. Again, for breaks symmetry. Though I need it for partial differntation
 
+            //const force=new Array<number>();
             {
-                const l=this.electrons[i-1].location.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );
-                
-                let delta=0;
-                let cols:Array<Array<number>>=[[],[]]
-                for(let orientation=0;orientation<=1;orientation++){
-                    for(let y=1;y>=0;y--){
-                        const row=field.fieldInVarFloats[l[1].i+y]
-                        delta +=  (row[l[0][0]+1].Potential -row[l[0][0]].Potential)*l[orientation].f
-                        l[orientation].f=1-l[orientation].f // interpolation ( not-so-functional coding style )
+                // capture
+                const l=this.electrons[i-1].location.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );                
+                let reverse=false
+                const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
+                const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
 
-                        // transpose. Hmm I have transpose for RLE Matrix, but not for jagged array?
-                        for(let x=0;x<=1;x++){
-                            cols[x].push(row[x].Potential)
-                        }
-                    }
-                }
+                do{
+                    for(let y=1;y>=0;y--){
+                        this.electrons[i].location[reverse ?1:0] +=  reversed(1,y)-reversed(0,y)*l[0].f
+                        l[0].f=1-l[0].f // interpolation ( not-so-functional coding style )
+
+                        // // transpose. Hmm I have transpose for RLE Matrix, but not for jagged array?
+                        // for(let x=0;x<=1;x++){
+                        //     cols[x].push(row[x].Potential)
+                        // }
+                    }                    
+                    l.shift()
+                    reverse=!reverse
+                }while(reverse);
             }
 
-            field.getAt(...this.electrons[i-1].location) ; // Electron should always be within a field. Right now cells are supposed to be squares. They have a potential. I need the field. So I need neighbours. Plural? Staggered cells bilinear? Does also work in 3d
-              // bilinear interpolation
+            // field.getAt(...this.electrons[i-1].location) ; // Electron should always be within a field. Right now cells are supposed to be squares. They have a potential. I need the field. So I need neighbours. Plural? Staggered cells bilinear? Does also work in 3d
+            //   // bilinear interpolation
 
-            // mimic Poisson. Start values? Don't I need Verlet anyway?
-            2*this.electrons[i]-
-            this.electrons[i-]-  // current frame. V
-            this.electrons[i+1]
+            // // mimic Poisson. Start values? Don't I need Verlet anyway?
+            // 2*this.electrons[i]-
+            // this.electrons[i-]-  // current frame. V
+            // this.electrons[i+1]
         }
-        this.electrons.forEach(electron => {
-            electron.Verlet();
-        });
+        // this.electrons.forEach(electron => {
+        //     electron.Verlet();
+        // });
     }
 }
 
 export class Cathode{
     public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
     public flow:Trajectory[]=new Trajectory[this.width];
-    field: Tridiagonal;
+    field: FieldToDiagonal;
 
-    constructor(field:  Tridiagonal  ){
+    constructor(field:  FieldToDiagonal  ){
         this.field=field
     }
 
