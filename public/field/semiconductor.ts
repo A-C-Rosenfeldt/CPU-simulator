@@ -26,7 +26,7 @@ Charge-charge repulsion within the grid. So the tracks move as a whole. You coul
 */
 
 import { Tridiagonal } from "../enforcePivot";
-import { FieldToDiagonal } from "../fields";
+import { Field, FieldToDiagonal } from "../fields";
 import { ContactedField } from "../fieldStatic";
 
 class Electron{
@@ -37,9 +37,7 @@ class Electron{
         // but then takes a step back for the position and then: position+=2*velocity .
 
     }
-    public SenseField(){
-        // subtract own field from global field to remove noise due to grid. Also electrons don't feel their own field.
-    }
+
     public electronInAdjacentTrajectory:Electron; // ref
 
     public Set2(delta:Array<number>){
@@ -64,15 +62,38 @@ class Trajectory{
     cellPosition:number[]; // todo: Link to cell for the current to take effect. 
     direction: number;  // cell borders. |Speed| = 1
     // Emission: One particle per frame.  todo Current is R * electricField? Fiddle with value until space charge effects start to fade.
-    public Propagate(field: FieldToDiagonal){
+    public Propagate(field: FieldToDiagonal): number[] {
         // forEach does not work .. or shift at read? Electrons which did not hit the anode just vanish ( traps in semi / residual gas in tube )
+
+        const applyForce= (consequence:Array<number>, cause:Array<number>) =>{
+            // capture
+            const l=cause.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );                
+            let reverse=false
+            const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
+            const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
+
+            do{
+                for(let y=1;y>=0;y--){
+                    consequence[reverse ?1:0] +=  reversed(1,y)-reversed(0,y)*l[0].f
+                    l[0].f=1-l[0].f // interpolation ( not-so-functional coding style )
+                }                    
+                l.shift()
+                reverse=!reverse
+            }while(reverse);
+        };        
+
         for(let i=0;i<this.electrons.length;i++){
             this.electrons[i].Set2(this.electrons[i-1].location)
             this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
             
+            // Todo: Remove all electrons close by ( back link from field cell ). Espcially remove self !!
+            applyForce(this.electrons[i].location, this.electrons[i-1].location)
 
-
-
+            // Set charge in field of next frame ( vector for matrix )
+            {
+                const l=this.electrons[i].location
+                const probe=field.fieldInVarFloats[l[1]][l[0]].GetCarrier() //.Carrier
+            }
             //let tupel=[4,5]
             // at least I need to round location. Otherwise getAt will fail. floor and ceil define that potential is at floor?
             // const corner=new Array<Array<number>>();
@@ -91,27 +112,6 @@ class Trajectory{
             // I think one can read this as all corner. Again, for breaks symmetry. Though I need it for partial differntation
 
             //const force=new Array<number>();
-            {
-                // capture
-                const l=this.electrons[i-1].location.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );                
-                let reverse=false
-                const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
-                const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
-
-                do{
-                    for(let y=1;y>=0;y--){
-                        this.electrons[i].location[reverse ?1:0] +=  reversed(1,y)-reversed(0,y)*l[0].f
-                        l[0].f=1-l[0].f // interpolation ( not-so-functional coding style )
-
-                        // // transpose. Hmm I have transpose for RLE Matrix, but not for jagged array?
-                        // for(let x=0;x<=1;x++){
-                        //     cols[x].push(row[x].Potential)
-                        // }
-                    }                    
-                    l.shift()
-                    reverse=!reverse
-                }while(reverse);
-            }
 
             // field.getAt(...this.electrons[i-1].location) ; // Electron should always be within a field. Right now cells are supposed to be squares. They have a potential. I need the field. So I need neighbours. Plural? Staggered cells bilinear? Does also work in 3d
             //   // bilinear interpolation
@@ -124,6 +124,8 @@ class Trajectory{
         // this.electrons.forEach(electron => {
         //     electron.Verlet();
         // });
+
+        return charge as Field.  //  ToDo: setAttribute?
     }
 }
 
