@@ -597,7 +597,7 @@ export class Field extends FieldToDiagonal {
     // The above method GroupByKnowledge() looks good. We just add our row, won't we?
     m.inverse
     var statics = [3, 4, 5] // this -> static value vector
-    m.MatrixProductUsingTranspose(statics);
+    m.MatrixProduct(statics);
 
     // Todo
     //this.GroupByKnowledge(m): Swap two times to get back to U and Q

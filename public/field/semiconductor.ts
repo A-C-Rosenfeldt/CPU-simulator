@@ -26,7 +26,7 @@ Charge-charge repulsion within the grid. So the tracks move as a whole. You coul
 */
 
 import { Tridiagonal } from "../enforcePivot";
-import { Field, FieldToDiagonal } from "../fields";
+import { Field, FieldToDiagonal, Tupel } from "../fields";
 import { ContactedField } from "../fieldStatic";
 
 class Electron{
@@ -62,13 +62,14 @@ class Trajectory{
     cellPosition:number[]; // todo: Link to cell for the current to take effect. 
     direction: number;  // cell borders. |Speed| = 1
     // Emission: One particle per frame.  todo Current is R * electricField? Fiddle with value until space charge effects start to fade.
-    public Propagate(field: FieldToDiagonal): number[] {
+    public Propagate(field: FieldToDiagonal): void /*  I keep double buffer locally "Tupel", thus I cannot deal with a return buffer.  */ {
         // forEach does not work .. or shift at read? Electrons which did not hit the anode just vanish ( traps in semi / residual gas in tube )
 
+        // linear interpolation  of  difference quotent
         const applyForce= (consequence:Array<number>, cause:Array<number>) =>{
             // capture
             const l=cause.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );                
-            let reverse=false
+            let reverse=false // co-ordinates
             const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
             const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
 
@@ -82,17 +83,90 @@ class Trajectory{
             }while(reverse);
         };        
 
+        /*  Closure needs at least two functions ( + a third to be useful)
+                function makeAdder(x) {
+                return function(y) {
+                    return x + y;
+                };
+                }
+
+                var add5 = makeAdder(5);
+                var add10 = makeAdder(10);
+
+                console.log(add5(2));  // 7
+                console.log(add10(2)); // 12
+         */
+        // bi-inear interpolation  of  difference quotent
+        // the "bi" is created by calling itself on time
+        const distributeChargeOnGrid= (cause:Array<number>) =>{
+            // capture
+            const l=cause.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );
+            let direction=0
+            const colateral= field.fieldInVarFloats.slice( l[direction].i ,l[direction].i +2 )
+            const weights=()=>[l[direction].f, 1-l[direction].f]
+            const weightCaller= ( weight:number,topLeft:number , fun: (grid:Tupel[][]|Tupel[]|Tupel, w:number )=>void ) => {
+                return (grid: Tupel[]|Tupel[][] , weightPassed:number)=>{
+                fun(grid[ topLeft+0 ], (0+weight)*weightPassed )
+                fun(grid[ topLeft+1 ], (1-weight)*weightPassed )
+                }
+            }
+
+            // const inner=weightCaller( l[1].f, l[1].i , (grid, w )=> { ( grid as Tupel).AddCarrier(w) }   )
+            // const outer=weightCaller( l[0].f, l[1].i , inner                       )
+            // outer( field.fieldInVarFloats, 1   /* electron has charge=1  */ )
+
+            // const wi=weights()
+            // direction++
+            // const wk=weights()
+            // const cw=colateral.forEach( (c,i) => { 
+            //     c.slice( l[direction].i ,l[direction].i +2 ).forEach( (cd,k) => {
+            //         cd.AddCarrier(  wi[i]*wk[k]  )
+            //     } ) 
+            // }
+            // )  // this is not a join. Just cluster. No mention of start from 0 nor start from 1 :-)
+
+            
+
+            // w.forEach( v=>{
+            //     [l[0].i+k]
+            // })
+
+
+            // let reverse=false // co-ordinates
+            // const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k] // not const
+            // const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
+
+            // do{
+            //     for(let y=1;y>=0;y--){
+                    
+            //         reversed(0,y)+=l[0].f
+            //         reversed(1,y)+=1-l[0].f // interpolation ( not-so-functional coding style )
+            //     }                    
+            //     l.shift()
+            //     reverse=!reverse
+            // }while(reverse);
+        };      
+
+        // var captureMe= number => String ;  // calls a method to set the charge in the other frame buffer
+        // const hunter= () => distributeChargeOnGrid  ;  // does this capture  "capture Me". Wir brauchen wohl ein "Funktionsumfeld"
+        // var captureMe= number => String ;  // recursion
+        // const hunter= () => distributeChargeOnGrid  ;  // does this capture  "capture Me". Wir brauchen wohl ein "Funktionsumfeld"
+
+
         for(let i=0;i<this.electrons.length;i++){
             this.electrons[i].Set2(this.electrons[i-1].location)
             this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
             
             // Todo: Remove all electrons close by ( back link from field cell ). Espcially remove self !!
+            // Todo: Charge density is distributed via bilinear interpolation. This is the same algorithm used in this.applyForce
             applyForce(this.electrons[i].location, this.electrons[i-1].location)
 
             // Set charge in field of next frame ( vector for matrix )
             {
                 const l=this.electrons[i].location
                 const probe=field.fieldInVarFloats[l[1]][l[0]].GetCarrier() //.Carrier
+
+                distributeChargeOnGrid(l)
             }
             //let tupel=[4,5]
             // at least I need to round location. Otherwise getAt will fail. floor and ceil define that potential is at floor?
@@ -125,7 +199,7 @@ class Trajectory{
         //     electron.Verlet();
         // });
 
-        return charge as Field.  //  ToDo: setAttribute?
+        //return charge as Field.  //  ToDo: setAttribute?
     }
 }
 

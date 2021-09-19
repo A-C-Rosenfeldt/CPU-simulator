@@ -217,7 +217,7 @@ describe('Multiply', () => {
 		prmu.row[i++]=Row.Single(2,1)
 		prmu.row[i++]=Row.Single(1,1)
 
-		  const product = unit.MatrixProductUsingTranspose(prmu)
+		  const product = unit.MatrixProduct(prmu)
 		  // transparent box testing
 		  for(let i=0;i<3;i++){
 			  expect(product.row[i].starts).deep.equal(prmu.row[i].starts)
@@ -232,7 +232,7 @@ describe('Multiply', () => {
 		for(let i=0;i<size;i++){
 			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
 		}
-		  const product = unit.MatrixProductUsingTranspose(dense)
+		  const product = unit.MatrixProduct(dense)
 		  expect(product.getAt(0,0)).equal(20)
 		  expect(product.getAt(1,2)).equal(30)		
 	})
@@ -249,7 +249,7 @@ describe('Multiply', () => {
 		expect(rota.getAt(1,1)).approximately(-1,0.001)
 		expect(rota.getAt(0,1)).approximately(0,0.001)
 		expect(rota.getAt(1,0)).approximately(0,0.001)
-		let product = unit.MatrixProductUsingTranspose(rota)
+		let product = unit.MatrixProduct(rota)
 		expect(rota.getAt(0,0)).approximately(-1,0.001)
 		expect(rota.getAt(1,1)).approximately(-1,0.001)
 		expect(rota.getAt(0,1)).approximately(0,0.001)
@@ -281,7 +281,7 @@ describe('Multiply', () => {
 
 
 		expect(product.getAt(0,0)).approximately(-5,0.001)
-		let product2 = product.MatrixProductUsingTranspose(rota)
+		let product2 = product.MatrixProduct(rota)
 
 		product2.row.forEach(r=>{
 			console.log(" starts: "+r.starts+"  values: "+r.data)
@@ -299,9 +299,9 @@ describe('Multiply', () => {
 		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
 		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
 		rota.row[++i]=Row.Single(2,1)
-		let product = unit.MatrixProductUsingTranspose(rota)
+		let product = unit.MatrixProduct(rota)
 		expect(product.getAt(0,0)).approximately(0,0.001)
-		product = product.MatrixProductUsingTranspose(rota)
+		product = product.MatrixProduct(rota)
 		expect(product.getAt(0,0)).approximately(-5,0.001)
 	})	
 
@@ -312,9 +312,9 @@ describe('Multiply', () => {
 		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
 		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
 		rota.row[++i]=Row.Single(2,1)
-		let product = unit.MatrixProductUsingTranspose(rota)
-		product = product.MatrixProductUsingTranspose(rota)
-		product = product.MatrixProductUsingTranspose(rota)
+		let product = unit.MatrixProduct(rota)
+		product = product.MatrixProduct(rota)
+		product = product.MatrixProduct(rota)
 		expect(product.getAt(0,0)).approximately(-5,0.001)
 	})	
 
@@ -351,9 +351,9 @@ describe('Inverse', () => {
 		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[+Math.cos(angle),Math.sin(angle)]]
 		rota.row[++i]=new Row([]);rota.row[i].starts=[0,2];rota.row[i].data=[[-Math.sin(angle),Math.cos(angle)]]
 		}
-		let product = dense.MatrixProductUsingTranspose(rota)
-		product = product.MatrixProductUsingTranspose(rota)
-		product = product.MatrixProductUsingTranspose(rota)
+		let product = dense.MatrixProduct(rota)
+		product = product.MatrixProduct(rota)
+		product = product.MatrixProduct(rota)
 		expect(product.getAt(0,0)).approximately(-4,0.001)
 		expect(product.getAt(1,0)).approximately(-8,0.001)
 		expect(product.getAt(0,1)).approximately(-5,0.001)
@@ -429,7 +429,7 @@ describe('Inverse', () => {
 			dense.row[i].data[0][i]+=3 
 		}
 
-		  const product = inverse.MatrixProductUsingTranspose(dense)
+		  const product = inverse.MatrixProduct(dense)
 		//   for (let i = 0; i < size; i++) {
         //     expect(dense.row[i].starts).deep.eq( [0, size] );
         //     expect(dense.row[i].data[0]).deep.equal( [4 + i, 7 + i, 5 + i] );
