@@ -1,7 +1,7 @@
 import { Tridiagonal } from './enforcePivot.js';
 import { Field , bandsGapped, Contact, Tupel} from './fields.js'
 import { ContactedField } from './fieldStatic'
-import { Cathode } from './field/semiconductor'
+import { Cathode, Trajectory } from './field/semiconductor'
 class Simulation{
 	keyPressed:boolean;
 	run(){
@@ -19,8 +19,16 @@ class Simulation{
 			if (this.keyPressed || sensible-- <0){ window.clearInterval(id)}
 			 //  multiply with Matrix
 			floodedInEven=!floodedInEven // invert marker meaning. This minimizes state. Every floodfill is like the first
-			map.floodfills(floodedInEven, /*collect U?)*/ ) // floodfill to copy back matrix values to map for display ( or modify display code? )			
-			chargePotential=new Cathode(map); //propapageParticleSystem(); // 
+			map.floodfills(floodedInEven, /*collect U?)*/ ) // floodfill to copy back matrix values to map for display ( or modify display code? )
+			Tupel.bufferId ^=1
+			map.fieldInVarFloats.forEach(r=>r.forEach( c=> {
+				c.SetCarrier(0)				
+			} )) // EE thinks of carrier as mobile charge carriers  vs  doping
+
+			{
+				const t=new Trajectory(/*map*/); //propapageParticleSystem(); // 
+				t.Propagate(map)
+			}
 
 			const nakedVector=[]
 			//{ // gather known data

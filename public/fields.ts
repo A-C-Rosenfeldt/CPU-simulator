@@ -3,6 +3,7 @@ import { Wire } from './wire.js'  // kind of hoisting. I need to criss cross imp
 import { SimpleImage } from './GL'
 import './field/semiconductor.js'
 import './field/metal.js'
+import { Electron } from './field/semiconductor.js'
 
 /*
 read from 
@@ -147,11 +148,12 @@ export class Contact extends LinkIntoMatrix {
 
 export class Tupel extends LinkIntoMatrix {
   // coulomb / m³  or whatever. Same unit for both
-  Carrier: number[]; // for 6502 nfets: all negative. But I need double buffer
+  CarrierCount: number[]; // mobile. for 6502 nfets: all negative. But I need double buffer
+  Carrier: Electron ; // nullable ref .. linked List?
   Current: number[]; // for both directions (x,y)
   Doping: number;
-  static bufferId: number = 0
-  ChargeDensity = () => this.Carrier[Tupel.bufferId] + this.Doping;
+  static bufferId: number = 0  // todo:  static is problematic when add maps / staggered update
+  ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping;
 
 // Potential = 0, Contact!=null ( after floodfill ) => Potential is stored in contact   .. or first scanned cell for float. Why again don't floats need a contact ah, I want easy map drawing.
   Potential: number;  // Voltage relative to ground .  
@@ -172,15 +174,17 @@ export class Tupel extends LinkIntoMatrix {
   }
 
   GetCarrier() {
-    return this.Carrier[Tupel.bufferId];
+    return this.CarrierCount[Tupel.bufferId];
   }
 
-  AddCarrier(val: number) {
-    this.Carrier[1 ^ Tupel.bufferId] = this.Carrier[Tupel.bufferId] + val;
+  AddCarrier(val: number, carrier: Electron) {
+    this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
+    carrier.
   }
 
-  SetCarrier(val: number) {
-    this.Carrier[1 ^ Tupel.bufferId] = val;
+  SetCarrier() {
+    this.CarrierCount[1 ^ Tupel.bufferId] = 0 //val;
+    this.Carrier=null
   }
 }
 
@@ -730,7 +734,7 @@ export class Field extends FieldToDiagonal {
     return null
   }
 
-  bufferId = 0; // like field in interlaced video. Used to double buffer the carriers
+  bufferId = 0; // like field in video. Used to double buffer the carriers instead of doing interlaced.
 
   // I feel like there already needs to be some code. For example:  fieldStatic.ts/
 

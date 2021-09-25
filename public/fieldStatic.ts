@@ -180,7 +180,7 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
 
 
                 // Payload
-                Q+=cell.Carrier[1]-cell.Carrier[0]
+                Q+=cell.CarrierCount[1]-cell.CarrierCount[0]
                 cell.Potential=potential;
               }else{
                 if (cc!=c) throw "short cut;"; 

@@ -29,8 +29,9 @@ import { Tridiagonal } from "../enforcePivot";
 import { Field, FieldToDiagonal, Tupel } from "../fields";
 import { ContactedField } from "../fieldStatic";
 
-class Electron{
+export /*pass through ref to. ToDo: empty Interface as marker*/ class Electron{
     location:[number,number] /* Tupel instead of Array<number> */ =[0,0];
+    next:Electron=null// bidirectional links uses a singly linked list .. good idea?
     derivatives=[this.location] // Verlet does not use this
     public Verlet(precedessor:Electron,successor:Electron){
         // Verlet integration senses the field at the current position for velocity+=accelertion,
@@ -55,7 +56,7 @@ class Electron{
 
 // With Navier Stokes and co. you can either sit at a location or on a particle. The code for the former is in fieldStatic.ts ( bottom, commented out)
 // Here we go with particles, which should be faster and maybe even give a coherent ( haha ) motion when jumping into coax cable.
-class Trajectory{
+export class Trajectory{
     // Although I was burned with fixed constants in the Matrix code, I (still) need them in the simulation code
     public readonly length=12;
     public electrons:Electron[]= new Electron[length]
@@ -111,9 +112,9 @@ class Trajectory{
                 }
             }
 
-            // const inner=weightCaller( l[1].f, l[1].i , (grid, w )=> { ( grid as Tupel).AddCarrier(w) }   )
-            // const outer=weightCaller( l[0].f, l[1].i , inner                       )
-            // outer( field.fieldInVarFloats, 1   /* electron has charge=1  */ )
+            const inner=weightCaller( l[1].f, l[1].i , (grid, w )=> { ( grid as Tupel).AddCarrier(w) }   )
+            const outer=weightCaller( l[0].f, l[1].i , inner                       )
+            outer( field.fieldInVarFloats, 1   /* electron has charge=1  */ )
 
             // const wi=weights()
             // direction++
@@ -157,11 +158,22 @@ class Trajectory{
             this.electrons[i].Set2(this.electrons[i-1].location)
             this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
             
-            // Todo: Remove all electrons close by ( back link from field cell ). Espcially remove self !!
+            // Todo: Remove all electrons close by ( back link from field cell ). Code looks ugly 
+            // Espcially remove self !!
+             // So I need old position of electron ah, cool I have it here. L
             // Todo: Charge density is distributed via bilinear interpolation. This is the same algorithm used in this.applyForce
+            
+            {
+                // for free space to reduce noise. Self-field just sounds awful. How to subtract free field pinned to grid? Pre - run? But this would amount to convolution and I don't like it. So only within our cell?
+                // Still, how do I pull in the field equation?  static field:: I need to run the full cycle and not nummeric, but with variables / function call backs.
+                // Simulate the current electron as if it was alone ( with its history ). So this could be expanded with group of electrons nearby and even image charge
+                 const l= this.electrons[i].location
+            field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
+            }
+
             applyForce(this.electrons[i].location, this.electrons[i-1].location)
 
-            // Set charge in field of next frame ( vector for matrix )
+            // Set charge in field of next frame ( vector for matrix ). This is needed for debugging. Later ToDo: I add a single-frame switch
             {
                 const l=this.electrons[i].location
                 const probe=field.fieldInVarFloats[l[1]][l[0]].GetCarrier() //.Carrier
@@ -203,6 +215,8 @@ class Trajectory{
     }
 }
 
+// So we inherit from Trajectory to not need to  pass  propagate()  through.
+// Or we we have this as field to construct our directed graph where core methods don't know about comfor methods ( I don't like hoisting )
 export class Cathode{
     public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
     public flow:Trajectory[]=new Trajectory[this.width];
