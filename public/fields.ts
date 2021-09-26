@@ -149,7 +149,7 @@ export class Contact extends LinkIntoMatrix {
 export class Tupel extends LinkIntoMatrix {
   // coulomb / m³  or whatever. Same unit for both
   CarrierCount: number[]; // mobile. for 6502 nfets: all negative. But I need double buffer
-  Carrier: Electron ; // nullable ref .. linked List?
+  // Linked List which may come handy, but needs a fully debugged base simulator  .  Carrier: Electron ; // nullable ref .. linked List?
   Current: number[]; // for both directions (x,y)
   Doping: number;
   static bufferId: number = 0  // todo:  static is problematic when add maps / staggered update
@@ -177,19 +177,20 @@ export class Tupel extends LinkIntoMatrix {
     return this.CarrierCount[Tupel.bufferId];
   }
 
-  AddCarrier(val: number, carrier: Electron) {
+  AddCarrier(val: number, carrier: Electron=null) {
     this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
-    carrier.
+    // carrier.next=this.Electron
+    // this.Electron=carrier
   }
 
-  SetCarrier() {
-    this.CarrierCount[1 ^ Tupel.bufferId] = 0 //val;
-    this.Carrier=null
+  SetCarrier(val:number) {
+    this.CarrierCount[1 ^ Tupel.bufferId] = val; // for surface charge on metal electrodes
+    // maybe free space optimzation, where close electrons interact via 1/r law. So I need infinitesimal math?   this.Carrier=null
   }
 }
 
 // Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
-class Metal extends Tupel {
+export class Metal extends Tupel {
 
   // I think I don't use an index, but reuse floodfill every frame
   // contact: Contact;  // because the reverse link is as difficult
@@ -222,7 +223,7 @@ export class MapForField {
   flatLength: number
   m_count: number
   // EG exampleField
-  constructor(touchTypedDescription: string[], contacts: Contact[]) {
+  constructor(touchTypedDescription: string[], contacts: Contact[]=null) {
     this.maxStringLenght = Math.max.apply(null, touchTypedDescription.map(t => t.length))
     this.flatLength = touchTypedDescription.map(t => t.length).reduce((a, c) => a + c, 0)
     this.touchTypedDescription = touchTypedDescription
@@ -294,7 +295,7 @@ export class MapForField {
 export class FieldToDiagonal extends MapForField {
   fieldInVarFloats: Tupel[][] = []
 
-  constructor(touchTypedDescription: string[], contacts: Contact[]) {
+  constructor(touchTypedDescription: string[], contacts: Contact[]=null) {
     super(touchTypedDescription, contacts); // ToDo: This parameter feedthrough came accidentally
     //this.fieldInVarFloats[0][0]=new Tupel()
     this.ConstTextToVarFloats();
@@ -318,7 +319,7 @@ export class FieldToDiagonal extends MapForField {
       const c = str.replace(/\d/, 'm')  // this is potential. Not index into wire. Wire as bonding position instead
       for (let k = 0; k < str.length; k++) {
         //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
-        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]], ['M', 0]])
+        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0], ['M', 0]])
 
         const tu = c[k] === str[k] ? new Tupel() : new Metal();
 
@@ -331,7 +332,7 @@ export class FieldToDiagonal extends MapForField {
 
         const contactId = Number.parseInt(str[k])
         if (!Number.isNaN(contactId)) {
-          (tu as Metal).contact = this.contacts[contactId] // Todo call virtual function. We do not have contacts yet
+          (tu as Metal).Contact = this.contacts[contactId] // Todo call virtual function. We do not have contacts yet
         }
 
         row[k] = tu;

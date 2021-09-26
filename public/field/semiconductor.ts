@@ -158,18 +158,19 @@ export class Trajectory{
             this.electrons[i].Set2(this.electrons[i-1].location)
             this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
             
-            // Todo: Remove all electrons close by ( back link from field cell ). Code looks ugly 
-            // Espcially remove self !!
-             // So I need old position of electron ah, cool I have it here. L
-            // Todo: Charge density is distributed via bilinear interpolation. This is the same algorithm used in this.applyForce
-            
-            {
-                // for free space to reduce noise. Self-field just sounds awful. How to subtract free field pinned to grid? Pre - run? But this would amount to convolution and I don't like it. So only within our cell?
-                // Still, how do I pull in the field equation?  static field:: I need to run the full cycle and not nummeric, but with variables / function call backs.
-                // Simulate the current electron as if it was alone ( with its history ). So this could be expanded with group of electrons nearby and even image charge
-                 const l= this.electrons[i].location
-            field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
-            }
+            // // Todo: Remove all electrons close by ( back link from field cell ). Code looks ugly 
+            // // Espcially remove self !!
+            //  // So I need old position of electron ah, cool I have it here. L
+            // // Todo: Charge density is distributed via bilinear interpolation. This is the same algorithm used in this.applyForce
+            // {
+            //     // for free space to reduce noise. Self-field just sounds awful. How to subtract free field pinned to grid? Pre - run? But this would amount to convolution and I don't like it. So only within our cell?
+            //     // Still, how do I pull in the field equation?  static field:: I need to run the full cycle and not nummeric, but with variables / function call backs.
+            //     // Simulate the current electron as if it was alone ( with its history ). So this could be expanded with group of electrons nearby and even image charge
+            //     // much cost  .. many alternative solutions ( just more electrons or more smearing of charge ).  Sounds like premature optimization and not agile. Just lets watch exploding electrons!
+            //     // Main problem is that I cannot debug this
+            //      const l= this.electrons[i].location
+            // field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
+            // }
 
             applyForce(this.electrons[i].location, this.electrons[i-1].location)
 

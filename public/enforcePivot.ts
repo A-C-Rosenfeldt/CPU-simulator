@@ -1235,14 +1235,21 @@ export class Tridiagonal implements Matrix{
     // both left half and full innerProduct (not really now, but it is --after all-- a Matrix) may make sense
     // inner product works, if the other matrix/vector is shorter. From a math point of view, I would need a Transpose function ( ToDo on demand )
     // !! not in-place !!
-    MatrixProduct(that:number[]|Tridiagonal):Tridiagonal|number[] {
+
+    // Though I the sparse Matrix multiplication is my motivation for this project
+    // I still don't want users to see different method names.
+    // Also we are not in the inner loop and thus don't need to optimize for speed
+
+    MatrixProduct(that:Tridiagonal):Tridiagonal
+    MatrixProduct(that:number[]):number[]
+    MatrixProduct<CNC extends number[]|Tridiagonal>(that:CNC):CNC {
   
         if (Array.isArray( that ) ) { // Poisson simulation uses columns. // ToDo I have no other matrix multiplication method. Todo: Remove implementation detail from function name
             const result = this.row.map(r => {
                return r.innerProduct( that )
             })
 
-            return result;
+            return result as CNC; // huh?
         } else{ // UsingTranspose   // mostly to test inverse
             const t=new Transpose(that) // hoisting. Todo: Move dependet class up
             const result=this.row.map(r=>new SeamlessWithRef(r))
@@ -1275,7 +1282,7 @@ export class Tridiagonal implements Matrix{
                 row.data=r.data_next     // 0 is removed as "not filled" in the per element writing to r.removeSeams
                 return  row //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
             })
-            return degen
+            return degen as CNC // huh?
         }            
     }
 

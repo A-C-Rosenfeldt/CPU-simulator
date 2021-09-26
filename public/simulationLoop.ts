@@ -22,7 +22,7 @@ class Simulation{
 			map.floodfills(floodedInEven, /*collect U?)*/ ) // floodfill to copy back matrix values to map for display ( or modify display code? )
 			Tupel.bufferId ^=1
 			map.fieldInVarFloats.forEach(r=>r.forEach( c=> {
-				c.SetCarrier(0)				
+				c.SetCarrier(/*mobile is always = */ 0)				
 			} )) // EE thinks of carrier as mobile charge carriers  vs  doping
 
 			{
@@ -30,23 +30,23 @@ class Simulation{
 				t.Propagate(map)
 			}
 
-			const nakedVector=[]
+			const nakedVector:number[]=[] // we have to hop through some loops to make LinAlg use vectors  instead  of our special sparse matrix variety
 			//{ // gather known data
 				//const t=map.fieldInVarFloats[0][0]
 				map.fieldInVarFloats.forEach( r=>r.forEach( f =>{ // cannot use  map  because I need a flat vector 
-				nakedVector.push(   (f.RunningNumberOfJaggedArray >=0 ) ? f.ChargeDensity :	f.Potential )
+				nakedVector.push( (  (f.RunningNumberOfJaggedArray >=0 ) ? f.ChargeDensity() :	f.Potential ) )
 				}  )) 
 			//}	
-			const onlyNowKnown=mat.MatrixProduct( nakedVector ) // chargePotential )  
+			const onlyNowKnown:number[]=mat.MatrixProduct( nakedVector ) // chargePotential )  
 			//{ // gather known data
 				//const t=map.fieldInVarFloats[0][0]
 				map.fieldInVarFloats.forEach( r=>r.forEach( f =>{ // cannot use  map  because I need a flat vector 
 				if (f.RunningNumberOfJaggedArray >=0 ) {
-					 f.ChargeDensity = onlyNowKnown.pop()
+					 f.SetCarrier( onlyNowKnown.pop() )
 					}else{
 						f.Potential =onlyNowKnown.pop()
 					}
-				}  
+				}))  
 			//}	
 	
 

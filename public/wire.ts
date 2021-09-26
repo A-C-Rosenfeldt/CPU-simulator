@@ -1,8 +1,9 @@
 /*
 For the electrodes I average U over all cells. Then impedance => current (in the global current timeStep)
 */
+import { FromRaw, Row, Span } from './enforcePivot.js'
 import {Contact} from './fields.js'
-import {FinFet} from './fieldStatic.js'
+import {ContactedField as FinFet} from './fieldStatic.js'
 
 // Todo: For Display I want to draw wires next to the patches. Use curves? Use less ressources? Bridges => netlist . How to edit?
 

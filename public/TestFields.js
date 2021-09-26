@@ -1,5 +1,5 @@
 import { Row } from './enforcePivot.js';
-import { StaticField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js';
+import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js';
 import { main } from './GL.js';
 //import 'assert'
 const print = document.getElementById('FieldsCanvas');
@@ -9,7 +9,7 @@ ctx.lineTo(200, 100);
 ctx.stroke();
 let y = 10;
 {
-    const scala = new StaticField(exampleField);
+    const scala = new MapForField(exampleField);
     var image = scala.Print(); // check 2020082401039
     ctx.putImageData(image, 1, y += 6);
     var imageGl = scala.PrintGl();
@@ -25,13 +25,13 @@ let y = 10;
     main('FieldGl0_mat', imageGl);
     const NoSwap = new Field(bandsGapped);
     // reproduce stuff from above
-    squared = NoSwap.ToSparseMatrix();
+    squared = NoSwap.ShapeToSparseMatrix();
     var imageGl = squared.PrintGl();
     main('FieldGl0_NoSwap', imageGl);
     // Constructor is too fat? Now that I parse already in the base class? ToDo!
     const tri = new Field(fieldTobeSquared);
     // reproduce stuff from above
-    squared = tri.ToSparseMatrix();
+    squared = tri.ShapeToSparseMatrix();
     var imageGl = squared.PrintGl();
     main('FieldGl0_tri', imageGl);
     // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
@@ -40,15 +40,5 @@ let y = 10;
     main('FieldGl0_tri_blank', imageGl);
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
     //squared=diag.ToMatrix()
-
-
-    // simple Greens function with individual cells around s "arena"
-    // for i=0;i<10
-    // const arena0 = new Field(arena);
-    // // reproduce stuff from above
-    // var arenaM = arena0.ToSparseMatrix();
-    // arenaM.row[0].
-    // problem: Add cables? But what if I want to externalize doping?
-    
 }
 //# sourceMappingURL=TestFields.js.map

@@ -25,7 +25,7 @@ const tri=new Field(fieldTobeSquared,null)  // from TestFields.ts
 
 // in that function use: const c = str[k] 
 // and call this:
-tri.GroupByKnowledge()
+tri.ToDoubleSquareMatrixSortByKnowledge_naive()
 // or is it a pipe?
 
 // from simple to complex
@@ -109,9 +109,9 @@ describe('sort columns all on one side', () => {
 	const checkContact=new ContactedField(metalScalar)
 
 	checkContact.lowImpedanceContacts[0].voltage=1
-	const m=checkContact.ToDoubleSquareMatrixSortByKnowledge()
+	const m=checkContact.ToDoubleSquareMatrixSortByKnowledge_naive()
 	// check
-	m.
+	//m.
 
     //const scalar=new Tridiagonal(1)
     //scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20

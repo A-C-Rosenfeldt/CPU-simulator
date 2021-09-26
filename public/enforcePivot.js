@@ -18,7 +18,7 @@ export class Span {
         this.start = s;
         //this.length=len
     }
-    // doesn't work length:number
+    // doesn't work:  length:number
     unshift(...items) {
         if (this.start) {
             if (--this.start < 0) {
@@ -366,44 +366,71 @@ export class Row {
         // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
         // check for bounds
         // todo: remove zero length
-        // fuse spans
-        for (let pass = 0;; pass++) {
-            let counter = 0;
-            start.forEach(s => {
-                const range = [s.extends.length, 0];
-                //const ranpe=ranpe.slice(0,ranpe.length)
-                // only string has trim(). And it can't even return the number of trimmed items
-                // trim 0 values
-                // todo: better two passes: over s and s reverse. That min stuff looks strange
-                s.forEach((t, i) => {
-                    if (t !== 0) {
-                        for (let d = 0; d < 2; d++) {
-                            range[d] = Math.min(range[d], i); // what is this?
-                            i = -i;
+        // trim 0 values
+        this.starts = new Array(); //counter<<1)  does not work for both types
+        this.data = new Array(); //counter)
+        { //for(let pass=0;;pass++){
+            let danglingBond = -1;
+            start.forEach((s) => {
+                if (Array.isArray(s)) {
+                    if (s[1] != 0) {
+                        if (s[0] == danglingBond + 1) {
+                            { //if (pass===1){
+                                this.starts[this.starts.length - 1]++;
+                                this.data[this.data.length].push(s[1]); //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                            }
+                        }
+                        else {
+                            { //if (pass===1){
+                                this.starts.push(s[0], s[0] + 1); // should be  in placw
+                                this.data.push([s[1]]); //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                            }
+                        }
+                        danglingBond = s[0];
+                    }
+                }
+                else {
+                    const range = [s.extends.length, 0];
+                    //const ranpe=ranpe.slice(0,ranpe.length)
+                    // only string has trim(). And it can't even return the number of trimmed items
+                    // trim 0 values
+                    // todo: better two passes: over s and s reverse. That min stuff looks strange
+                    s.forEach((t, i) => {
+                        if (t !== 0) {
+                            for (let d = 0; d < 2; d++) {
+                                range[d] = Math.min(range[d], i); // what is this?
+                                i = -i;
+                            }
+                        }
+                    });
+                    // if after trim length still > 0 ( range is a closed interval)
+                    if (range[0] <= -range[1]) {
+                        { //if (pass===1){
+                            const start = [s.start + range[0], s.start + 1 - range[1]]; // should be  in placw
+                            const value = s.extends.slice(range[0], 1 - range[1]); //  slice seems to return span.
+                            // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
+                            if (start[0] == danglingBond + 1) {
+                                this.starts[this.starts.length - 1]++;
+                                this.data[this.data.length].concat(value);
+                            }
+                            else {
+                                this.starts.push(...start);
+                                this.data.push(value); //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
+                            }
+                            danglingBond = s[0];
                         }
                     }
-                });
-                // if after trim length still > 0 ( range is a closed interval)
-                if (range[0] <= -range[1]) {
-                    if (pass === 1) {
-                        this.starts.splice(counter << 1, 2, s.start + range[0], s.start + 1 - range[1]); // should be  in placw
-                        const part = s.extends.slice(range[0], 1 - range[1]); //  slice seems to return span.
-                        // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
-                        this.data[counter] = part; //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
-                    }
-                    counter++;
                 }
             });
-            if (pass > 0) {
-                break;
-            }
-            this.starts = new Array(counter << 1);
-            this.data = new Array(counter);
+            // if (pass>0){
+            //     break
+            // }
             // fun=(s:Span<number>,range)=>{
             //     this.starts.push(s.start+range[0],s.start-range[1])
             //     this.data.push(s.slice(range[0],range[1]))
             // }
         }
+        // no such elegant method this.removeSeams() // seamless should be called to become seamless
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce((v1, v0) => v0 >= v1 ? v0 : Number.MAX_SAFE_INTEGER, 0) === Number.MAX_SAFE_INTEGER) {
             console.log(this.starts);
@@ -586,7 +613,8 @@ export class Row {
         this.data = drain.data_next;
         console.log("now in sub: " + this.starts.join('') + "->" + this.data.join(''));
     }
-    shiftedOverlay(length, delayedSWP, spans_new_Stream) {
+    // why overlay? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
+    shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn = false) {
         if (spans_new_Stream.length !== 2)
             throw "spans_new_Stream.length !== 2";
         var delayedRow = new Row([]);
@@ -846,7 +874,7 @@ export class Tridiagonal {
     getAt(row, column) {
         return this.row[row].get(column);
     }
-    swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */) {
+    swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */, dropColumn = false) {
         if (swapHalf.length > 0) { // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
             let //adapter=[]
             // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
@@ -868,7 +896,7 @@ export class Tridiagonal {
                 const spans_new_Stream = [new AllSeamless(), new AllSeamless()]; // todo: inject unit test debug moch    I copy row instead  l)
                 const length = this.row.length; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
                 // todo: this becomes a method of class Row
-                row.shiftedOverlay(length, delayedSWP, spans_new_Stream);
+                row.shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn);
                 //return spans_new_Stream
             });
         }
@@ -919,7 +947,7 @@ export class Tridiagonal {
             if (typeof inve.row[i] === "undefined") {
                 throw "inverse is undefined: " + i;
             }
-            if (this.row[i].get(i) === 0) {
+            if (Math.abs(this.row[i].get(i)) < 0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
                 throw "division by zero (matrix undefinite)";
             }
             const factor = 1 / this.row[i].get(i); // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
@@ -1022,16 +1050,14 @@ export class Tridiagonal {
         throw "use other inverse";
         // in place //return inve
     }
-    // both left half and full innerProduct (not really now, but it is --after all-- a Matrix) may make sense
-    // inner product works, if the other matrix/vector is shorter. From a math point of view, I would need a Transpose function ( ToDo on demand )
-    MatrixProductUsingTranspose(that) {
-        if (Array.isArray(that)) { // Poisson simulation uses columns
-            throw "Why would you even consider Transpose when you have dense arrays?";
-            // return this.row.map(r=>{
-            //     return r.innerProduct(that)
-            // })
+    MatrixProduct(that) {
+        if (Array.isArray(that)) { // Poisson simulation uses columns. // ToDo I have no other matrix multiplication method. Todo: Remove implementation detail from function name
+            const result = this.row.map(r => {
+                return r.innerProduct(that);
+            });
+            return result; // huh?
         }
-        else { // mostly to test inverse
+        else { // UsingTranspose   // mostly to test inverse
             const t = new Transpose(that); // hoisting. Todo: Move dependet class up
             const result = this.row.map(r => new SeamlessWithRef(r));
             let safety = 10;
@@ -1064,7 +1090,7 @@ export class Tridiagonal {
                 row.data = r.data_next; // 0 is removed as "not filled" in the per element writing to r.removeSeams
                 return row; //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
             });
-            return degen;
+            return degen; // huh?
         }
     }
 }
