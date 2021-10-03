@@ -425,10 +425,10 @@ export class FieldToDiagonal extends MapForField {
     for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
 
 
-      // indices. I think, I can keep within this loop. Data access is a hard fact, separation of concern can be achieved by means of a callback
-      for (; i_pre < i + 2; i_pre++) {
+      // indices for "down" refereces. I think, I can keep within this loop. Data access is a hard fact, separation of concern can be achieved by means of a callback
+      for (; i_pre < Math.min(i + 2,this.fieldInVarFloats.length); i_pre++) {
         const str = this.fieldInVarFloats[i_pre]
-        for (let k = 0; k < str.length; k++) { // dupe
+        for (let k = 0; k <  str.length; k++) { // dupe
           if (typeof str[k].Contact === 'object') { // flood fill has to marked all cells belonging to that electrode/contact
             str[k].RunningNumberOfJaggedArray = i_mat_pre++  // production
             // so I want to sort by local first and by type ( electrode ) second, to get a mostly diagonal matrix

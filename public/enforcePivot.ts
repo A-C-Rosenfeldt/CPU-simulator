@@ -455,18 +455,22 @@ export class Row{
         // trim 0 values
         this.starts=new Array() //counter<<1)  does not work for both types
         this.data=new Array() //counter)
+        // Used only in two places in this funtion, but very much needed to clear things up. Promote?
+        const last= (a:Array<any>) => a[a.length-1]
+        const lasi= (a:Array<any>) => a[a.length-1]++
         
         {//for(let pass=0;;pass++){
-            let danglingBond=-1
+            let danglingBond=-1  // semi-open interval. We keep a gap of size 1 because there is no data to concat to yet.
             
             start.forEach( (s: (Span<number> | number[] ))  =>{
 
                 if (Array.isArray( s )){
-                    if (s[1] != 0){
-                        if (s[0]==danglingBond+1){
+                    // Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
+                    if (s[1] != 0){ // avoid zero length intervals
+                        if (s[0]==danglingBond){ 
                                 {//if (pass===1){
-                                    this.starts[this.starts.length-1]++
-                                    this.data[this.data.length].push(s[1])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                                    lasi(this.starts)
+                                    last(this.data).push(s[1])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                                 }
                         }else{
                             {//if (pass===1){
@@ -497,12 +501,12 @@ export class Row{
                     if (range[0]<=-range[1]){
 
                         {//if (pass===1){
-                            const start=[s.start+range[0],s.start+1-range[1]] // should be  in placw
-                            const value= s.extends.slice(range[0],1-range[1]) as Array<number> //  slice seems to return span.
+                            const start=[s.start+range[0],s.start+1-range[1]]
+                            const value= s.extends.slice(range[0],1-range[1]) as Array<number>
                             // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
-                            if (start[0]==danglingBond+1){
-                                this.starts[this.starts.length-1]++
-                                this.data[this.data.length].concat(value)
+                            if (start[0]==danglingBond){
+                                lasi(this.starts)
+                                last(this.data).concat(value)
                             }else{
                                 this.starts.push(...start)
                                 this.data.push(value) //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
@@ -1080,7 +1084,8 @@ export class Tridiagonal implements Matrix{
         
         for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s /*20201117 first test: 4*/){
             const o=this.row[r]
-            if (o.starts.slice(-1)[0]>this.row.length){
+            if (typeof o==="undefined" || o.starts.slice(-1)[0]>this.row.length){
+                // o=undefined should not happen. I should probably not construct an undefined row todo..
                 console.log("Starts: "+o.starts+" > "+this.row.length)
                 throw "out of upper bound"
             }
