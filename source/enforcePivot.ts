@@ -1009,8 +1009,12 @@ export interface Matrix{
 
 export class Tridiagonal implements Matrix{
     row:Row[]
-    constructor(length:number){
-        this.row=new Array(length)
+    constructor(length:number|Row[]){
+        if (typeof length === "number")
+        {this.row=new Array(length)}
+        else[
+            this.row=length
+        ]
         //I cannot create rows
         //I do not want thousand different constructors
         //user will have to fill the array
@@ -1107,44 +1111,45 @@ export class Tridiagonal implements Matrix{
         return iD;
     }
     // due to pitch I expect the other 
-    inverse(): Tridiagonal{
-        const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
+    inverse() /* in place  : Tridiagonal*/{
+        //we run inverse on 2x1 rectangular matrix //const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
 
-        for(let i=0;i<this.row.length;i++){
-            if (inve.row.length<=i){
-                throw "outofBounds in inverse "+i
-            }
+        // I try to hide the start index of arrays in languages. Thus I need forEach
+        this.row.forEach( (rl,i)=>{
+            // if (inve.row.length<=i){
+            //     throw "outofBounds in inverse "+i
+            // }
             if (typeof this.row[i] === "undefined"){
                 throw "this is undefined: "+i
             }
-            if (typeof inve.row[i] === "undefined"){
-                throw "inverse is undefined: "+i
-            }
-            if (Math.abs(this.row[i].get(i))<0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
+            // if (typeof inve.row[i] === "undefined"){
+            //     throw "inverse is undefined: "+i
+            // }
+            if (Math.abs(rl.get(i))<0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
                 throw "division by zero (matrix undefinite)"
             }
-            const factor=1/this.row[i].get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
-            console.log("factor: "+factor+"  from "+this.row[i].data+ " and "+ inve.row[i].data);
-            [this.row[i],inve.row[i]].forEach(side=>side.scale(factor));
-            console.log("factor: "+factor+"   to  "+this.row[i].data+ " and "+ inve.row[i].data);
-            for(let k=0;k<this.row.length;k++)if (k!==i){
-               const f=this.row[k].get(i)
+            const factor=1/rl.get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
+            console.log("factor: "+factor+"  from "+rl.data );//+ " and "+ inve.row[i].data);
+            rl/* ,inve.row[i]].forEach(side=>side*/.scale(factor)//);
+            console.log("factor: "+factor+"   to  "+rl.data );//+ " and "+ inve.row[i].data);
+            this.row.forEach((rr,k)=>{ if (k!==i){
+               const f=rr.get(i)
                if (f!==0){
-                [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
+                //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                 // duplicated code leads to bugs! 2020-01-20
-                // this.row[k].sub(this.row[i],f) // ToDo: nuke column
+                rr.sub(rl,f) // ToDo: nuke column
                 // inve.row[k].sub(this.row[i],f)
                }
-            }
+            }})
         
-            for(let k=0;k<this.row.length;k++){ //if (k!==i){
-                const f=this.row[k].get(i);
+            this.row.forEach((rr,k)=>{
+                const f=rr.get(i);
                 const s= (k===i) ?1:0;
                 if (Math.abs(f-s)>0.001){
                     throw "column not empty i/live: "+f+" should be "+s
                 }
-             }
-        }
+             })
+        })
 
         console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
         for(let i=0;i<this.row.length>>1;i++){
@@ -1157,7 +1162,7 @@ export class Tridiagonal implements Matrix{
              }
         }
 
-        return inve
+      //  return inve
     }
     // ToDo on demand
     //inverseWithPivot(): void {

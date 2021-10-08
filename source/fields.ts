@@ -568,7 +568,7 @@ export class FieldToDiagonal extends MapForField {
 
 
 export class Field extends FieldToDiagonal {
-  ToDoubleSquareMatrixSortByKnowledge_naive(): Tridiagonal[]{  //  for some reason I decided against Matric[] {
+  ToDoubleSquareMatrixSortByKnowledge_naive(): Tridiagonal { // we would need to join rows : []{  //  for some reason I decided against Matric[] {
 
     this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )
     // Now the shape on left hand side should have "holes"? Jagged is not enough to describe this .. Jagged is all I got for free from the programming language
@@ -577,6 +577,7 @@ export class Field extends FieldToDiagonal {
     // array: position in Matrix
 
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
+    //const mr=
     Field.AugmentMatrix_with_Unity(m) // this should create two Matrices to be compatible with swap columns and MatrixMultiply  //  itself:   unity &* chargeDensity = LaPlace &* voltage
     //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
 
@@ -616,7 +617,7 @@ export class Field extends FieldToDiagonal {
     // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
     // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
     //throw "616 not implemented"
-    return m; // null
+    return [m,mr]; // null
   }
 
   CreateSides() {
@@ -665,9 +666,20 @@ export class Field extends FieldToDiagonal {
 
   // for testing. Pure function
   // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
-  public static AugmentMatrix_with_Unity(M: Tridiagonal):Tridiagonal {
+  public static AugmentMatrix_with_Unity(M: Tridiagonal) /* :Tridiagonal  ugly join needed */ {
+
+    // const om:Row[] = M.row.map((r, i) => {
+    //   //const s=new Span<number>(1,i)
+    //   const or=new Row([[i,i+1]]);
+    //   or.data=[[1]]
+    //   return or
+ 
+    // })
+    // const other = new Tridiagonal(om)
+    // return other;
+
     const other = new Tridiagonal(M.row.length)
-    M.row.forEach((r, i) => {
+    const rows=M.row.forEach((r, i) => {
       r.data.push([1])
       const s = M.row.length + i
       r.starts.push(s)
@@ -703,7 +715,7 @@ export class Field extends FieldToDiagonal {
   // Depending on the number of (un) known  ( var  vs const )  columns ( at least in tests, maybe also in later applications),
   // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
   public GroupByKnowledge(M: Tridiagonal, dropColumn = false) {
-    this.M = M;
+    // todo: static function?  this.M = M;
 
     M.row.forEach((r, i) => {
       this.i = i;
