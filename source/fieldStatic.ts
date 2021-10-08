@@ -1,9 +1,9 @@
-import {Tridiagonal, Span, Row, FromRaw} from './enforcePivot.js'
-import {Wire} from './wire.js'  // kind of hoisting. I need to criss cross import for parent-child  relation
+import {Tridiagonal, Span, Row, FromRaw} from './enforcePivot'
+import {Wire} from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
 import {SimpleImage} from './GL'
-import './field/semiconductor.js'
-import './field/metal.js'
-import { Field , Contact, Tupel, Metal} from './fields.js'
+import './field/semiconductor'
+import './field/metal'
+import { Field , Contact, Tupel, Metal} from './fields'
 
 class LowImpedanceContact extends Contact{
   voltage:number

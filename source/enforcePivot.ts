@@ -732,7 +732,7 @@ export class Row{
         console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
 
-    // why overlay? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
+    // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
     public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[], dropColumn=false) {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
@@ -740,12 +740,10 @@ export class Row{
         delayedRow.data = this.data
         delayedRow.starts = this.starts.map(s => s + (length >> 1)) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
 
-
         //join starts and swap
         const l = this.starts.length >> 1
         //for(let half=0;half<l;half+=l>>1){
         let jop = new JoinOperatorIterator(this.starts, delayedRow.starts, delayedSWP /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
-
 
         // ^ so this is one indirection less then needed
         // gotta change  FillValues.ValueSpanStartInMatrix 
@@ -1041,6 +1039,7 @@ export class Tridiagonal implements Matrix{
         return this.row[row].get(column);
     }
 
+    // Todo: make the same as [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
     public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */, dropColumn=false){
         if (swapHalf.length>0){ // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
         let //adapter=[]
@@ -1065,6 +1064,7 @@ export class Tridiagonal implements Matrix{
             const length=this.row.length ; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
             
             // todo: this becomes a method of class Row
+            // What does "Overlay" mean?
             row.shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn)
             //return spans_new_Stream
         })

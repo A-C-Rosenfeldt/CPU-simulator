@@ -41,7 +41,9 @@
   },
   "scripts": {
     "test": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" TS_NODE_PREFER_TS_EXTS=\"true\" npm run childTest",
-    "childTest": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && mocha --require ts-node/register test/*.ts"
+    "childTest": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && mocha --require ts-node/register test/*.ts",
+    "testW" : "node node_modules/mocha/bin/mocha",
+    "childR": "mocha --require ts-node/register test/*.ts"
   },
   "dependencies": {
     "express": "^4.17.1"

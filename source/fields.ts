@@ -1,9 +1,9 @@
-import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot.js'
+import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot'
 import { Wire } from './wire.js'  // kind of hoisting. I need to criss cross import for parent-child  relation
 import { SimpleImage } from './GL'
-import './field/semiconductor.js'
-import './field/metal.js'
-import { Electron } from './field/semiconductor.js'
+import './field/semiconductor'
+import './field/metal'
+import { Electron } from './field/semiconductor'
 
 /*
 read from 
@@ -568,7 +568,7 @@ export class FieldToDiagonal extends MapForField {
 
 
 export class Field extends FieldToDiagonal {
-  ToDoubleSquareMatrixSortByKnowledge_naive(): Tridiagonal[] {
+  ToDoubleSquareMatrixSortByKnowledge_naive(): Tridiagonal[]{  //  for some reason I decided against Matric[] {
 
     this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )
     // Now the shape on left hand side should have "holes"? Jagged is not enough to describe this .. Jagged is all I got for free from the programming language
@@ -577,8 +577,10 @@ export class Field extends FieldToDiagonal {
     // array: position in Matrix
 
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
-    Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
+    Field.AugmentMatrix_with_Unity(m) // this should create two Matrices to be compatible with swap columns and MatrixMultiply  //  itself:   unity &* chargeDensity = LaPlace &* voltage
     //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
+
+    // shiftedOverlay uses Seamless[2]
     this.GroupByKnowledge(m)  // I still need the mapping to loop over and set random values ( with a given seed )
     // Okay not really. We not only don't solve for U at electrode cells, but also don't try to satisfy poisson there
     // So in reality we filter and we do it in Field and not in some Matrix code. Matrix inversion needs square matrix and it is already difficult enough to detect indefinite matrices ( where they coome from ) that I do not want LU stuff for fixed values which only happen in tests.
@@ -613,8 +615,8 @@ export class Field extends FieldToDiagonal {
     // So why not already supply the known columns and avoid this  unmotivated  create new unity matrix in Gauss-Jordan?
     // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
     // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
-    throw "not implemented"
-    return null
+    //throw "616 not implemented"
+    return m; // null
   }
 
   CreateSides() {
@@ -636,7 +638,7 @@ export class Field extends FieldToDiagonal {
     // So why not already supply the known columns and avoid this  unmotivated  create new unity matrix in Gauss-Jordan?
     // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
     // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
-    throw "not implemented"
+    throw "639 not implemented"
     return null
   }
 
@@ -663,13 +665,15 @@ export class Field extends FieldToDiagonal {
 
   // for testing. Pure function
   // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
-  public static AugmentMatrix_with_Unity(M: Tridiagonal) {
+  public static AugmentMatrix_with_Unity(M: Tridiagonal):Tridiagonal {
+    const other = new Tridiagonal(M.row.length)
     M.row.forEach((r, i) => {
       r.data.push([1])
       const s = M.row.length + i
       r.starts.push(s)
       r.starts.push(s + 1)
     })
+    return other
   }
 
   // right now this only does swaps between two groups:{ (un-)known }

@@ -59,7 +59,8 @@
             "request": "launch",
             "runtimeArgs": [
                 "test",
-                "inspect"
+                "inspect",
+                "scripts-prepend-node-path"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
