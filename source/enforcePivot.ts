@@ -436,14 +436,31 @@ class Passes{
     }
 }
 
+// Clone in JS. I know that it is okay with Row and Matrix. Better not apply recursively on graphs which are not trees!
+// https://javascript.plainenglish.io/deep-clone-an-object-and-preserve-its-type-with-typescript-d488c35e5574
+export class cloneable {
+    public static deepCopy<T>(source: T): T {
+      return Array.isArray(source)
+      ? source.map(item => this.deepCopy(item))
+    //   : source instanceof Date
+    //   ? new Date(source.getTime())
+      : source && typeof source === 'object'
+            ? Object.getOwnPropertyNames(source).reduce((o, prop) => {
+               Object.defineProperty(o, prop, Object.getOwnPropertyDescriptor(source, prop)!);
+               o[prop] = this.deepCopy((source as { [key: string]: any })[prop]);
+               return o;
+            }, Object.create(Object.getPrototypeOf(source)))
+      : source as T;
+    }
+  }
 export class Row{
     starts:number[] //= [0,0,0,0,0,0]; // vs GC, number of test cases
     //ranges=[[0,1],[2,3],[4,5]]
     data:number[][] //= [[],[],[]] 
 
+    // flattens the starts for the join. Adapter to work with partial differential equation of field
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
-    // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
     constructor(start:Span<number>[] | number[][] ){//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
@@ -1110,8 +1127,20 @@ export class Tridiagonal implements Matrix{
         }
         return iD;
     }
-    // due to pitch I expect the other 
-    inverse() /* in place  : Tridiagonal*/{
+
+
+    AugmentMatrix_with_Unity(){
+        const M=this
+        const rows=M.row.forEach((r, i) => {
+            r.data.push([1])
+            const s = M.row.length + i
+            r.starts.push(s)
+            r.starts.push(s + 1)
+          })
+    }
+
+    // Only works on rectangular matrix. Inverse is a sideeffect in the right columns if you called "AugmentMatrix_with_Unity" before. Can only call it once. But 
+    inverseRectangular() /* in place  : Tridiagonal*/{
         //we run inverse on 2x1 rectangular matrix //const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
 
         // I try to hide the start index of arrays in languages. Thus I need forEach
@@ -1164,6 +1193,20 @@ export class Tridiagonal implements Matrix{
 
       //  return inve
     }
+
+
+    // for unit test
+    inverse(){
+        const M=cloneable.deepCopy(this)
+        // clone .. for the multiplication tests. Deep Clone: Rows, start, data
+        this.AugmentMatrix_with_Unity()
+        this.inverseRectangular()
+        // return right half of clone
+        return this.row[0].splitAtSeam(this.row.length )[1]  // todo
+    }
+    
+    
+
     // ToDo on demand
     //inverseWithPivot(): void {
         // What is this pivot thing anyway? Double wide matrix. Check for largest element with unknown column header. Clear other entries in this column.

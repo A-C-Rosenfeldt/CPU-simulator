@@ -603,7 +603,7 @@ export class Field extends FieldToDiagonal {
     // With R:  Q_withCarriers +  ( U-U_connected ) / R  // this is the new row. It is even normal with Q on lhs and R on rhs
     //   Here also U moves over to lhs and makes our matrix square => invertable
     // The above method GroupByKnowledge() looks good. We just add our row, won't we?
-    m.inverse
+    m.inverseRectangular
     var statics = [3, 4, 5] // this -> static value vector
     m.MatrixProduct(statics);
 
@@ -617,7 +617,7 @@ export class Field extends FieldToDiagonal {
     // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
     // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
     //throw "616 not implemented"
-    return [m,mr]; // null
+    return m // null
   }
 
   CreateSides() {
@@ -668,6 +668,11 @@ export class Field extends FieldToDiagonal {
   // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
   public static AugmentMatrix_with_Unity(M: Tridiagonal) /* :Tridiagonal  ugly join needed */ {
 
+
+    M.AugmentMatrix_with_Unity()
+    return
+    // Todo
+
     // const om:Row[] = M.row.map((r, i) => {
     //   //const s=new Span<number>(1,i)
     //   const or=new Row([[i,i+1]]);
@@ -678,14 +683,14 @@ export class Field extends FieldToDiagonal {
     // const other = new Tridiagonal(om)
     // return other;
 
-    const other = new Tridiagonal(M.row.length)
+//    const other = new Tridiagonal(M.row.length)
     const rows=M.row.forEach((r, i) => {
       r.data.push([1])
       const s = M.row.length + i
       r.starts.push(s)
       r.starts.push(s + 1)
     })
-    return other
+    // this would lead to joins  //  return other
   }
 
   // right now this only does swaps between two groups:{ (un-)known }
