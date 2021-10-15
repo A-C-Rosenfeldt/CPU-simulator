@@ -637,14 +637,75 @@ export class Row{
         }
     }
 
-    // // to toggle between sub (inverse) and swap (conversion from field)
-    // sub may have removed seams?
-    splitAtSeam(pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
-        const jop=new JoinOperatorIterator(this.starts,[pos]) // source stream  ToDo use this instead of code below
-        
-        while(  (pos = jop.next()) < pos ){}
+    // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
+    // sub() may have removed seams
+    // similar to   shiftedOverlay()  .. Simpler and does not swap. So noswap, filter version . How to combine? RemoveSeams is called in there
+    splitAtSeam(side:number,pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
 
-        return null //new Row(0);
+        const rr=new Array<Row>() //.fill( new Row([]) ) //cloneable.deepCopy(this))
+
+        var i=0
+        while(i< this.starts.length && this.starts[i]<pos) { i++ }
+
+        var r=new Row([])        
+        if (side==0){
+            r.starts = this.starts.slice(0,i)
+            r.data=this.data.slice(0,i>>1)
+            var ultra = r.starts.length - 1
+        }else{
+            r.starts=this.starts.slice(i)
+            r.data=this.data.slice(i>>1)
+            ultra=0                
+        }
+        //for(var side=0;side++;side<2){
+        if (i&1){                
+            var l=pos-r.starts[ultra]  // todo: search for last()
+            if (l!=0){
+                r.starts.push(pos)
+                r.data.push(this.data[i>>1].slice(l))
+            }
+        }
+        //}
+        return r
+
+        //remove zero length
+
+       
+        rr[0].starts.push(pos)  // this is all checked in JoinOperatorITerator. I hate to do it here
+        rr[1].starts.slice(i)
+        rr[1].starts.unshift(pos) // this is all checked in JoinOperatorITerator. I hate to do it here
+
+
+
+
+        // rr[0].starts.forEach((s,i))
+
+
+        // this also does not distinguish between start filled  vd  start empty
+        // jop has active source. 
+        const jop=new JoinOperatorIterator(this.starts,[pos]) // does starts+data(no it does not), avoids zero length ( while also avoiding edge cases )
+        // // todo: No Start yet. Where is that
+        // const startss=new Array<Row>()
+        // var rl:number
+        // var seam=pos
+        // do{
+        //     var starts=new Array<Number>()            
+        //     while(  (rl = jop.next()) < seam ){
+        //         starts.push( rl )
+        //         // where is data?
+        //     }
+        //     const r=new Row([])
+        //     r.starts=starts
+
+
+        //     startss.push(t)
+        //     seam=this.starts[this.starts.length]
+        // }while( startss.length<2) // caller expects this 
+    
+        // //I need to get rid of pointers and iterators
+        // // constructor takes number[][] .. somehow I need something in between lying array and spans
+        // const testPoint=startss.map(start=>new Row(start))
+        // return null //new Row(0);
     }
 
     // trying to avoid  join  artifacts
@@ -750,7 +811,7 @@ export class Row{
     }
 
     // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
-    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[], dropColumn=false) {
+    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[] /* out parameter */, dropColumn=false) {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
         // rename trick //const row=this
@@ -1202,7 +1263,7 @@ export class Tridiagonal implements Matrix{
         this.AugmentMatrix_with_Unity()
         this.inverseRectangular()
         // return right half of clone
-        return this.row[0].splitAtSeam(this.row.length )[1]  // todo
+        return this.row[0].splitAtSeam(1,this.row.length )
     }
     
     
