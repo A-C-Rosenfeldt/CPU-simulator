@@ -637,20 +637,24 @@ export class Row{
         }
     }
 
+    // similar to   shiftedOverlay()  .. only returns one half and does not swap anything within
+    // Only one seam, so less loops ( for the other method I would need to place the code in a different project and don't let the debugger go in there, but instead show CI test results )
+    // Todo: Make this a test/case wrapper for orderByKnowledge(back)
+    //  ButThen: It is so short, humble and easy to debug and can probably create good error messages
     // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
     // sub() may have removed seams
-    // similar to   shiftedOverlay()  .. Simpler and does not swap. So noswap, filter version . How to combine? RemoveSeams is called in there
+    //. So noswap, filter version . How to combine? RemoveSeams is called in there
     splitAtSeam(side:number,pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
 
         const rr=new Array<Row>() //.fill( new Row([]) ) //cloneable.deepCopy(this))
 
         var i=0
-        while(i< this.starts.length && this.starts[i]<pos) { i++ }
+        while(i< this.starts.length && this.starts[i]<pos) { i++ }  // orderByKnowledge has halves for this
 
         var r=new Row([])        
         if (side==0){
             r.starts = this.starts.slice(0,i)
-            r.data=this.data.slice(0,i>>1)
+            r.data=this.data.slice(0,i>>1) // like in orderByKnowledge. No spurious +1 or anything
             var ultra = r.starts.length - 1
         }else{
             r.starts=this.starts.slice(i)
@@ -1255,19 +1259,18 @@ export class Tridiagonal implements Matrix{
       //  return inve
     }
 
-
     // for unit test
-    inverse(){
+    inverse(): Tridiagonal{
         const M=cloneable.deepCopy(this)
         // clone .. for the multiplication tests. Deep Clone: Rows, start, data
-        this.AugmentMatrix_with_Unity()
-        this.inverseRectangular()
+        M.AugmentMatrix_with_Unity()
+        M.inverseRectangular()
         // return right half of clone
-        return this.row[0].splitAtSeam(1,this.row.length )
+        const M2=new Tridiagonal(0) // split does not work in place because it may need space at the seam
+        M2.row=M.row.map(r=>r.splitAtSeam(1,this.row.length ))
+        return M2
     }
     
-    
-
     // ToDo on demand
     //inverseWithPivot(): void {
         // What is this pivot thing anyway? Double wide matrix. Check for largest element with unknown column header. Clear other entries in this column.

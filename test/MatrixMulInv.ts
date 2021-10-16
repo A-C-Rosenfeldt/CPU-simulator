@@ -326,8 +326,7 @@ describe('Multiply', () => {
 
 	it('invert unit', () => {
 		expect(unit.getAt(0,0)).approximately(5,0.001)
-		unit.augmentWithUnit();39339
-		const inverse=unit.inverseRectangular()
+		const inverse=unit.inverse(); // calls Rectangular() internally
 		expect(unit.getAt(0,0)).approximately(1,0.001)
 		  expect(inverse.getAt(0,0)).approximately(0.2,0.001)
 		  expect(inverse.getAt(1,1)).approximately(0.2,0.001)
@@ -369,7 +368,7 @@ describe('Inverse', () => {
 		let i=-1
 		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4]]
 		const det=4
-		let inverse=dense.inverseRectangular()
+		let inverse=dense.inverse()
 		let j=-1
 		console.log(inverse.row[++j].data[0].map(x=>x*det))
 
@@ -384,7 +383,7 @@ describe('Inverse', () => {
 		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4,5]]
 		dense.row[++i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[8,9]]
 		const det=4*9-5*8
-		let inverse=dense.inverseRectangular()
+		let inverse=dense.inverse()
 		let j=-1
 		console.log("raw*det: " +inverse.row[++j].data[0].map(x=>x*det))
 		console.log("raw*det: "+inverse.row[++j].data[0].map(x=>x*det))
@@ -416,7 +415,7 @@ describe('Inverse', () => {
 			dense.row[i]=new Row([]);dense.row[i].starts=[0,size];dense.row[i].data=[[4+i,7+i,5+i]]
 			dense.row[i].data[0][i]+=3 // in my application the main diagonal is supposed to dominate. Todo: instead of "enforcePivot", maybe check Pivot beforehand?
 		}
-		const inverse=dense.inverseRectangular()
+		const inverse=dense.inverse()
         // for (let i = 0; i < size; i++) {
 		// 	expect(dense.row[i].starts).deep.eq( [0, size] );
 		// 	const literal=dense.row[i].data[0]
