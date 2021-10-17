@@ -327,7 +327,7 @@ describe('Multiply', () => {
 	it('invert unit', () => {
 		expect(unit.getAt(0,0)).approximately(5,0.001)
 		const inverse=unit.inverse(); // calls Rectangular() internally
-		expect(unit.getAt(0,0)).approximately(1,0.001)
+		expect(unit.getAt(0,0)).approximately(5,0.001)
 		  expect(inverse.getAt(0,0)).approximately(0.2,0.001)
 		  expect(inverse.getAt(1,1)).approximately(0.2,0.001)
 	})

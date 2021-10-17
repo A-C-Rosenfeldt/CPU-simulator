@@ -5,17 +5,18 @@ import './field/semiconductor'
 import './field/metal'
 import { Field , Contact, Tupel, Metal} from './fields'
 
-class LowImpedanceContact extends Contact{
-  voltage:number
-  /*
-  for coax with impedance
-	coords:number[];
-	constructor(x:number,y:number){
-    super()
-		this.coords=[x,y]
-  }
-  */
-}
+// // I think this has moved into fields to avoid unnecessary indirection
+// class LowImpedanceContact extends Contact{
+//   voltage:number
+//   /*
+//   for coax with impedance
+// 	coords:number[];
+// 	constructor(x:number,y:number){
+//     super()
+// 		this.coords=[x,y]
+//   }
+//   */
+// }
 
 class Paint{
   contact:Contact|number
@@ -32,7 +33,7 @@ export class ContactedField extends FieldWMatrix{
   // Test order is: FieldToMatrix, Matrix inverse
 // There is no common interface later on because 50Ohm contact ends on the other side of the linear equation
 // still polymorph? I man, Contact just adds a serial resistor in front of low impedance contact.
-public lowImpedanceContacts:LowImpedanceContact[]
+public lowImpedanceContacts:Contact[]
 // which numbers in the string literal correspond to low impedance? GND, VCC and for historical reasons: +12 +5 0 -5 -12
 // Or more like 5 and 3.3 ?
 
@@ -51,17 +52,18 @@ constructor(touchTypedDescription:string[], contacts?:Contact[] /* derived class
   }
   */
 
- if (!contacts){ // undefined because no parameter given or  (null because i dunno? )
-  contacts = []
-  for(let i=0;i<5;i++){
-    const c=new LowImpedanceContact();
-    c.voltage=i // keep it simple.
-    Contact[i]=c;
-  }
- }
+//  if (!contacts){ // undefined because no parameter given or  (null because i dunno? )
+//   contacts = []
+//   for(let i=0;i<5;i++){
+//     const c=new LowImpedanceContact();
+//     c.voltage=i // keep it simple.
+//     contacts[i]=c;
+//   }
+//  }
 
 	super(touchTypedDescription, contacts);
 
+  this.lowImpedanceContacts=contacts;
   }
 
   // no input from matrix. Move to super?

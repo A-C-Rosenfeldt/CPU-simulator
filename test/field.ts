@@ -108,7 +108,9 @@ describe('sort columns all on one side', () => {
   
 	const checkContact=new ContactedField(metalScalar)
 
-	checkContact.lowImpedanceContacts[0].voltage=1
+	// 2020 Version checkContact.lowImpedanceContacts[0].voltage=1
+	checkContact.fieldInVarFloats[0][0].Potential=1  // 2021 Version
+
 	const m=checkContact.ToDoubleSquareMatrixSortByKnowledge_naive()
 	// check
 	//m.

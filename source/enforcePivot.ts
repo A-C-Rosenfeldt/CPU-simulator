@@ -458,6 +458,15 @@ export class Row{
     //ranges=[[0,1],[2,3],[4,5]]
     data:number[][] //= [[],[],[]] 
 
+    // for easy access from local variable
+    public last(a:Array<any>):any {
+        return a[a.length-1]
+    }
+
+    public lastSet(a:Array<any>,v):void {
+        a[a.length-1]=v
+    }
+
     // flattens the starts for the join. Adapter to work with partial differential equation of field
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
@@ -638,13 +647,15 @@ export class Row{
     }
 
     // similar to   shiftedOverlay()  .. only returns one half and does not swap anything within
+    // Oh, what do we do? Have a seam between left and right .. but at least not have a zero length span. Augment is buggy
+    // Oh, it just got more complicated
     // Only one seam, so less loops ( for the other method I would need to place the code in a different project and don't let the debugger go in there, but instead show CI test results )
     // Todo: Make this a test/case wrapper for orderByKnowledge(back)
     //  ButThen: It is so short, humble and easy to debug and can probably create good error messages
     // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
     // sub() may have removed seams
     //. So noswap, filter version . How to combine? RemoveSeams is called in there
-    splitAtSeam(side:number,pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
+    split(side:number,pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
 
         const rr=new Array<Row>() //.fill( new Row([]) ) //cloneable.deepCopy(this))
 
@@ -658,18 +669,27 @@ export class Row{
             var ultra = r.starts.length - 1
         }else{
             r.starts=this.starts.slice(i)
-            r.data=this.data.slice(i>>1)
+            r.data=this.data.slice((i+1)>>1)  // ceil()
             ultra=0                
         }
         //for(var side=0;side++;side<2){
         if (i&1){                
             var l=pos-r.starts[ultra]  // todo: search for last()
             if (l!=0){
-                r.starts.push(pos)
-                r.data.push(this.data[i>>1].slice(l))
+                if (side==0){
+                    r.starts.push(pos)
+                    r.data.push(this.data[i>>1].slice(0,l))
+                }else{
+                    r.starts.unshift(pos)
+                    r.data.unshift(this.data[i>>1].slice(l))
+                }            
             }
         }
-        //}
+
+        // I thinks this is also different in join. The swap array is mirrored, but the result is not pulled back to origin 
+        if (side==1){
+            r.starts.forEach((s,i)=>{ r.starts[i]-=pos  })
+        }
         return r
 
         //remove zero length
@@ -1194,13 +1214,24 @@ export class Tridiagonal implements Matrix{
     }
 
 
+    // opposite of split()
+    // todo: write tests
     AugmentMatrix_with_Unity(){
         const M=this
         const rows=M.row.forEach((r, i) => {
-            r.data.push([1])
             const s = M.row.length + i
-            r.starts.push(s)
-            r.starts.push(s + 1)
+            if ( r.last(r.starts) < s ) {
+                r.starts.push(s)  // uh, do I have to accept seams or do I fuse left and right?
+                r.starts.push(s + 1)
+                r.data.push([1])
+            }else{
+                if ((r.starts.length & 1) != 0){                    
+                    throw "no fill up zeros span allowed because zero is default"
+                }else{
+                    r.last(r.data).push(1)
+                    r.lastSet(r.starts,s+1)
+                }
+            }
           })
     }
 
@@ -1267,7 +1298,7 @@ export class Tridiagonal implements Matrix{
         M.inverseRectangular()
         // return right half of clone
         const M2=new Tridiagonal(0) // split does not work in place because it may need space at the seam
-        M2.row=M.row.map(r=>r.splitAtSeam(1,this.row.length ))
+        M2.row=M.row.map(r=>r.split(1,this.row.length ))
         return M2
     }
     
