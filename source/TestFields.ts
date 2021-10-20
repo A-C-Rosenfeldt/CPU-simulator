@@ -3,6 +3,8 @@ import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, ba
 import { main } from './GL.js';
 //import 'assert'
 
+console.log("in TestFields.ts")
+
 const print=document.getElementById('FieldsCanvas') as (HTMLCanvasElement) ;
 var ctx = print.getContext("2d");
 ctx.moveTo(0, 0);

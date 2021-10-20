@@ -355,10 +355,27 @@ class Passes {
         // fills concater
     }
 }
+// Clone in JS. I know that it is okay with Row and Matrix. Better not apply recursively on graphs which are not trees!
+// https://javascript.plainenglish.io/deep-clone-an-object-and-preserve-its-type-with-typescript-d488c35e5574
+export class cloneable {
+    static deepCopy(source) {
+        return Array.isArray(source)
+            ? source.map(item => this.deepCopy(item))
+            //   : source instanceof Date
+            //   ? new Date(source.getTime())
+            : source && typeof source === 'object'
+                ? Object.getOwnPropertyNames(source).reduce((o, prop) => {
+                    Object.defineProperty(o, prop, Object.getOwnPropertyDescriptor(source, prop));
+                    o[prop] = this.deepCopy(source[prop]);
+                    return o;
+                }, Object.create(Object.getPrototypeOf(source)))
+                : source;
+    }
+}
 export class Row {
+    // flattens the starts for the join. Adapter to work with partial differential equation of field
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
-    // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
     constructor(start) {
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
@@ -440,6 +457,13 @@ export class Row {
             console.log(this.starts);
             throw "no order";
         }
+    }
+    // for easy access from local variable
+    last(a) {
+        return a[a.length - 1];
+    }
+    lastSet(a, v) {
+        a[a.length - 1] = v;
     }
     static Single(pos, b) {
         const a = //new Array<Span<number>>(3)
@@ -525,12 +549,78 @@ export class Row {
             this.data.forEach(segment => segment.forEach((value, i) => segment[i] *= factor));
         }
     }
-    // // to toggle between sub (inverse) and swap (conversion from field)
-    // sub may have removed seams?
-    splitAtSeam(pos /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */) {
-        const jop = new JoinOperatorIterator(this.starts, [pos]); // source stream  ToDo use this instead of code below
-        while ((pos = jop.next()) < pos) { }
-        return null; //new Row(0);
+    // similar to   shiftedOverlay()  .. only returns one half and does not swap anything within
+    // Oh, what do we do? Have a seam between left and right .. but at least not have a zero length span. Augment is buggy
+    // Oh, it just got more complicated
+    // Only one seam, so less loops ( for the other method I would need to place the code in a different project and don't let the debugger go in there, but instead show CI test results )
+    // Todo: Make this a test/case wrapper for orderByKnowledge(back)
+    //  ButThen: It is so short, humble and easy to debug and can probably create good error messages
+    // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
+    // sub() may have removed seams
+    //. So noswap, filter version . How to combine? RemoveSeams is called in there
+    split(side, pos /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */) {
+        const rr = new Array(); //.fill( new Row([]) ) //cloneable.deepCopy(this))
+        var i = 0;
+        while (i < this.starts.length && this.starts[i] < pos) {
+            i++;
+        } // orderByKnowledge has halves for this
+        var r = new Row([]);
+        if (side == 0) {
+            r.starts = this.starts.slice(0, i);
+            r.data = this.data.slice(0, i >> 1); // like in orderByKnowledge. No spurious +1 or anything
+            var ultra = r.starts.length - 1;
+        }
+        else {
+            r.starts = this.starts.slice(i);
+            r.data = this.data.slice((i + 1) >> 1); // ceil()
+            ultra = 0;
+        }
+        //for(var side=0;side++;side<2){
+        if (i & 1) {
+            var l = pos - r.starts[ultra]; // todo: search for last()
+            if (l != 0) {
+                if (side == 0) {
+                    r.starts.push(pos);
+                    r.data.push(this.data[i >> 1].slice(0, l));
+                }
+                else {
+                    r.starts.unshift(pos);
+                    r.data.unshift(this.data[i >> 1].slice(l));
+                }
+            }
+        }
+        // I thinks this is also different in join. The swap array is mirrored, but the result is not pulled back to origin 
+        if (side == 1) {
+            r.starts.forEach((s, i) => { r.starts[i] -= pos; });
+        }
+        return r;
+        //remove zero length
+        rr[0].starts.push(pos); // this is all checked in JoinOperatorITerator. I hate to do it here
+        rr[1].starts.slice(i);
+        rr[1].starts.unshift(pos); // this is all checked in JoinOperatorITerator. I hate to do it here
+        // rr[0].starts.forEach((s,i))
+        // this also does not distinguish between start filled  vd  start empty
+        // jop has active source. 
+        const jop = new JoinOperatorIterator(this.starts, [pos]); // does starts+data(no it does not), avoids zero length ( while also avoiding edge cases )
+        // // todo: No Start yet. Where is that
+        // const startss=new Array<Row>()
+        // var rl:number
+        // var seam=pos
+        // do{
+        //     var starts=new Array<Number>()            
+        //     while(  (rl = jop.next()) < seam ){
+        //         starts.push( rl )
+        //         // where is data?
+        //     }
+        //     const r=new Row([])
+        //     r.starts=starts
+        //     startss.push(t)
+        //     seam=this.starts[this.starts.length]
+        // }while( startss.length<2) // caller expects this 
+        // //I need to get rid of pointers and iterators
+        // // constructor takes number[][] .. somehow I need something in between lying array and spans
+        // const testPoint=startss.map(start=>new Row(start))
+        // return null //new Row(0);
     }
     // trying to avoid  join  artifacts
     extendUnity(pos) {
@@ -617,8 +707,8 @@ export class Row {
         this.data = drain.data_next;
         console.log("now in sub: " + this.starts.join('') + "->" + this.data.join(''));
     }
-    // why overlay? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
-    shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn = false) {
+    // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
+    shiftedOverlay(length, delayedSWP, spans_new_Stream /* out parameter */, dropColumn = false) {
         if (spans_new_Stream.length !== 2)
             throw "spans_new_Stream.length !== 2";
         var delayedRow = new Row([]);
@@ -853,7 +943,13 @@ export class Row {
 Row.printScale = 30;
 export class Tridiagonal {
     constructor(length) {
-        this.row = new Array(length);
+        if (typeof length === "number") {
+            this.row = new Array(length);
+        }
+        else
+            [
+                this.row = length
+            ];
         //I cannot create rows
         //I do not want thousand different constructors
         //user will have to fill the array
@@ -878,6 +974,7 @@ export class Tridiagonal {
     getAt(row, column) {
         return this.row[row].get(column);
     }
+    // Todo: make the same as [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
     swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */, dropColumn = false) {
         if (swapHalf.length > 0) { // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
             let //adapter=[]
@@ -900,6 +997,7 @@ export class Tridiagonal {
                 const spans_new_Stream = [new AllSeamless(), new AllSeamless()]; // todo: inject unit test debug moch    I copy row instead  l)
                 const length = this.row.length; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
                 // todo: this becomes a method of class Row
+                // What does "Overlay" mean?
                 row.shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn);
                 //return spans_new_Stream
             });
@@ -939,44 +1037,68 @@ export class Tridiagonal {
         }
         return iD;
     }
-    // due to pitch I expect the other 
-    inverse() {
-        const inve = new Tridiagonal(this.row.length).setTo1(); // I may want to merge the runlength encoders?
-        for (let i = 0; i < this.row.length; i++) {
-            if (inve.row.length <= i) {
-                throw "outofBounds in inverse " + i;
+    // opposite of split()
+    // todo: write tests
+    AugmentMatrix_with_Unity() {
+        const M = this;
+        const rows = M.row.forEach((r, i) => {
+            const s = M.row.length + i;
+            if (r.last(r.starts) < s) {
+                r.starts.push(s); // uh, do I have to accept seams or do I fuse left and right?
+                r.starts.push(s + 1);
+                r.data.push([1]);
             }
+            else {
+                if ((r.starts.length & 1) != 0) {
+                    throw "no fill up zeros span allowed because zero is default";
+                }
+                else {
+                    r.last(r.data).push(1);
+                    r.lastSet(r.starts, s + 1);
+                }
+            }
+        });
+    }
+    // Only works on rectangular matrix. Inverse is a sideeffect in the right columns if you called "AugmentMatrix_with_Unity" before. Can only call it once. But 
+    inverseRectangular() {
+        //we run inverse on 2x1 rectangular matrix //const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
+        // I try to hide the start index of arrays in languages. Thus I need forEach
+        this.row.forEach((rl, i) => {
+            // if (inve.row.length<=i){
+            //     throw "outofBounds in inverse "+i
+            // }
             if (typeof this.row[i] === "undefined") {
                 throw "this is undefined: " + i;
             }
-            if (typeof inve.row[i] === "undefined") {
-                throw "inverse is undefined: " + i;
-            }
-            if (Math.abs(this.row[i].get(i)) < 0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
+            // if (typeof inve.row[i] === "undefined"){
+            //     throw "inverse is undefined: "+i
+            // }
+            if (Math.abs(rl.get(i)) < 0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
                 throw "division by zero (matrix undefinite)";
             }
-            const factor = 1 / this.row[i].get(i); // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
-            console.log("factor: " + factor + "  from " + this.row[i].data + " and " + inve.row[i].data);
-            [this.row[i], inve.row[i]].forEach(side => side.scale(factor));
-            console.log("factor: " + factor + "   to  " + this.row[i].data + " and " + inve.row[i].data);
-            for (let k = 0; k < this.row.length; k++)
+            const factor = 1 / rl.get(i); // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
+            console.log("factor: " + factor + "  from " + rl.data); //+ " and "+ inve.row[i].data);
+            rl /* ,inve.row[i]].forEach(side=>side*/.scale(factor); //);
+            console.log("factor: " + factor + "   to  " + rl.data); //+ " and "+ inve.row[i].data);
+            this.row.forEach((rr, k) => {
                 if (k !== i) {
-                    const f = this.row[k].get(i);
+                    const f = rr.get(i);
                     if (f !== 0) {
-                        [this.row, inve.row].forEach(side => side[k].sub(side[i], f));
+                        //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                         // duplicated code leads to bugs! 2020-01-20
-                        // this.row[k].sub(this.row[i],f) // ToDo: nuke column
+                        rr.sub(rl, f); // ToDo: nuke column
                         // inve.row[k].sub(this.row[i],f)
                     }
                 }
-            for (let k = 0; k < this.row.length; k++) { //if (k!==i){
-                const f = this.row[k].get(i);
+            });
+            this.row.forEach((rr, k) => {
+                const f = rr.get(i);
                 const s = (k === i) ? 1 : 0;
                 if (Math.abs(f - s) > 0.001) {
                     throw "column not empty i/live: " + f + " should be " + s;
                 }
-            }
-        }
+            });
+        });
         console.log("inside Tridiagonal.inverse " + this.row[0].data[0][0]);
         for (let i = 0; i < this.row.length >> 1; i++) {
             for (let k = 0; k < this.row.length; k++) { //if (k!==i){
@@ -987,7 +1109,18 @@ export class Tridiagonal {
                 }
             }
         }
-        return inve;
+        //  return inve
+    }
+    // for unit test
+    inverse() {
+        const M = cloneable.deepCopy(this);
+        // clone .. for the multiplication tests. Deep Clone: Rows, start, data
+        M.AugmentMatrix_with_Unity();
+        M.inverseRectangular();
+        // return right half of clone
+        const M2 = new Tridiagonal(0); // split does not work in place because it may need space at the seam
+        M2.row = M.row.map(r => r.split(1, this.row.length));
+        return M2;
     }
     // ToDo on demand
     //inverseWithPivot(): void {

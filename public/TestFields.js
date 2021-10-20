@@ -2,6 +2,7 @@ import { Row } from './enforcePivot.js';
 import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js';
 import { main } from './GL.js';
 //import 'assert'
+console.log("in TestFields.ts");
 const print = document.getElementById('FieldsCanvas');
 var ctx = print.getContext("2d");
 ctx.moveTo(0, 0);

@@ -1,8 +1,18 @@
-import './field/semiconductor.js';
-import './field/metal.js';
-import { Field, Contact, Metal } from './fields.js';
-class LowImpedanceContact extends Contact {
-}
+import './field/semiconductor';
+import './field/metal';
+import { Field, Metal } from './fields';
+// // I think this has moved into fields to avoid unnecessary indirection
+// class LowImpedanceContact extends Contact{
+//   voltage:number
+//   /*
+//   for coax with impedance
+// 	coords:number[];
+// 	constructor(x:number,y:number){
+//     super()
+// 		this.coords=[x,y]
+//   }
+//   */
+// }
 class Paint {
 }
 export class FieldWMatrix extends Field {
@@ -25,15 +35,16 @@ export class ContactedField extends FieldWMatrix {
             )
         }
         */
-        if (!contacts) { // undefined because no parameter given or  (null because i dunno? )
-            contacts = [];
-            for (let i = 0; i < 5; i++) {
-                const c = new LowImpedanceContact();
-                c.voltage = i; // keep it simple.
-                Contact[i] = c;
-            }
-        }
+        //  if (!contacts){ // undefined because no parameter given or  (null because i dunno? )
+        //   contacts = []
+        //   for(let i=0;i<5;i++){
+        //     const c=new LowImpedanceContact();
+        //     c.voltage=i // keep it simple.
+        //     contacts[i]=c;
+        //   }
+        //  }
         super(touchTypedDescription, contacts);
+        this.lowImpedanceContacts = contacts;
     }
     // no input from matrix. Move to super?
     // find conected ( via edges ) conductive parts "m"etal   ( not number = metal on given potential )

@@ -15,7 +15,7 @@
         },
         {
             "type": "typescript",
-            "tsconfig": "tsconfig.json",
+            "tsconfig": "source/tsconfig.json",
             "option": "watch",
             "problemMatcher": [
                 "$tsc-watch"

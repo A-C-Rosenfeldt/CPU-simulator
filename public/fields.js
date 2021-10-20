@@ -1,6 +1,6 @@
-import { Tridiagonal, Span, Row } from './enforcePivot';
-import './field/semiconductor';
-import './field/metal';
+import { Tridiagonal, Span, Row } from './enforcePivot.js';
+import './field/semiconductor.js';
+import './field/metal.js';
 /*
 read from
 
@@ -481,7 +481,7 @@ export class Field extends FieldToDiagonal {
         // With R:  Q_withCarriers +  ( U-U_connected ) / R  // this is the new row. It is even normal with Q on lhs and R on rhs
         //   Here also U moves over to lhs and makes our matrix square => invertable
         // The above method GroupByKnowledge() looks good. We just add our row, won't we?
-        m.inverse;
+        m.inverseRectangular;
         var statics = [3, 4, 5]; // this -> static value vector
         m.MatrixProduct(statics);
         // Todo
@@ -537,6 +537,9 @@ export class Field extends FieldToDiagonal {
     // for testing. Pure function
     // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
     static AugmentMatrix_with_Unity(M) {
+        M.AugmentMatrix_with_Unity();
+        return;
+        // Todo
         // const om:Row[] = M.row.map((r, i) => {
         //   //const s=new Span<number>(1,i)
         //   const or=new Row([[i,i+1]]);
@@ -545,14 +548,14 @@ export class Field extends FieldToDiagonal {
         // })
         // const other = new Tridiagonal(om)
         // return other;
-        const other = new Tridiagonal(M.row.length);
+        //    const other = new Tridiagonal(M.row.length)
         const rows = M.row.forEach((r, i) => {
             r.data.push([1]);
             const s = M.row.length + i;
             r.starts.push(s);
             r.starts.push(s + 1);
         });
-        return other;
+        // this would lead to joins  //  return other
     }
     // right now this only does swaps between two groups:{ (un-)known }
     // Doesn' make thing easier to code and hard to display data oriented debugging. better do it on the spans before sending to the constructor[trim]

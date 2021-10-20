@@ -8,7 +8,7 @@ class Simulation {
         let floodedInEven = true;
         map.floodfills(floodedInEven); // floodfill 1/2
         let mat = map.ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes(); // create Matrix
-        mat.inverse(); // Todo: Remove interal link. This file demonstrates the (performance) idea that the expensive  inverse()  only happens on load, not within step or even phase
+        mat.inverseRectangular(); // Todo: Remove interal link. This file demonstrates the (performance) idea that the expensive  inverse()  only happens on load, not within step or even phase
         let sensible = 100;
         // Intervall instead of Timeout prevents any notion of stackoverflow
         this.keyPressed = false;
