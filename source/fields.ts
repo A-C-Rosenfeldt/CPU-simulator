@@ -316,27 +316,52 @@ export class FieldToDiagonal extends MapForField {
     this.touchTypedDescription.forEach((str, i) => {
       const row = new Array<Tupel>(str.length) //[]=[]
       // JS is strange still. I need index:      for (let c of str) 
-      const c = str.replace(/\d/, 'm')  // this is potential. Not index into wire. Wire as bonding position instead
-      for (let k = 0; k < str.length; k++) {
-        //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
-        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0], ['M', 0]])
+      //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
 
-        const tu = c[k] === str[k] ? new Tupel() : new Metal();
-
-        tu.BandGap = bandgaps.get(c[k])
-        if (tu instanceof Metal)
-          tu.Potential = Number.parseFloat(str[k])  // field :  case: static electrode, random value for test, connected to wire
-        else
-          tu.Potential = 0 // random is not good for testing. I stick with this 
-        tu.Doping = c === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
-
-        const contactId = Number.parseInt(str[k])
-        if (!Number.isNaN(contactId)) {
-          (tu as Metal).Contact = this.contacts[contactId] // Todo call virtual function. We do not have contacts yet
+      const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1],  ['M', 0]])
+      const forBlock=function(char:string):Tupel{
+        const n=Number.parseFloat(char)
+        if (Number.isNaN(n) ){
+          tu = new Metal();
+          tu.Potential=n
+        }else{
+          if ('A' <= char && char <='Z'){ //.codePointAt(0) )
+            tu=new Metal()
+            tu.Contact = this.contacts[char.charCodeAt(0)] // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
+          }else{
+            var tu = new Tupel()
+          }
+          tu.Doping = char === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
         }
-
-        row[k] = tu;
+        return tu
       }
+
+      // for(let k of str)  // I would need map()
+      for (let k = 0; k < str.length; k++) {
+        row[k] = forBlock(str.charAt(k)); // str[k] works the same . Maybe destructure [...str] would be shorter?
+      }
+
+      // const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0], ['M', 0]])
+      
+      // const c = str.replace(/\d/, 'm')  // this is difficult code to read and in band.  this is potential. Not index into wire. Wire as bonding position instead
+      // for (let k = 0; k < str.length; k++) {
+      //   const tu = c[k] === str[k] ? new Tupel() : new Metal();
+
+      //   tu.BandGap = bandgaps.get(c[k])
+      //   if (tu instanceof Metal)
+      //     tu.Potential = Number.parseFloat(str[k])  // field :  case: static electrode, random value for test, connected to wire
+      //   else
+      //     tu.Potential = 0 // random is not good for testing. I stick with this 
+      //   tu.Doping = c === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
+
+      //   const contactId = Number.parseInt(str[k])
+      //   if (!Number.isNaN(contactId)) {
+      //     (tu as Metal).Contact = this.contacts[contactId] // Todo call virtual function. We do not have contacts yet
+      //   }
+
+      //   row[k] = tu;
+      // }
+      
       this.fieldInVarFloats[i] = row;
     })
   }
@@ -802,6 +827,14 @@ export const arena: string[] = [
   'miim',  // we assume homognous electric field between plates (the side walls of the gates)
   'miim', // gate
   'mmmm', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part 
+];
+
+export const arenaVerbatim: string[] = [
+  '00000', // contact
+  '0iii0',  // we assume homognous electric field between plates (the side walls of the gates)
+  '0i1i0', // gate
+  '0iii0', // gate
+  '00000', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part 
 ];
 
 var html = `
