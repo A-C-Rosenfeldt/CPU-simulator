@@ -18,6 +18,7 @@ class Arc extends Coax{
 }
 // shortest path through free space
 class Line extends Coax{
+    length:number
     nextPoint:number[] // use z dimension to give hints at crossings
 } 
 
@@ -25,27 +26,55 @@ class Line extends Coax{
 // impedance is already important to explain amplifiers on 6502
 // that is a directed signal and 6502 does not have resistors
 // simplified Device
-class Y extends Segment{
 
+// Y in serialized form will have at least one ref
+//      it is stored as directed graph
+//      in a list with segments to store a graph in a compact way
+// for computation
+//  Y Node has to do linalg and keep a Matrix ( array ) for this. The type has nothing in common wit Segment anymore
+class Y extends Segment{
+    other:Y  // we need to collect a linked list on deserialization
+    // then in a second pass will fill it in an array
+    // we call inverse()
+    // we store the result in on node of the ring
+   // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
 }
 class Device extends Y{
     ref:FinFet;
-    contact:Contact
+    contact:Contact  // this would be an XML element which could live both in Wire and map. But in memory wouldn't you not better store Segment and Tupel ?
     constructor(ref:FinFet,position:number){
         super()
         this.ref=ref
         this.contact=ref.contacts[position]
     }
 
+    // We assume that the device has a large electrode and voltage dominates the transmission lines
+    // So voltage of transmission line is measured realtive to electrode and this gives us the currents
+    // currents change the charge on the electrode
+    // field sim recalculates voltage of electrode
+
+    // the device electrode acts more like a capcitor then a resistor.
+    capacity=1  // ah, contact wants to calculate this? I propese: watch historical values?
+    // in a single step the surface area is most important
+    // linalg solves field and charge on electrode, but that is a different phase of the solver
+    // I don't want learning because that can become unstable
+    // I like to simulate trajectory in metal like in semiconductor
+    // I mean, it is nice to be able to solve via linalg, but when contacts don't work that way?
+    // So current flows in the current step, and then voltage changes .. uh should I do that at the contacts? So I reuse step width of current in semi ?
+    // Ohmic would be a rate limiter for our capacity solver?
+    // we have charge and voltage (potential). We need capacity to solve the equation.
     impedance=1 // needed for Y. Without Y: 1 == 50 Ohm
-    layout:Segment // reference start of segment for taps. Taps are instantanous
+    // this probably depends on the size of the electrode.
+    // hä? layout:Segment // reference start of segment for taps. Taps are instantanous
 }
 
 
-
+// This is dispaly on screen
 class WireLayout{
     points:Segment
 }
+
+// this is simulation
 export class Wire extends WireLayout{
     contacts:Device[]
     // these have fixed impedance. Carrier=Voltage
@@ -89,8 +118,10 @@ export class Wire extends WireLayout{
     // contacts point here. Only single link.  devices:Device[];
 }
 
-// todo: generate coax field to patch to PDE
 
+
+
+// Todo: Remove? ContactPoint should be on the border to capture most of the field in the map.  // Why?: todo: generate coax field to patch to PDE
 class /*SemiconductorMetal*/ DynamicContact extends Contact {
 
     column:number[]; // dated maybe? A column full of contacts? But I only have sparse contacts and be have two in complex gates

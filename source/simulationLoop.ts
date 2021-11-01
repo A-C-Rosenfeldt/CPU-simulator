@@ -2,11 +2,15 @@ import { Tridiagonal } from './enforcePivot.js';
 import { Field , bandsGapped, Contact, Tupel} from './fields.js'
 import { ContactedField } from './fieldStatic'
 import { Cathode, Trajectory } from './field/semiconductor'
+import { Wire } from './wire.js';
 class Simulation{
 	keyPressed:boolean;
 	run(){
 		var chargePotential:number[]
-		const map=new ContactedField(bandsGapped,null) // load map
+
+		// load map
+		const wire=new Wire();
+		const map=new ContactedField(bandsGapped,Wire.contacts(mapId))
 		let floodedInEven: boolean = true;
 		map.floodfills(floodedInEven) // floodfill 1/2
 		let mat:Tridiagonal=map.ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes()  // create Matrix

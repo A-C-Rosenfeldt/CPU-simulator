@@ -63,5 +63,5 @@ let y=10
     // It is markup. So I could allow pre-layout: <connectToNext using="0" > with matching connectToPrevious using"A"  
     // <connectTo refId="453" using="A0"     <!-- connector can be on wire and/or field
     const h=new Map<string, Tupel>()
-    h.has("A") // throw error on dupes
+    h.has("A") // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
 }
