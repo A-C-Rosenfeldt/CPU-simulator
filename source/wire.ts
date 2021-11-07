@@ -48,10 +48,22 @@ class Device extends Y{
         this.contact=ref.contacts[position]
     }
 
+    // distributed electrode - surface becomes transmission line?
+
     // We assume that the device has a large electrode and voltage dominates the transmission lines
+    //   still we could calculate a limit for capacity: outer conductor is shell around electrode withe one cell distance
+    //    so transmission line has 1 cell wire thickness and 1 cell dielectrick thickness?
+    // field sim recalculates voltage of electrode. we could do this while we set all contacted cells to outer conductor ( + level shift )
+    // transmission line should not appear slower than electrode charge redistribution
+    // sectors vs sparse matrix => electrode speed. Speed of light cuts of cells far away from main.
+    //    step creates potential: steps at the boundary will be corrected next step.
+    // Boundary is a circle? So speed of light is like 16 cells / time step? Magnetic field may be able to soften the front, but could as well be included later.
+    // transmission line is kind of a solution to E-B like this circle. The outer conductor is visible in out maps.
+    //   How many frames do we display? At 60 Hz and fullHD, 16 px speed looks arcade like. But how fast does our field solution change? Electrons which need multiple cylces for one cell?
+
     // So voltage of transmission line is measured realtive to electrode and this gives us the currents
     // currents change the charge on the electrode
-    // field sim recalculates voltage of electrode
+    
 
     // the device electrode acts more like a capcitor then a resistor.
     capacity=1  // ah, contact wants to calculate this? I propese: watch historical values?
