@@ -49,6 +49,32 @@ class Device extends Y{
     }
 
     // distributed electrode - surface becomes transmission line?
+    // We want this to make the hand-over point between coax and field less critical
+    // Also typically an electrode will try to reduce parasitic capacity, so impedance is low,
+    // So even with the typical T shape the combined impedance will probably lower that our coax default. With multiple coax connecting or fan out at the plate/drain/collector even more so.
+    // when too much charge flows in, voltage rises in the default simulation due to capacity and charge flows back. We have resistance on all edges of the node and thus I don't expect excess oscillations.
+    // To further harmonize field and coax, the inverter could use the same config value
+    // to force influence on cells > distance to 0.
+    // We cannot have B in field because it would slow down to the speed of the electrons.
+    // Plane waves already make only minimal sense for our electrodes ( 1D ), I am not gonna expand that to 2d.
+    // So to overcompensate the missing B ( LC effect ), we could double the distance in pure E ( RC )
+    // Charge simulation: I first try it out in semiconductor. Like the old software used for electron optics. Later move on.
+    // My main motivation was to reproduce the  pinch-off  of the FET and I can do it with this
+    // My second motivation was to show how n-FET pulls through the voltages between hi and low without pulling two much on hi and without need for too much supply voltage. We can do this with our current model
+    // Electron need to have a velocity comparable to light, so that the user sees the signals running around ( guide to the eye )
+    // Biggest problem with electrons is that I must simulate space charge. So I need to lock the steps.
+    // We use the grid and smearing to reduce the artefact of no enough electrons. In reality I want a single electron transistor! Just think about all the noise due to multiple electrons!
+    // With a fixed field I maybe could convert to a hexagonal grid and have triangles between potential points
+    // those triangles have homogenous electric field and electrons would fly along a parabola.
+    // Multiple steps would occure because the electron hits multiple edges in a given time step.
+    // Like in my pool billard sim I feel the need still sort by time .. uh and ignore mirror charge ( far away ), but closest 4 electrons
+    // This complicates code, leads to artefacts and should only be implemented if slowing coax is a problem
+    // Maybe I can sell it as artistic freedom? I need coax for crossings and nice bends ( map description )
+    // Of course most of the stuff should work by GateDelay, so I only need a small hint
+    // Todays computers are very fast. If I aim at 240 fps LCD, and have these field simulation steps,
+    // 1/10 for a signal crossing the screen may already be too fast for most viewers and already then I display 24 time steps
+    // Let's just assume that we live in the world of cray and fs-lasers.
+
 
     // We assume that the device has a large electrode and voltage dominates the transmission lines
     //   still we could calculate a limit for capacity: outer conductor is shell around electrode withe one cell distance
