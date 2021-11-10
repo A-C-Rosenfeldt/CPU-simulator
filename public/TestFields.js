@@ -1,5 +1,5 @@
 import { Row } from './enforcePivot.js';
-import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js';
+import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, arenaVerbatim } from './fields.js';
 import { main } from './GL.js';
 //import 'assert'
 console.log("in TestFields.ts");
@@ -41,5 +41,16 @@ let y = 10;
     main('FieldGl0_tri_blank', imageGl);
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
     //squared=diag.ToMatrix()
+    // test field solver
+    // fixed cells. Where is the code and the example data ( with verbatim digits in the field (map)) ?
+    const arena = new Field(arenaVerbatim);
+    // floating, distributed electrodes
+    // distributed electrode with contact to a wire at some potential
+    // How is map format as text? so map{ field, wire } . All relations are names with a single capital letter? And polywires have number
+    // Do I need XML for .. uh it is a netplan. field has number, wire has number + letter. refid.  Letter is extra: "fine location" attribute
+    // It is markup. So I could allow pre-layout: <connectToNext using="0" > with matching connectToPrevious using"A"  
+    // <connectTo refId="453" using="A0"     <!-- connector can be on wire and/or field
+    const h = new Map();
+    h.has("A"); // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
 }
 //# sourceMappingURL=TestFields.js.map

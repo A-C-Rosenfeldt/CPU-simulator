@@ -18,18 +18,73 @@ class Line extends Coax {
 // impedance is already important to explain amplifiers on 6502
 // that is a directed signal and 6502 does not have resistors
 // simplified Device
+// Y in serialized form will have at least one ref
+//      it is stored as directed graph
+//      in a list with segments to store a graph in a compact way
+// for computation
+//  Y Node has to do linalg and keep a Matrix ( array ) for this. The type has nothing in common wit Segment anymore
 class Y extends Segment {
 }
 class Device extends Y {
     constructor(ref, position) {
         super();
+        // distributed electrode - surface becomes transmission line?
+        // We want this to make the hand-over point between coax and field less critical
+        // Also typically an electrode will try to reduce parasitic capacity, so impedance is low,
+        // So even with the typical T shape the combined impedance will probably lower that our coax default. With multiple coax connecting or fan out at the plate/drain/collector even more so.
+        // when too much charge flows in, voltage rises in the default simulation due to capacity and charge flows back. We have resistance on all edges of the node and thus I don't expect excess oscillations.
+        // To further harmonize field and coax, the inverter could use the same config value
+        // to force influence on cells > distance to 0.
+        // We cannot have B in field because it would slow down to the speed of the electrons.
+        // Plane waves already make only minimal sense for our electrodes ( 1D ), I am not gonna expand that to 2d.
+        // So to overcompensate the missing B ( LC effect ), we could double the distance in pure E ( RC )
+        // Charge simulation: I first try it out in semiconductor. Like the old software used for electron optics. Later move on.
+        // My main motivation was to reproduce the  pinch-off  of the FET and I can do it with this
+        // My second motivation was to show how n-FET pulls through the voltages between hi and low without pulling two much on hi and without need for too much supply voltage. We can do this with our current model
+        // Electron need to have a velocity comparable to light, so that the user sees the signals running around ( guide to the eye )
+        // Biggest problem with electrons is that I must simulate space charge. So I need to lock the steps.
+        // We use the grid and smearing to reduce the artefact of no enough electrons. In reality I want a single electron transistor! Just think about all the noise due to multiple electrons!
+        // With a fixed field I maybe could convert to a hexagonal grid and have triangles between potential points
+        // those triangles have homogenous electric field and electrons would fly along a parabola.
+        // Multiple steps would occure because the electron hits multiple edges in a given time step.
+        // Like in my pool billard sim I feel the need still sort by time .. uh and ignore mirror charge ( far away ), but closest 4 electrons
+        // This complicates code, leads to artefacts and should only be implemented if slowing coax is a problem
+        // Maybe I can sell it as artistic freedom? I need coax for crossings and nice bends ( map description )
+        // Of course most of the stuff should work by GateDelay, so I only need a small hint
+        // Todays computers are very fast. If I aim at 240 fps LCD, and have these field simulation steps,
+        // 1/10 for a signal crossing the screen may already be too fast for most viewers and already then I display 24 time steps
+        // Let's just assume that we live in the world of cray and fs-lasers.
+        // We assume that the device has a large electrode and voltage dominates the transmission lines
+        //   still we could calculate a limit for capacity: outer conductor is shell around electrode withe one cell distance
+        //    so transmission line has 1 cell wire thickness and 1 cell dielectrick thickness?
+        // field sim recalculates voltage of electrode. we could do this while we set all contacted cells to outer conductor ( + level shift )
+        // transmission line should not appear slower than electrode charge redistribution
+        // sectors vs sparse matrix => electrode speed. Speed of light cuts of cells far away from main.
+        //    step creates potential: steps at the boundary will be corrected next step.
+        // Boundary is a circle? So speed of light is like 16 cells / time step? Magnetic field may be able to soften the front, but could as well be included later.
+        // transmission line is kind of a solution to E-B like this circle. The outer conductor is visible in out maps.
+        //   How many frames do we display? At 60 Hz and fullHD, 16 px speed looks arcade like. But how fast does our field solution change? Electrons which need multiple cylces for one cell?
+        // So voltage of transmission line is measured realtive to electrode and this gives us the currents
+        // currents change the charge on the electrode
+        // the device electrode acts more like a capcitor then a resistor.
+        this.capacity = 1; // ah, contact wants to calculate this? I propese: watch historical values?
+        // in a single step the surface area is most important
+        // linalg solves field and charge on electrode, but that is a different phase of the solver
+        // I don't want learning because that can become unstable
+        // I like to simulate trajectory in metal like in semiconductor
+        // I mean, it is nice to be able to solve via linalg, but when contacts don't work that way?
+        // So current flows in the current step, and then voltage changes .. uh should I do that at the contacts? So I reuse step width of current in semi ?
+        // Ohmic would be a rate limiter for our capacity solver?
+        // we have charge and voltage (potential). We need capacity to solve the equation.
         this.impedance = 1; // needed for Y. Without Y: 1 == 50 Ohm
         this.ref = ref;
         this.contact = ref.contacts[position];
     }
 }
+// This is dispaly on screen
 class WireLayout {
 }
+// this is simulation
 export class Wire extends WireLayout {
     constructor(length) {
         super();
@@ -60,7 +115,7 @@ export class Wire extends WireLayout {
         return [this.flow[for_ward], this.flow[backward]]; // We get back 2 currents
     }
 }
-// todo: generate coax field to patch to PDE
+// Todo: Remove? ContactPoint should be on the border to capture most of the field in the map.  // Why?: todo: generate coax field to patch to PDE
 class DynamicContact extends Contact {
     constructor() {
         super(...arguments);

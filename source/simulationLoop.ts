@@ -9,8 +9,8 @@ class Simulation{
 		var chargePotential:number[]
 
 		// load map
-		const wire=new Wire();
-		const map=new ContactedField(bandsGapped,Wire.contacts(mapId))
+		const wire=new Wire(2);
+		const map=new ContactedField(bandsGapped,null) ;//Wire..contacts(mapId))
 		let floodedInEven: boolean = true;
 		map.floodfills(floodedInEven) // floodfill 1/2
 		let mat:Tridiagonal=map.ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes()  // create Matrix

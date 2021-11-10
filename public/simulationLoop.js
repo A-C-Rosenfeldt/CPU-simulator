@@ -1,10 +1,13 @@
 import { bandsGapped, Tupel } from './fields.js';
 import { ContactedField } from './fieldStatic';
 import { Trajectory } from './field/semiconductor';
+import { Wire } from './wire.js';
 class Simulation {
     run() {
         var chargePotential;
-        const map = new ContactedField(bandsGapped, null); // load map
+        // load map
+        const wire = new Wire(2);
+        const map = new ContactedField(bandsGapped, null); //Wire..contacts(mapId))
         let floodedInEven = true;
         map.floodfills(floodedInEven); // floodfill 1/2
         let mat = map.ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes(); // create Matrix

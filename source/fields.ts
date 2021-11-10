@@ -322,22 +322,22 @@ export class FieldToDiagonal extends MapForField {
       const forBlock=function(char:string):Tupel{
         const n=Number.parseFloat(char)
         if (Number.isNaN(n) ){
-          tu = new Metal();
-          tu.Potential=n
-        }else{
           if ('A' <= char && char <='Z'){ //.codePointAt(0) )
             tu=new Metal()
             tu.Contact = this.contacts[char.charCodeAt(0)] // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
           }else{
             var tu = new Tupel()
+            tu.BandGap=public_bandgap.get(char)            
           }
           tu.Doping = char === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
-        }
+        }else{
+          tu = new Metal();
+          tu.Potential=n        }
         return tu
       }
 
-      // for(let k of str)  // I would need map()
-      for (let k = 0; k < str.length; k++) {
+      var k=0; // for(let k of str)  // I would need map()
+      for (; k < str.length; k++) {
         row[k] = forBlock(str.charAt(k)); // str[k] works the same . Maybe destructure [...str] would be shorter?
       }
 
