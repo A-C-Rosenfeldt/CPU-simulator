@@ -1,9 +1,9 @@
-import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot.js'
+import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot'
 //import { Wire } from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
-import { SimpleImage } from './GL.js'
-import './field/semiconductor.js'
-import './field/metal.js'
-import { Electron } from './field/semiconductor.js'
+import { SimpleImage } from './GL'
+import './field/semiconductor'
+import './field/metal'
+import { Electron } from './field/semiconductor'
 
 /*
 read from 

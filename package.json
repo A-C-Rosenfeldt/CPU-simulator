@@ -29,7 +29,16 @@
       "env": {
         "TS_NODE_PROJECT": "tsconfig.test.json"
       }
-    }
+    },
+  "require": "ts-node/register",
+  
+  "extensions": ["ts", "tsx"],
+  "spec": [
+    "test/**/*.*"
+  ],
+  "watch-files": [
+    "source"
+  ]
   },
   "mochaExplorer": {
     "files": "test/**/*.ts",
