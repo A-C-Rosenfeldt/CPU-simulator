@@ -1,9 +1,27 @@
-import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot'
+import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot.js'
+// ts-node can add FileExtensions ..  and needs to add *.ts
+// edge needs *.js in file
+// TypeScript does not manipulate strings
+// gulp.js ?
+//  build script or call script after tsc (not for test .. but we have separate config :-)
+
+// ts-node: accomplished by hooking node's module loading APIs,
+// npm i -D ts-mocha
+// -D, --save-dev: Package will appear in your devDependencies.
+// npm i -D @types/expect
+// The npm organization is an entity to setup a developers team. I believe Microsoft setup the @types organization in npm and added the TypeScript developer team to the organization.
+// So my install has mocha as dependencies of @type/mocha , chai , and maybe ts-mocha
+
+// Just import {HelloWorld} from "./HelloWorld.js"; TypeScript is clever enough to figure out what you want is HelloWorld.ts during compilation
+//  sourceRef: https://stackoverflow.com/questions/62619058/appending-js-extension-on-relative-import-statements-during-typescript-compilat
+
+// ts-mocha -p src/tsconfig.json src/**/*.spec.ts
+
 //import { Wire } from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
-import { SimpleImage } from './GL'
-import './field/semiconductor'
-import './field/metal'
-import { Electron } from './field/semiconductor'
+import { SimpleImage } from './GL.js'
+import './field/semiconductor.js'
+import './field/metal.js'
+import { Electron } from './field/semiconductor.js'
 
 /*
 read from 
@@ -192,6 +210,11 @@ export class Tupel extends LinkIntoMatrix {
 // Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
 export class Metal extends Tupel {
 
+  constructor(){
+    super();
+    this.BandGap=0  // this is the physical definition of a metal, but this leads to some special solvers which we implement in this derived class
+  }
+
   // I think I don't use an index, but reuse floodfill every frame
   // contact: Contact;  // because the reverse link is as difficult
   floodedInEven: boolean; // double buffer
@@ -318,21 +341,25 @@ export class FieldToDiagonal extends MapForField {
       // JS is strange still. I need index:      for (let c of str) 
       //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
 
-      const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1],  ['M', 0]])
+      const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1],  ['m', 0]])
       const forBlock=function(char:string):Tupel{
         const n=Number.parseFloat(char)
         if (Number.isNaN(n) ){
-          if ('A' <= char && char <='Z'){ //.codePointAt(0) )
+            if ('A' <= char && char <='Z') { // contact
             tu=new Metal()
             tu.Contact = this.contacts[char.charCodeAt(0)] // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
           }else{
-            var tu = new Tupel()
+            var tu = char == 'm' ? new Metal() : new Tupel()  // extended electrode
             tu.BandGap=public_bandgap.get(char)            
           }
           tu.Doping = char === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
         }else{
           tu = new Metal();
-          tu.Potential=n        }
+          tu.Potential=n        
+        }
+        if (typeof tu.BandGap === 'undefined'){
+          console.log("metal with undefined bandgap")
+        }
         return tu
       }
 
@@ -808,9 +835,9 @@ export const exampleField: string[] = [
 
 export const fieldTobeSquared: string[] = [
   // connected m  . Connected to wire with impedance=50
-  'sssm', // contact
+  'sss0', // fixed potential m->0
   'siii',  // we assume homognous electric field between plates (the side walls of the gates)
-  'i-im', // gate
+  'i-i0', // gate
   'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
 ];
 
@@ -844,6 +871,6 @@ var html = `
 `;
 
 // Some gates are connected to the silicon slab => current flowing
-const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
+// Not prosecuted any further:   const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
 
 const instance = 'CGCFC'; // the ends are implicit

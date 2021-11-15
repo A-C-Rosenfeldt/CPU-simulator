@@ -1190,12 +1190,14 @@ export class Tridiagonal implements Matrix{
         
         for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s /*20201117 first test: 4*/){
             const o=this.row[r]
-            if (typeof o==="undefined" || o.starts.slice(-1)[0]>this.row.length){
+            if (typeof o!=="undefined"){
+                 if (o.starts.slice(-1)[0]>this.row.length){
                 // o=undefined should not happen. I should probably not construct an undefined row todo..
                 console.log("Starts: "+o.starts+" > "+this.row.length)
                 throw "out of upper bound"
             }
             o.PrintGl(pixel, pointer)
+        }
         }
         return {width: s, height:s, pixel: pixel};
     }    
