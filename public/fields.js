@@ -134,6 +134,10 @@ export class Tupel extends LinkIntoMatrix {
 Tupel.bufferId = 0; // todo:  static is problematic when add maps / staggered update
 // Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
 export class Metal extends Tupel {
+    constructor() {
+        super();
+        this.BandGap = 0; // this is the physical definition of a metal, but this leads to some special solvers which we implement in this derived class
+    }
     ToTexture(raw, p) {
         raw[p + 3] = 255;
         raw[p + 0] = 0; //this.BandGap*255/3;
@@ -232,16 +236,16 @@ export class FieldToDiagonal extends MapForField {
             const row = new Array(str.length); //[]=[]
             // JS is strange still. I need index:      for (let c of str) 
             //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
-            const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1], ['M', 0]]);
+            const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
             const forBlock = function (char) {
                 const n = Number.parseFloat(char);
                 if (Number.isNaN(n)) {
-                    if ('A' <= char && char <= 'Z') { //.codePointAt(0) )
+                    if ('A' <= char && char <= 'Z') { // contact
                         tu = new Metal();
                         tu.Contact = this.contacts[char.charCodeAt(0)]; // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
                     }
                     else {
-                        var tu = new Tupel();
+                        var tu = char == 'm' ? new Metal() : new Tupel(); // extended electrode
                         tu.BandGap = public_bandgap.get(char);
                     }
                     tu.Doping = char === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
@@ -249,6 +253,9 @@ export class FieldToDiagonal extends MapForField {
                 else {
                     tu = new Metal();
                     tu.Potential = n;
+                }
+                if (typeof tu.BandGap === 'undefined') {
+                    console.log("metal with undefined bandgap");
                 }
                 return tu;
             };
@@ -652,9 +659,9 @@ export const exampleField = [
 ].map(whatDoesNumberMean => whatDoesNumberMean.slice(-1)[0]);
 export const fieldTobeSquared = [
     // connected m  . Connected to wire with impedance=50
-    'sssm',
+    'sss0',
     'siii',
-    'i-im',
+    'i-i0',
     'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
 ];
 export const bandsGapped = [
@@ -683,6 +690,6 @@ var html = `
   </div>
 `;
 // Some gates are connected to the silicon slab => current flowing
-const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
+// Not prosecuted any further:   const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
 const instance = 'CGCFC'; // the ends are implicit
 //# sourceMappingURL=fields.js.map
