@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
       "target": "ES2015",
-      "module": "commonjs",
-      "outDir": "UnderTest",
+      "module": "commonjs"
     }
 }

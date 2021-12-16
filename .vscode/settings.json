@@ -6,7 +6,6 @@
     "mochaExplorer.esmLoader": false,
     "mochaExplorer.optsFile": "",
     "mochaExplorer.mochaPath": "node_modules/mocha",
-     "mochaExplorer.files": "test/**/*.ts",
-     "mochaExplorer.require": "ts-node/register",
+     "mochaExplorer.files": "test/**/*.js",
     "mochaExplorer.debuggerConfig": "Mocha Tests"
 }

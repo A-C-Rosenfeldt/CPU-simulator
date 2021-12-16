@@ -21,15 +21,12 @@
     "ts-node": "^10.4.0",
     "typescript": "^4.5.4"
   },
-  "mochaExplorer.files": "test/**/*.ts",
-  "mochaExplorer.require": "ts-node/register",
+  "mochaExplorer.files": "test/**/*.js",
   "mocha": {
     "mochaExplorer.logpanel:": true,
-    "mochaExplorer.files": "test/**/*.ts",
-    "mochaExplorer.require": "ts-node/register",
+    "mochaExplorer.files": "test/**/*.js",
     "mochaExplorer": {
-      "files": "test/**/*.ts",
-      "require": "ts-node/register",
+      "files": "test/**/*.js",
       "env": {
         "TS_NODE_PROJECT": "tsconfig.test.json"
       }
@@ -55,9 +52,10 @@
     }
   },
   "scripts": {
-    "test": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" TS_NODE_PREFER_TS_EXTS=\"true\" npm run childTest",
+    "test": "tsc --watch -p \"tsconfig.test.json\" . && mocha --recursive --watch test/*.js",
+    "test_old": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" TS_NODE_PREFER_TS_EXTS=\"true\" npm run childTest",
     "childTest": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && mocha --require ts-node/register test/*.ts",
-    "childTest_at": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && ts-mocha test/*.ts",
+    "childTest_at": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && tsc . && mocha test/*.js",
     "testW": "node node_modules/mocha/bin/mocha",
     "childR": "mocha --require ts-node/register test/*.ts"
   },
