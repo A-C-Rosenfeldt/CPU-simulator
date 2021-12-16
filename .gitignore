@@ -1,4 +1,5 @@
 *.log
 source/**/*.js
+UnderTest/**/*.js
 *.js.map
 node_modules/
