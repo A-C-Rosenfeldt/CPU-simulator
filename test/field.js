@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const fields_1 = require("../source/fields");
-const fieldStatic_1 = require("../source/fieldStatic");
+const fields_1 = require("../UnderTest/fields");
+const fieldStatic_1 = require("../UnderTest/fieldStatic");
 const chai_1 = require("chai");
 require("mocha");
 // swap column test .. I mean not the bare swap dealing with RLE, but the interpretation of the map

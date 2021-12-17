@@ -16,6 +16,7 @@
                 "$tsc"
             ],
             "group": "build",
+            
             "label": "tsc: build for node"
         },        
         {
@@ -30,7 +31,7 @@
         },
         {
             "type": "typescript",
-            "tsconfig": "tsconfig.json",
+            "tsconfig": "src/tsconfig.json",
             "option": "watch",
             "problemMatcher": [
                 "$tsc-watch"
@@ -43,7 +44,7 @@
         },
         {
             "type": "typescript",
-            "tsconfig": "tsconfig.test.json",
+            "tsconfig": "src/tsconfig.test.json",
             "option": "watch",
             "problemMatcher": [
                 "$tsc"
@@ -54,18 +55,14 @@
         {
             "label": "[Mocha] Run Tests (relative to Workspace-Folder)",
             "type": "shell",
-            "command": ".\\node_modules\\.bin\\mocha --recursive --watch",
-            "args": [
-                    " test/*.js"
-            ],
+            "command": ".\\node_modules\\.bin\\mocha --recursive",
             "group": "test",
             "presentation": {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "dedicated"
-            },
-            "dependsOn":["tsc -- watch : build for node - tsconfig.json"]
+            }
         }
     ]
 }

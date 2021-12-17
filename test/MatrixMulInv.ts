@@ -1,4 +1,4 @@
-import { Tridiagonal, Row, Transpose, RowCursor, JopWithRefToValue } from '../source/enforcePivot';
+import { Tridiagonal, Row, Transpose, RowCursor, JopWithRefToValue } from '../src/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 

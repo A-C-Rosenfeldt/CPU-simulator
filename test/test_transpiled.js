@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // https://journal.artfuldev.com/unit-testing-node-applications-with-typescript-using-mocha-and-chai-384ef05f32b2
-const enforcePivot_1 = require("../source/enforcePivot");
+const enforcePivot_1 = require("../UnderTest/enforcePivot");
 const chai_1 = require("chai");
 require("mocha");
 describe('Hello function 2020-12-01 12:17', () => {

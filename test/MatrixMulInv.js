@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const enforcePivot_1 = require("../source/enforcePivot");
+const enforcePivot_1 = require("../UnderTest/enforcePivot");
 const chai_1 = require("chai");
 require("mocha");
 describe('Multiply', () => {

@@ -1,7 +1,7 @@
-import { Row } from '../source/enforcePivot';
-import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from '../source/fields'
-import { main } from '../source/GL';
-import { ContactedField } from '../source/fieldStatic'
+import { Row } from '../src/enforcePivot';
+import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from '../src/fields'
+import { main } from '../src/GL';
+import { ContactedField } from '../src/fieldStatic'
 
 import { expect } from 'chai';
 import 'mocha';
