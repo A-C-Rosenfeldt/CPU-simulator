@@ -11,18 +11,16 @@
                 "reveal": "always",
                 "focus": false,
                 "panel": "dedicated"
-        },
+            },
             "problemMatcher": [
                 "$tsc"
             ],
             "group": "build",
-            
             "label": "tsc: build for node"
-        },        
+        },
         {
             "type": "typescript",
             "tsconfig": "src/tsconfig.json",
-
             "problemMatcher": [
                 "$tsc"
             ],
@@ -40,7 +38,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "label": "tsc: watch source / tsconfig.json"
+            "label": "tsc: watch source build for edge / tsconfig.json"
         },
         {
             "type": "typescript",
@@ -50,19 +48,34 @@
                 "$tsc"
             ],
             "group": "build",
-            "label": "tsc -- watch : build for node - tsconfig.json"
-        },         
+            "label": "tsc -- watch : build for node"
+        },
         {
             "label": "[Mocha] Run Tests (relative to Workspace-Folder)",
             "type": "shell",
             "command": ".\\node_modules\\.bin\\mocha --recursive",
             "group": "test",
             "presentation": {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "dedicated"
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
             }
+        },
+        {
+            "type": "typescript",
+            "tsconfig": "src/tsconfig.test.json",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "group": "build",
+            "label": "tsc: build for node"
         }
     ]
 }

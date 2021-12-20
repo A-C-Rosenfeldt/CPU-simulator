@@ -32,8 +32,12 @@ let y=10
     var imageGl=squared.PrintGl()
     main('FieldGl0_mat',imageGl) 
 
+    
+
     const NoSwap=new Field(bandsGapped)
-    // reproduce stuff from above
+    // ShapeToSparse Matrix groups by metal ( U=, Charge varies) vs semiconductor ( U varies, charge is moved in that other phase of the cycle )
+    // Todo: Unit test for pure semi, pure metal, mixed
+    // The algorithm seems to think that with no metal at all there is nothing to compute?
     squared=NoSwap.ShapeToSparseMatrix()
     var imageGl=squared.PrintGl()
     main('FieldGl0_NoSwap',imageGl) 

@@ -75,6 +75,66 @@ const contacts = ['m0m', 'iii', 'm1m']; // two contacts. What do with i on borde
 // voltage is undefined. See line above. With 1st order ODE there is only one condition: Set the function. Not the derivative.
 // check voltage==0 && charge==0
 describe('sort columns all on one side', () => {
+ 
+    // it('2021-12-18 check fixed metal storage', () => {        
+    //     (0, chai_1.expect)(-0).not.to.equal(0);
+    //     (0, chai_1.expect)(0).not.to.equal(-0);
+    //     (0, chai_1.expect)(0===-0).to.equal.false;
+    // }); 
+
+    // uses jaggies and bandgap to create index 
+    // I start with the small edge cases ( fast to debug )
+    it('2021-12-18 metal', () => {
+        const NoSwap=new fields_1.Field(['0'])
+        // 2020 Version checkContact.lowImpedanceContacts[0].voltage=1
+        // 2022, now I have CAPS for contacts and numerals for fixed potential.  Was: checkContact.fieldInVarFloats[0][0].Potential = 1; // 2021 Version
+        const m = NoSwap.ShapeToSparseMatrix();
+        (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.equal(-1)
+        // check .. ah JS without TS intellisense is a pain to write tests :-()
+        m.row ;
+        (0, chai_1.expect)(m.row.length).to.equal(0);
+        //(0, chai_1.expect)(m.row[0]).to.exist;
+        
+        //NoSwap.row ;
+        console.log(" use dynamic to access data ") // no typeScript anymore :-()
+        //const scalar=new Tridiagonal(1)
+        //scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
+        const result = 4; //scalar.getAt(0,0) //hello();
+        (0, chai_1.expect)(result).to.equal(4);
+    });    
+    
+    it('2021-12-18 insulator', () => {
+        const NoSwap=new fields_1.Field(insulatorScalar)
+        // the method should be able to just create the differential equation without the boundary ( closed space like on a sphere or torus). This matrix can not be inverted
+        const m = NoSwap.ShapeToSparseMatrix();
+        (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.equal(1)
+        // check
+        //m.
+        //const scalar=new Tridiagonal(1)
+        //scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
+        const result = 4; //scalar.getAt(0,0) //hello();
+        (0, chai_1.expect)(result).to.equal(4);
+    });
+
+
+    it('2021-12-18 metal which expects a wire', () => {
+        const NoSwap=new fields_1.Field(['M'])
+        // 2020 Version checkContact.lowImpedanceContacts[0].voltage=1
+        // 2022, now I have CAPS for contacts and numerals for fixed potential.  Was: 
+        NoSwap.fieldInVarFloats[0][0].Potential = 1; // 2021 Version
+        //NoSwap.contacts.contacts.  I think 
+        const m = NoSwap.ShapeToSparseMatrix();
+        // check
+        //m.
+        //const scalar=new Tridiagonal(1)
+        //scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
+        const result = 4; //scalar.getAt(0,0) //hello();
+        (0, chai_1.expect)(result).to.equal(4);
+    });        
+
+    // mixed m and s .  contacts
+
+    // Uses index in SparseMatrix to sort
     it('should return hello world 2020-11-19 18:35', () => {
         const checkContact = new fieldStatic_1.ContactedField(metalScalar);
         // 2020 Version checkContact.lowImpedanceContacts[0].voltage=1

@@ -228,7 +228,6 @@ export class FieldToDiagonal extends MapForField {
     preprocessChar(char) {
         return char;
     }
-    // need to store the electric field somewhere
     // Bandgap may stay in text? But this strange replacement function?
     ConstTextToVarFloats() {
         // May be later: const pixel=new Float64Array(4*this.maxStringLenght * this.touchTypedDescription.length)
@@ -347,7 +346,7 @@ export class FieldToDiagonal extends MapForField {
         const matrix = new Tridiagonal(this.flatLength); // number of rows. May need to grow, but no problem in sparse notation
         const vector = []; // U vs u
         // flatten
-        let i_mat = 0, i_mat_pre = 0, i_vec_pre = 0;
+        let i_mat = 1, i_mat_pre = 1, i_vec_pre = 1; // I abuse the sign of number to mean rhs vs lhs
         // pitch varies per field row on jagged, and even variies per cell with static
         // I feel like every cell in the field needs an index into the matrix ( -1 = null )
         let pitch = 0;
@@ -374,107 +373,120 @@ export class FieldToDiagonal extends MapForField {
                         }
                     }
                     else {
-                        str[k].RunningNumberOfJaggedArray = -i_vec_pre++; // test & tune ( in combination with doping )
-                        // todo: MAC on the vector
+                        if (typeof str[k].Contact === 'undefined') {
+                            // semiconductor
+                            str[k].RunningNumberOfJaggedArray = i_mat_pre++;
+                        }
+                        else {
+                            // This is supposed to be the simple test case with fixed voltage which we do not need to solve for
+                            if (typeof str[k].Contact !== 'number') {
+                                throw 'fixed potential need to be given as a number';
+                            }
+                            // metal with fixed potential
+                            str[k].RunningNumberOfJaggedArray = -i_vec_pre++; // test & tune ( in combination with doping )  // negative indices point to the rhs ( vector ) . U is given sure. But charge?  Ah so like programming despite that we later swap it
+                            // todo: MAC on the vector
+                        }
                     }
                 }
-            }
-            const str = this.fieldInVarFloats[i];
-            // JS is strange still. I need index:      for (let c of str) 
-            for (let k = 0; k < str.length; k++) {
-                // for push aka charge
-                if (typeof str[k].Contact === 'object') //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
-                 {
-                    var cellPrecise_pitch = -1;
-                    this.fieldInVarFloats[i - 1][k]; // so i+1 is not possible, huh
-                    // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
-                    // allocate max needed memory. Initialize with 0 
-                    // todo: set all to zero because we split into u and U after the partial DGL formulation
-                    let span = [-pitch, -1, str.length].map((global, l) => new Span(3 - (Math.abs(1 - l) << 1), global + i_mat /* makes it square? */));
-                    //const c = str[k]
-                    //const build_h=new Span<number>(0,i_mat)
-                    // Laplace will source all fields. Only target is XOR ChargeDensity.
-                    //  Floating metal and all other bandgaps: I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
-                    //  Metal 'M' vs 'm' held at potential: I don't need
-                    // Charge Carrier
-                    //else
-                    // Laplace 2d
-                    // boundary condition: voltage value  ( but I am not interested in charge)
-                    // I cannot read the definition of span.
-                    // So I guess there are wasted spans ( zero length )
-                    span[1].extends[1] = 0; //const proto:Span<number>[]=[[], [4], []]
-                    {
-                        // expand the diagonal
-                        if (k < str.length - 1) {
-                            span[1].extends[2] = -1; // Poisson equaton  // so this is in conflict with u vs U   //.push(-1)
-                            span[1].extends[1]++; // to accound for borders / dimensions on a high potential without a field
-                        } // new Row() eats 0 in extend   line 466: if (t!==0)   .. This is useful because all those integers will give us spurious zeroes on vector add. Lets use them. Also: Statistics 
-                        if (k > 0) {
-                            span[1].extends[0] = -1; //.unshift(-1)
-                            span[1].extends[1]++;
-                        }
-                        // Jagged
-                        if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
-                            span[0].extends[0] = -1; //.push(-1)
-                            span[1].extends[1]++;
-                        }
-                        else {
-                            // Todo: Check if new Row() discards untouched new Span() !   //  span[0].start = span[1].start //    //what was this? span[0]=span[1]
-                        }
-                        if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
-                            span[2].extends[0] = -1; //.push(-1)
-                            span[1].extends[1]++;
-                        }
-                        else {
-                            // Todo: Check if new Row() discards untouched new Span() !   //  span[2].start = span[1].start + span[1].extends.length //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
-                        }
-                    }
-                    // todo split into  lhs and rhs 
-                    // follow indices
-                    // duped code from above .. visitor pattern? (todo)
-                    //var index=[] //undefined,undefined] // value types cannot be null
-                    var accumulator = 0, center = 0;
-                    const setCells = [[]]; // This is not a map because I don't access randomly
-                    for (var di = 0; di < 2; di++)
-                        for (var dk = 0; dk < 2; dk++) {
-                            // rotation. Just guessed the values. I can read this easily
-                            const si = i - 0 + (di - dk);
-                            if (si >= 0 && si < this.fieldInVarFloats.length) {
-                                const str_pull = this.fieldInVarFloats[si];
-                                const sk = k - 1 + (di + dk);
-                                if (k >= 0 && k < str_pull.length) {
-                                    const vec = str_pull[k];
-                                    const i_vec = vec.RunningNumberOfJaggedArray;
-                                    if (i_vec < 0) { // so negative indices point to the rhs ( vector )
-                                        // U -> u
-                                        vector[-i_vec] += span[si].extends[sk] * vec.Potential; // default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
-                                    }
-                                    else {
-                                        // fill the diagonal. Even after jaggies and discarded holes ( electrodes ), for inversion, the diagonal needs to collect all the ++
-                                        if (setCells[setCells.length - 1][0] < i_mat && i_mat < i_vec) {
-                                            center = setCells.length;
-                                            setCells.push([i_mat, accumulator]); // still need to accumulate the other half, but lets declare the structure in one go
-                                        }
-                                        setCells.push([i_vec, -1]);
-                                        // let otherSide=di+dk & 2 
-                                        // span[si].extends[otherSide]=-1 //this hard to read code avoids overlapping spans
-                                        // span[si].start=i_vec  // i_vec is sorted / ordered  // Cells which don't exist
-                                    }
-                                    accumulator++; //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
+                {
+                    const str = this.fieldInVarFloats[i];
+                    // JS is strange still. I need index:      for (let c of str) 
+                    for (let k = 0; k < str.length; k++) {
+                        // for push aka charge
+                        if (typeof str[k].Contact === 'object') //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
+                         {
+                            var cellPrecise_pitch = -1;
+                            this.fieldInVarFloats[i - 1][k]; // so i+1 is not possible, huh
+                            // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
+                            // allocate max needed memory. Initialize with 0 
+                            // todo: set all to zero because we split into u and U after the partial DGL formulation
+                            let span = [-pitch, -1, str.length].map((global, l) => new Span(3 - (Math.abs(1 - l) << 1), global + i_mat /* makes it square? */));
+                            //const c = str[k]
+                            //const build_h=new Span<number>(0,i_mat)
+                            // Laplace will source all fields. Only target is XOR ChargeDensity.
+                            //  Floating metal and all other bandgaps: I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
+                            //  Metal 'M' vs 'm' held at potential: I don't need
+                            // Charge Carrier
+                            //else
+                            // Laplace 2d
+                            // boundary condition: voltage value  ( but I am not interested in charge)
+                            // I cannot read the definition of span.
+                            // So I guess there are wasted spans ( zero length )
+                            span[1].extends[1] = 0; //const proto:Span<number>[]=[[], [4], []]
+                            {
+                                // expand the diagonal
+                                if (k < str.length - 1) {
+                                    span[1].extends[2] = -1; // Poisson equaton  // so this is in conflict with u vs U   //.push(-1)
+                                    span[1].extends[1]++; // to accound for borders / dimensions on a high potential without a field
+                                } // new Row() eats 0 in extend   line 466: if (t!==0)   .. This is useful because all those integers will give us spurious zeroes on vector add. Lets use them. Also: Statistics 
+                                if (k > 0) {
+                                    span[1].extends[0] = -1; //.unshift(-1)
+                                    span[1].extends[1]++;
+                                }
+                                // Jagged
+                                if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
+                                    span[0].extends[0] = -1; //.push(-1)
+                                    span[1].extends[1]++;
+                                }
+                                else {
+                                    // Todo: Check if new Row() discards untouched new Span() !   //  span[0].start = span[1].start //    //what was this? span[0]=span[1]
+                                }
+                                if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
+                                    span[2].extends[0] = -1; //.push(-1)
+                                    span[1].extends[1]++;
+                                }
+                                else {
+                                    // Todo: Check if new Row() discards untouched new Span() !   //  span[2].start = span[1].start + span[1].extends.length //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
                                 }
                             }
+                            // todo split into  lhs and rhs 
+                            // follow indices
+                            // duped code from above .. visitor pattern? (todo)
+                            //var index=[] //undefined,undefined] // value types cannot be null
+                            var accumulator = 0, center = 0;
+                            const setCells = [[]]; // This is not a map because I don't access randomly
+                            for (var di = 0; di < 2; di++)
+                                for (var dk = 0; dk < 2; dk++) {
+                                    // rotation. Just guessed the values. I can read this easily
+                                    const si = i - 0 + (di - dk);
+                                    if (si >= 0 && si < this.fieldInVarFloats.length) {
+                                        const str_pull = this.fieldInVarFloats[si];
+                                        const sk = k - 1 + (di + dk);
+                                        if (k >= 0 && k < str_pull.length) {
+                                            const vec = str_pull[k];
+                                            const i_vec = vec.RunningNumberOfJaggedArray;
+                                            if (i_vec < 0) { // so negative indices point to the rhs ( vector )
+                                                // U -> u
+                                                vector[1 - i_vec] += span[si].extends[sk] * vec.Potential; // default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                                            }
+                                            else {
+                                                // fill the diagonal. Even after jaggies and discarded holes ( electrodes ), for inversion, the diagonal needs to collect all the ++
+                                                if (setCells[setCells.length - 1][0] < i_mat && i_mat < i_vec) {
+                                                    center = setCells.length;
+                                                    setCells.push([i_mat, accumulator]); // still need to accumulate the other half, but lets declare the structure in one go
+                                                }
+                                                setCells.push([i_vec - 1, -1]);
+                                                // let otherSide=di+dk & 2 
+                                                // span[si].extends[otherSide]=-1 //this hard to read code avoids overlapping spans
+                                                // span[si].start=i_vec  // i_vec is sorted / ordered  // Cells which don't exist
+                                            }
+                                            accumulator++; //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
+                                        }
+                                    }
+                                }
+                            setCells[center][1] = accumulator;
+                            matrix.row[i_mat++] = new Row(setCells); // push pull
                         }
-                    setCells[center][1] = accumulator;
-                    matrix.row[i_mat++] = new Row(setCells); // push pull
+                    }
+                    pitch = str.length;
                 }
+                // with electrodes:
+                // small array. Trying to get semantics correct
+                // ps=ps.slice(0,1) 
+                // ps.unshift(i_mat) 
             }
-            pitch = str.length;
-            // with electrodes:
-            // small array. Trying to get semantics correct
-            // ps=ps.slice(0,1) 
-            // ps.unshift(i_mat) 
+            return matrix;
         }
-        return matrix;
     }
 }
 export class Field extends FieldToDiagonal {
