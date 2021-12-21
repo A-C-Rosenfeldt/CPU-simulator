@@ -490,7 +490,9 @@ export class FieldToDiagonal extends MapForField {
               // this works because we add U and Q (from this cell). I only store one index because every entry is on the diagonal ( trace )
               // Q is here for metal anyway
               // U is here for the whole electrode  ()
-              ccc.RunningNumberOfWireU = i_vec_pre++ // how do I store ref to known U of last frame? 
+              //  todo, but not here. Also I think internal wire need to calculate Q by inversion and thus are a column in the matrix? Is this for accumulation?
+                ccc.RunningNumberOfWireU = i_vec_pre++ // how do I store ref to known U of last frame? 
+                // at least we need a deleyed accumulation. i_vec does not index into the vector, but is only used indirectly to pull in the neighbors of Row[i_mat]
               // Now I wonder how access goes? MatrixMultiplication would usually go along a row and MAC the products.
               // But now it seems that we cannot pull the columns effectively?
               // the matrix on the rhs ( known ) is rectangular. We know the y ordinate needs to be the same as on lhs, but x is also needed to integrate with curved space and static electrodes
@@ -523,13 +525,13 @@ export class FieldToDiagonal extends MapForField {
             if (cell.RunningNumberOfJaggedArray>0)  //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
             {
 
-              var cellPrecise_pitch = -1;
-              this.fieldInVarFloats[i - 1][k]; // so i+1 is not possible, huh
+              //var cellPrecise_pitch = -1;
+              //this.fieldInVarFloats[i - 1][k]; // so i+1 is not possible, huh
 
               // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
               // allocate max needed memory. Initialize with 0 
               // todo: set all to zero because we split into u and U after the partial DGL formulation
-              let span = [-pitch, -1, str.length].map((global, l) => new Span<number>(3 - (Math.abs(1 - l) << 1), global + cell.RunningNumberOfJaggedArray /* makes it square? */))
+              //let span = [-pitch, -1, str.length].map((global, l) => new Span<number>(3 - (Math.abs(1 - l) << 1), global + cell.RunningNumberOfJaggedArray /* makes it square? */))
 
               //const c = str[k]
 
@@ -548,32 +550,32 @@ export class FieldToDiagonal extends MapForField {
               // So I guess there are wasted spans ( zero length )
 
               //old:explicit
-              span[1].extends[1] = 0; //const proto:Span<number>[]=[[], [4], []]
-              {
-                // expand the diagonal
-                if (k < str.length - 1) {
-                  span[1].extends[2] = -1 // Poisson equaton  // so this is in conflict with u vs U   //.push(-1)
-                  span[1].extends[1]++    // to accound for borders / dimensions on a high potential without a field
-                } // new Row() eats 0 in extend   line 466: if (t!==0)   .. This is useful because all those integers will give us spurious zeroes on vector add. Lets use them. Also: Statistics 
-                if (k > 0) {
-                  span[1].extends[0] = -1 //.unshift(-1)
-                  span[1].extends[1]++
-                }
+              // span[1].extends[1] = 0; //const proto:Span<number>[]=[[], [4], []]
+              // {
+              //   // expand the diagonal
+              //   if (k < str.length - 1) {
+              //     span[1].extends[2] = -1 // Poisson equaton  // so this is in conflict with u vs U   //.push(-1)
+              //     span[1].extends[1]++    // to accound for borders / dimensions on a high potential without a field
+              //   } // new Row() eats 0 in extend   line 466: if (t!==0)   .. This is useful because all those integers will give us spurious zeroes on vector add. Lets use them. Also: Statistics 
+              //   if (k > 0) {
+              //     span[1].extends[0] = -1 //.unshift(-1)
+              //     span[1].extends[1]++
+              //   }
 
-                // Jagged
-                if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
-                  span[0].extends[0] = -1 //.push(-1)
-                  span[1].extends[1]++
-                } else {
-                  // Todo: Check if new Row() discards untouched new Span() !   //  span[0].start = span[1].start //    //what was this? span[0]=span[1]
-                }
-                if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
-                  span[2].extends[0] = -1 //.push(-1)
-                  span[1].extends[1]++
-                } else {
-                  // Todo: Check if new Row() discards untouched new Span() !   //  span[2].start = span[1].start + span[1].extends.length //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
-                }
-              }
+              //   // Jagged
+              //   if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
+              //     span[0].extends[0] = -1 //.push(-1)
+              //     span[1].extends[1]++
+              //   } else {
+              //     // Todo: Check if new Row() discards untouched new Span() !   //  span[0].start = span[1].start //    //what was this? span[0]=span[1]
+              //   }
+              //   if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
+              //     span[2].extends[0] = -1 //.push(-1)
+              //     span[1].extends[1]++
+              //   } else {
+              //     // Todo: Check if new Row() discards untouched new Span() !   //  span[2].start = span[1].start + span[1].extends.length //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
+              //   }
+              // }
 
 
               // new: for loops
@@ -596,7 +598,7 @@ export class FieldToDiagonal extends MapForField {
                     const i_vec = cell_pull.RunningNumberOfJaggedArray
                     if (i_vec < 0) {   // so negative indices point to the rhs ( vector )
                       // U -> u
-                      vector[1 - i_vec] += -cell_pull.Potential // bake in  potatial  //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                      vector[1 - i_vec] += cell_pull.Potential // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
                     } else {
                       // so we are on the diagonal of the matrix. I see how i_matrix is more a column thing? But to invert, the Matrix need to be square. We collect const neighbors in the same row .. do we? What is -vec?
                       // fill the diagonal. Even after jaggies and discarded holes ( electrodes ), for inversion, the diagonal needs to collect all the ++
@@ -615,11 +617,11 @@ export class FieldToDiagonal extends MapForField {
               }
               setCells[cell.RunningNumberOfJaggedArray-1][1] = accumulator // diagonal
               length=cell.RunningNumberOfJaggedArray
-              matrix.row[length-1] = new Row(setCells)  // push pull
+              matrix.row[length-1] = new Row(setCells)  // push pull  // Array is misused for  (pos|value)  pairs
             }
           }
 
-          pitch = str.length
+          //pitch = str.length   vector!
         } // var
         // with electrodes:
 
