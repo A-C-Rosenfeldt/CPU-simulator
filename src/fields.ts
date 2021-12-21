@@ -458,14 +458,14 @@ export class FieldToDiagonal extends MapForField {
   // But if we skip Q ( we don't care for grounden electrodes), we also need to separate U befor inversion:
   //  Q =  DGL.U + DGL.u   // u meaning the boring u we already know. So we split the rows. Group by rows. But cen we do it already in this method?
   //  <=>  Q =  DGL.U + DGL.u   //  group by U vs u  and this before the matrix with its pitch
-  ShapeToSparseMatrix(metalLiesOutside = false): Tridiagonal {
+  ShapeToSparseMatrix(metalLiesOutside = false): [Array<number>,/*=*/Tridiagonal/* x U*/] {
     // Tridiagonal instead of:  call meander in FinFet
     // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
     // 
     const matrix = new Tridiagonal(this.flatLength) // number of rows. May need to grow, but no problem in sparse notation
     const vector: Array<number> = []  // U vs u
     // flatten
-    let  length=0, i_mat_pre = 1, i_vec_pre = 1; // I abuse the sign of number to mean rhs vs lhs
+    let  last=0, i_mat_pre = 0; // I abuse the sign of number to mean rhs vs lhs
 
     // pitch varies per field row on jagged, and even variies per cell with static
     // I feel like every cell in the field needs an index into the matrix ( -1 = null )
@@ -491,7 +491,7 @@ export class FieldToDiagonal extends MapForField {
               // Q is here for metal anyway
               // U is here for the whole electrode  ()
               //  todo, but not here. Also I think internal wire need to calculate Q by inversion and thus are a column in the matrix? Is this for accumulation?
-                ccc.RunningNumberOfWireU = i_vec_pre++ // how do I store ref to known U of last frame? 
+              // still nonsense  ccc.RunningNumberOfWireU = i_vec_pre++ // how do I store ref to known U of last frame? 
                 // at least we need a deleyed accumulation. i_vec does not index into the vector, but is only used indirectly to pull in the neighbors of Row[i_mat]
               // Now I wonder how access goes? MatrixMultiplication would usually go along a row and MAC the products.
               // But now it seems that we cannot pull the columns effectively?
@@ -501,7 +501,7 @@ export class FieldToDiagonal extends MapForField {
             if (typeof str[k].Contact === 'undefined') { // neither semiconductor  nor  fixed potential have a contact . But fixed and contact are the same for the field solver .. so mix it!
               if (cell.BandGap===0){
                 // This is supposed to be the simple test case with fixed voltage which we do not need to solve for
-                str[k].RunningNumberOfJaggedArray = -i_vec_pre++; // test & tune ( in combination with doping )  // negative indices point to the rhs ( vector ) . U is given sure. But charge?  Ah so like programming despite that we later swap it
+                //this field has no own column or row on the matrix. It is pulled in via field coordinates //str[k].RunningNumberOfJaggedArray = undefined -i_vec_pre++; // test & tune ( in combination with doping )  // negative indices point to the rhs ( vector ) . U is given sure. But charge?  Ah so like programming despite that we later swap it
                 // todo: MAC on the vector                
                 // semiconductor
               }else{
@@ -522,7 +522,8 @@ export class FieldToDiagonal extends MapForField {
           for (let k = 0; k < str.length; k++) { // second pass
             // for push aka charge
             const cell=str[k]
-            if (cell.RunningNumberOfJaggedArray>0)  //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
+            // we don't push to const U fields ( and we don't solve for Q because they are supposed to be backed up by mass)
+            if (typeof cell.RunningNumberOfJaggedArray !== 'undefined')  //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
             {
 
               //var cellPrecise_pitch = -1;
@@ -583,7 +584,8 @@ export class FieldToDiagonal extends MapForField {
               // follow indices
               // duped code from above .. visitor pattern? (todo) What exactly is dupe? Ah not the for loop, but the run time poisoon stuff?
               //var index=[] //undefined,undefined] // value types cannot be null
-              var accumulator = 0, center = 0
+              var accumulator_curvature = 0
+              var accumulator_vec=0
               const setCells: Array<Array<number>> = [[]] // This is not a map because I don't access randomly
 
               // why so many loops?
@@ -596,9 +598,9 @@ export class FieldToDiagonal extends MapForField {
                   // if (k >= 0 && k < str_pull.length) {
                     const cell_pull = str_pull[sk];
                     const i_vec = cell_pull.RunningNumberOfJaggedArray
-                    if (i_vec < 0) {   // so negative indices point to the rhs ( vector )
+                    if (typeof i_vec === 'undefined') {   // so negative indices point to the rhs ( vector )
                       // U -> u
-                      vector[1 - i_vec] += cell_pull.Potential // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                      accumulator_vec += cell_pull.Potential // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
                     } else {
                       // so we are on the diagonal of the matrix. I see how i_matrix is more a column thing? But to invert, the Matrix need to be square. We collect const neighbors in the same row .. do we? What is -vec?
                       // fill the diagonal. Even after jaggies and discarded holes ( electrodes ), for inversion, the diagonal needs to collect all the ++
@@ -606,18 +608,19 @@ export class FieldToDiagonal extends MapForField {
                       //   center = setCells.length;
                       //   setCells.push([i_mat, accumulator]) // still need to accumulate the other half, but lets declare the structure in one go
                       // }
-                      setCells.push([i_vec - 1, -1])  // para-diagonal
+                      setCells.push([i_vec, -1])  // para-diagonal
                       // let otherSide=di+dk & 2 
                       // span[si].extends[otherSide]=-1 //this hard to read code avoids overlapping spans
                       // span[si].start=i_vec  // i_vec is sorted / ordered  // Cells which don't exist
                     }
-                    accumulator++//span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
+                    accumulator_curvature++ //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
                   //}
                 }
               }
-              setCells[cell.RunningNumberOfJaggedArray-1][1] = accumulator // diagonal
-              length=cell.RunningNumberOfJaggedArray
-              matrix.row[length-1] = new Row(setCells)  // push pull  // Array is misused for  (pos|value)  pairs
+              vector[cell.RunningNumberOfJaggedArray]=accumulator_vec;
+              setCells[cell.RunningNumberOfJaggedArray][1] = accumulator_curvature // diagonal
+              last=cell.RunningNumberOfJaggedArray
+              matrix.row[last-1] = new Row(setCells)  // push pull  // Array is misused for  (pos|value)  pairs
             }
           }
 
@@ -630,8 +633,8 @@ export class FieldToDiagonal extends MapForField {
         // ps.unshift(i_mat) 
       
     } // for
-    matrix.row.length=length     // remove const voltage
-    return matrix
+    matrix.row.length=last+1     // remove const voltage
+    return [vector,matrix]
 
   }
 
@@ -642,7 +645,7 @@ export class Field extends FieldToDiagonal {
 
     this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )
     // Now the shape on left hand side should have "holes"? Jagged is not enough to describe this .. Jagged is all I got for free from the programming language
-    const m = this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
+    const [v,m] = this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
 
     // array: position in Matrix
 
@@ -674,8 +677,8 @@ export class Field extends FieldToDiagonal {
     //   Here also U moves over to lhs and makes our matrix square => invertable
     // The above method GroupByKnowledge() looks good. We just add our row, won't we?
     m.inverseRectangular
-    var statics = [3, 4, 5] // this -> static value vector
-    m.MatrixProduct(statics);
+    //var statics = [3, 4, 5] // this -> static value vector
+    m.MatrixProduct(v);
 
     // Todo
     //this.GroupByKnowledge(m): Swap two times to get back to U and Q
@@ -696,7 +699,7 @@ export class Field extends FieldToDiagonal {
   }
 
   ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes(): Tridiagonal {
-    const m = this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
+    const[v,m] = this.ShapeToSparseMatrix() // Laplace operator   to  chargeDensity = LaPlace &* voltage
     // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
     Field.AugmentMatrix_with_Unity(m)  //  itself:   unity &* chargeDensity = LaPlace &* voltage
     //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
