@@ -977,40 +977,48 @@ export class Row{
     innerProduct(column:number[] ):number{
         let acc=0
         this.data.forEach((d,i)=>{d.forEach((cell,j)=>{
-            acc+=cell*column[j+this.starts[i<<1]]
+            const index = j + this.starts[i << 1]
+            if (index<column.length) acc+=cell*column[index] // else  OutOfBounds === zero
         })})
         return acc
     }    
 
-    // only used for test. The other matrix will be an inverted Matrix, which is not sparse
-    innerProduct_Matrix(M: Tridiagonal):Row {
+    // only used for test. The other matrix will be an inverted Matrix, which is probably not really sparse
+    // Inverted Matrix is left. Do I need to change everything?
+    // Left is needed for all the = in the equation system. Why would a Matrix be right?
+    // Should I store columns in a Matrix? Vectors are no sparse anyway and they start at index=0 always.
+    // So it is for test. To compare with Matrix using Transpose?
+    innerProduct_Matrix(right: Tridiagonal):number[] { // Only a right Matrix produces a Row result. I've got no columns ..
         //const accs=new Span<number>(M.length(),0)
         //for (let acc_i = 0; acc_i < M.length(); acc_i++)
         // todo class cursor with ref to row
-        const cursors=new Array<number>(M.length()).fill(0) // other source is not sparse => no jop  
-        const accs=M.row.map((row,acc_i)=>{
-            let acc = 0
+        //const cursors=new Array<number>(right.length()).fill(0) // other source is not sparse => no jop  
+    
+        // for some reason we only need it here 
+        let acc_i=0
+        right.row.forEach((row:Row)=>{
+            acc_i= Math.max( acc_i, row.last(row.starts) )
+        })
+
+      
+    const result= new Array<number>(acc_i);
+    // this is only height. We need width (should I have that value?) : right.length(); 
+
+          while(acc_i-->0){
+              let acc=0
             this.data.forEach((d, i) => {
-                d.forEach((cell, j) => {
-                    acc += cell * row[j+this.starts[i<<1]].get(acc_i) // M.getAt(j+this.starts[i<<1], acc_i)
+                const base = this.starts[i << 1]  // a join which I could probly avoid with class Span but which complicated sparse join which was the motivation for my project .. Ah I should have done that later
+                d.forEach((cell, j) => {                    
+                    acc += cell * right.row[j+base].get(acc_i)  // main purpose is to use the KISS get and compare it with the join
+                    // M.getAt(j+this.starts[i<<1], acc_i)
                     // todo: don't dive into  row.find all the time. 
                 })
             })
-            //accs[acc_i]=
-            return acc
-        })
-
-        // not sparse .. huh?
-
-        {
-            let a=new Array<Span<number>>(3) //=[[],[],[]];
-            a[0]=new Span<number>(0,0) //.start=0)
-            //a[1]=accs
-            //a[2]=new Span<number>(0,accs.extends.length)
-            const row=new Row(a) //0,0,[[],[],[]])
-            //row.data[1]=accs
-            return row
+            result[acc_i]=acc
         }
+
+            //accs[acc_i]=
+            return result
     }
     
     
