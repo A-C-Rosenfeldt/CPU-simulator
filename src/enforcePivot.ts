@@ -973,6 +973,7 @@ export class Row{
         }))
     }
 
+    // ToDo: InnerProduct needs to see outside range as zeros and not out of bounds error
     innerProduct(column:number[] ):number{
         let acc=0
         this.data.forEach((d,i)=>{d.forEach((cell,j)=>{
