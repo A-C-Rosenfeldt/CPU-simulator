@@ -89,7 +89,7 @@ describe('sort columns all on one side', () => {
         // 2020 Version checkContact.lowImpedanceContacts[0].voltage=1
         // 2022, now I have CAPS for contacts and numerals for fixed potential.  Was: checkContact.fieldInVarFloats[0][0].Potential = 1; // 2021 Version
         const m = NoSwap.ShapeToSparseMatrix();
-        (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.equal(-1)
+        (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.not.exist // field has only one cell which is grounden => nothing to solve
         // check .. ah JS without TS intellisense is a pain to write tests :-()
         m.row ;
         (0, chai_1.expect)(m.row.length).to.equal(0);

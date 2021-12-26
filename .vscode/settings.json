@@ -1,11 +1,7 @@
 {
-    "mochaExplorer.env": {
-        "TS_NODE_PREFER_TS_EXTS":"true",
-    	"TS_NODE_PROJECT":"tsconfig.test.json"
-    },
-    "mochaExplorer.esmLoader": false,
-    "mochaExplorer.optsFile": "",
-    "mochaExplorer.mochaPath": "node_modules/mocha",
-     "mochaExplorer.files": "test/**/*.js",
-    "mochaExplorer.debuggerConfig": "Mocha Tests"
+	"mochaExplorer.configFile": ".mocharc.js",
+	"mochaExplorer.mochaPath": "node_modules/mocha",
+	"mochaExplorer.logpanel":true,
+	"mochaExplorer.logfile": "mochaExlorer.log"
+		
 }

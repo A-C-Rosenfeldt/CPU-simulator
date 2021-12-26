@@ -1124,9 +1124,9 @@ export class Tridiagonal implements Matrix{
     constructor(length:number|Row[]){
         if (typeof length === "number")
         {this.row=new Array(length)}
-        else[
-            this.row=length
-        ]
+        else{
+            this.row=length ;
+        }
         //I cannot create rows
         //I do not want thousand different constructors
         //user will have to fill the array

@@ -460,7 +460,7 @@ export class FieldToDiagonal extends MapForField {
   //  Q =  DGL.U + DGL.u   // u meaning the boring u we already know. So we split the rows. Group by rows. But cen we do it already in this method?
   //  <=>  Q =  DGL.U + DGL.u   //  group by U vs u  and this before the matrix with its pitch
   ShapeToSparseMatrix(metalLiesOutside = false): [Array<number>,/*=*/Tridiagonal/* x U*/] {
-    const matrix = new Tridiagonal(this.flatLength) // number of rows. May need to grow, but no problem in sparse notation
+    const matrix = new Tridiagonal(new Array<Row>()) // this failsthis.flatLength) // number of rows. May need to grow, but no problem in sparse notation
     const vector: Array<number> = []  // U vs u
     let last = 0, i_mat_pre = 0;
     for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
@@ -528,12 +528,12 @@ export class FieldToDiagonal extends MapForField {
               }
             }
             last = cell.RunningNumberOfJaggedArray
-            matrix.row[last - 1] = new Row(setCells)  // push pull  // Array is misused for  (pos|value)  pairs  and pos has to be ordered ( because this this removes ambigion in all my exisiting code .. uh, but see the ugly 3 lines above )
+            matrix.row.push( new Row(setCells) ) // push pull  // Array is misused for  (pos|value)  pairs  and pos has to be ordered ( because this this removes ambigion in all my exisiting code .. uh, but see the ugly 3 lines above )
           }
         }
       } // var
     } // for
-    matrix.row.length = last + 1     // remove const voltage
+    //matrix.row.length = last-1     // remove const voltage .. so basically I shoul
     return [vector, matrix]
   }
 }
