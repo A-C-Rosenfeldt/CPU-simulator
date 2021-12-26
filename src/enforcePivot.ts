@@ -558,6 +558,7 @@ export class Row{
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce<number>((v1,v0)=>v0>=v1? v0 : Number.MAX_SAFE_INTEGER,0) === Number.MAX_SAFE_INTEGER ) {
             console.log(this.starts)
+            console.log("no order 0")
             throw "no order";
         }
     }

@@ -50,7 +50,7 @@
     }
   },
   "scripts": {
-    "test": "mocha --recursive --watch test/*.js",
+    "test": "mocha --recursive test/*.js",
     "test_wd": "tsc --watch -p \"tsconfig.test.json\" . && mocha --recursive --watch test/*.js",
     "test_old": "cross-env TS_NODE_PROJECT=\"tsconfig.test.json\" TS_NODE_PREFER_TS_EXTS=\"true\" npm run childTest",
     "childTest": "cross-env-shell \"echo Hi $TS_NODE_PROJECT\" && mocha --require ts-node/register test/*.ts",

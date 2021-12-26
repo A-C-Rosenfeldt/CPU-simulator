@@ -28,13 +28,14 @@ let y = 10;
     // ShapeToSparse Matrix groups by metal ( U=, Charge varies) vs semiconductor ( U varies, charge is moved in that other phase of the cycle )
     // Todo: Unit test for pure semi, pure metal, mixed
     // The algorithm seems to think that with no metal at all there is nothing to compute?
-    squared = NoSwap.ShapeToSparseMatrix();
+    let vector;
+    [vector, squared] = NoSwap.ShapeToSparseMatrix();
     var imageGl = squared.PrintGl();
     main('FieldGl0_NoSwap', imageGl);
     // Constructor is too fat? Now that I parse already in the base class? ToDo!
     const tri = new Field(fieldTobeSquared);
     // reproduce stuff from above
-    squared = tri.ShapeToSparseMatrix();
+    [vector, squared] = tri.ShapeToSparseMatrix();
     var imageGl = squared.PrintGl();
     main('FieldGl0_tri', imageGl);
     // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?

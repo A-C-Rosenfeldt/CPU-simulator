@@ -6,17 +6,11 @@
         {
             "type": "typescript",
             "tsconfig": "src/tsconfig.test.json",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "dedicated"
-            },
             "problemMatcher": [
                 "$tsc"
             ],
             "group": "build",
-            "label": "tsc: build for node"
+            "label": "tsc for node"
         },
         {
             "type": "typescript",
@@ -25,7 +19,7 @@
                 "$tsc"
             ],
             "group": "build",
-            "label": "tsc: build for edge"
+            "label": "tsc for edge"
         },
         {
             "type": "typescript",
@@ -38,17 +32,17 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "label": "tsc: watch source build for edge / tsconfig.json"
+            "label": "tsc for edge and watch"
         },
         {
             "type": "typescript",
             "tsconfig": "src/tsconfig.test.json",
             "option": "watch",
             "problemMatcher": [
-                "$tsc"
+                "$tsc-watch"
             ],
             "group": "build",
-            "label": "tsc -- watch : build for node"
+            "label": "tsc for node and watch"
         },
         {
             "label": "[Mocha] Run Tests (relative to Workspace-Folder)",

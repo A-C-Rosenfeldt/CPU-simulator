@@ -494,25 +494,41 @@ export class FieldToDiagonal extends MapForField {
           if (typeof cell.RunningNumberOfJaggedArray !== 'undefined') {  //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
             var accumulator_curvature = 0
             var accumulator_vec = 0
-            const setCells: Array<Array<number>> = [[]] // This is not a map because I don't access randomly
+            const setCells: Array<Array<number>> = [] // This is not a map because I don't access randomly
+            console.log(" push starting ")
             for (var di = 0; di < 2; di++)for (var dk = 0; dk < 2; dk++) {
-              const si = i - 0 + (di - dk)
+              const si = i - 1 + (di + dk) //  s=source=pull   // 00 01 10 11  monotonous increase
               if (si >= 0 && si < this.fieldInVarFloats.length) {
-                const sk = k - 1 + (di + dk), str_pull = this.fieldInVarFloats[si]
-                const cell_pull = str_pull[sk]
-                const i_vec = cell_pull.RunningNumberOfJaggedArray
-                if (typeof i_vec === 'undefined') {   // so negative indices point to the rhs ( vector ) // U -> u
-                  accumulator_vec += cell_pull.Potential // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
-                } else {
-                  setCells.push([i_vec, -1])  // para-diagonal
+                const str_source = this.fieldInVarFloats[si]
+                if (typeof str_source !== 'undefined' ) {
+                  const sk = k - 0 + (di - dk) // for the si=const part :  +0-1 +1-0   => strong monotonous increase
+                  const cell_source = str_source[sk]
+                  if (typeof cell_source !== 'undefined' ) {
+                    const i_vec = cell_source.RunningNumberOfJaggedArray
+                    if (typeof i_vec === 'undefined') {   // so negative indices point to the rhs ( vector ) // U -> u
+                      accumulator_vec += cell_source.Potential // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                    } else {
+                      setCells.push([i_vec, -1])  // para-diagonal
+                      console.log(" push",i_vec)
+                    }
+                    accumulator_curvature++ //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
+                  }
                 }
-                accumulator_curvature++ //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
               }
             }
             vector[cell.RunningNumberOfJaggedArray] = accumulator_vec;
-            setCells[cell.RunningNumberOfJaggedArray][1] = accumulator_curvature // diagonal
+            { // sorry, I guess I may indeed need a sorting class
+              const p=cell.RunningNumberOfJaggedArray
+              if (setCells[setCells.length-1][0] < p){
+                setCells.push([p,accumulator_curvature])
+              }else{
+                const i=setCells.findIndex( value => value[0] > p ) // the docs say: "first index" . we hide the outer i, don't we?
+                console.log(" insert p "+ p +" in ",i)
+                setCells.splice(i,0,[p,accumulator_curvature]) // diagonal
+              }
+            }
             last = cell.RunningNumberOfJaggedArray
-            matrix.row[last - 1] = new Row(setCells)  // push pull  // Array is misused for  (pos|value)  pairs
+            matrix.row[last - 1] = new Row(setCells)  // push pull  // Array is misused for  (pos|value)  pairs  and pos has to be ordered ( because this this removes ambigion in all my exisiting code .. uh, but see the ugly 3 lines above )
           }
         }
       } // var
