@@ -1,17 +1,18 @@
+
 /*
 Flat surface emitts electrons at each cell and every time step.
 Electrons span quads. This leads to tapes.
 
 Can I live with only flat cathodes? Yes
 Can I live with Quad LoD ?
-    Time Lod:
+    Time Lod: 
 
 Charge position correction: With time steps. GPU is more important.
 Space Charge: expansion in the inner part .. but low charge
 Focussing: Why would you do that?
 I need compensating space charge. Real tubes are 3d so have a 2d film for electrons. Projection of 3d vs doping. Doping probably. Current limiting by space charge still works. No HEMT, yet.
 
-So anyway: Trajectory simulation with quads spanned.
+So anyway: Trajectory simulation with quads spanned. 
     Quads -> grid Field
     Verlet integration for the electrons based on grid field
         since electron points are off-grid anyway, we don't suffer additional disadvantage from delta being diffused by bilinear interpolation
@@ -23,54 +24,66 @@ Quads are only used for display. Track-density = reciprok => color
 So maybe even (soft) limit the velocity of electrons to grid-size = mean free path in real solids-
 Charge-charge repulsion within the grid. So the tracks move as a whole. You could sample the field in the mean of the old vertices. Each vertex is only allowed to move in uh exception cascade unitl the middle normal of its edges.
 */
-export /*pass through ref to. ToDo: empty Interface as marker*/ class Electron {
-    constructor() {
-        this.location = [0, 0];
-        this.next = null; // bidirectional links uses a singly linked list .. good idea?
-        this.derivatives = [this.location]; // Verlet does not use this
-    }
-    Verlet(precedessor, successor) {
+
+import { Tridiagonal } from "../enforcePivot";
+import { Field, FieldToDiagonal, Tupel } from "../fields";
+import { ContactedField } from "../fieldStatic";
+
+export /*pass through ref to. ToDo: empty Interface as marker*/ class Electron{
+    location:[number,number] /* Tupel instead of Array<number> */ =[0,0];
+    next:Electron=null// bidirectional links uses a singly linked list .. good idea?
+    derivatives=[this.location] // Verlet does not use this
+    public Verlet(precedessor:Electron,successor:Electron){
         // Verlet integration senses the field at the current position for velocity+=accelertion,
         // but then takes a step back for the position and then: position+=2*velocity .
+
     }
-    Set2(delta) {
-        this.location.forEach((me, i) => {
-            me = 2 * delta[i];
-        });
+
+    public electronInAdjacentTrajectory:Electron; // ref
+
+    public Set2(delta:Array<number>){
+        this.location.forEach((me,i)=>{
+            me=2*delta[i]
+        })
     }
-    Sub(delta) {
-        this.location.forEach((me, i) => {
-            me -= delta[i];
-        });
+
+    public Sub(delta:Array<number>){
+        this.location.forEach((me,i)=>{
+            me-=delta[i]
+        })
     }
 }
+
 // With Navier Stokes and co. you can either sit at a location or on a particle. The code for the former is in fieldStatic.ts ( bottom, commented out)
 // Here we go with particles, which should be faster and maybe even give a coherent ( haha ) motion when jumping into coax cable.
-export class Trajectory {
-    constructor() {
-        // Although I was burned with fixed constants in the Matrix code, I (still) need them in the simulation code
-        this.length = 12;
-        this.electrons = new Electron[length];
-    }
+export class Trajectory{
+    // Although I was burned with fixed constants in the Matrix code, I (still) need them in the simulation code
+    public readonly length=12;
+    public electrons:Electron[]= new Electron[length]
+    cellPosition:number[]; // todo: Link to cell for the current to take effect. 
+    direction: number;  // cell borders. |Speed| = 1
     // Emission: One particle per frame.  todo Current is R * electricField? Fiddle with value until space charge effects start to fade.
-    Propagate(field) {
+    public Propagate(field: FieldToDiagonal): void /*  I keep double buffer locally "Tupel", thus I cannot deal with a return buffer.  */ {
         // forEach does not work .. or shift at read? Electrons which did not hit the anode just vanish ( traps in semi / residual gas in tube )
+
         // linear interpolation  of  difference quotent
-        const applyForce = (consequence, cause) => {
+        const applyForce= (consequence:Array<number>, cause:Array<number>) =>{
             // capture
-            const l = cause.map(o => { const i = Math.floor(o); const f = o - i; return { i: i, f: f }; });
-            let reverse = false; // co-ordinates
-            const shorthand = (i, k) => field.fieldInVarFloats[l[1].i + i][l[0].i + k].Potential;
-            const reversed = (i, k) => reverse ? shorthand(k, i) : shorthand(i, k);
-            do {
-                for (let y = 1; y >= 0; y--) {
-                    consequence[reverse ? 1 : 0] += reversed(1, y) - reversed(0, y) * l[0].f;
-                    l[0].f = 1 - l[0].f; // interpolation ( not-so-functional coding style )
-                }
-                l.shift();
-                reverse = !reverse;
-            } while (reverse);
-        };
+            const l=cause.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );                
+            let reverse=false // co-ordinates
+            const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
+            const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
+
+            do{
+                for(let y=1;y>=0;y--){
+                    consequence[reverse ?1:0] +=  reversed(1,y)-reversed(0,y)*l[0].f
+                    l[0].f=1-l[0].f // interpolation ( not-so-functional coding style )
+                }                    
+                l.shift()
+                reverse=!reverse
+            }while(reverse);
+        };        
+
         /*  Closure needs at least two functions ( + a third to be useful)
                 function makeAdder(x) {
                 return function(y) {
@@ -86,21 +99,23 @@ export class Trajectory {
          */
         // bi-inear interpolation  of  difference quotent
         // the "bi" is created by calling itself on time
-        const distributeChargeOnGrid = (cause) => {
+        const distributeChargeOnGrid= (cause:Array<number>) =>{
             // capture
-            const l = cause.map(o => { const i = Math.floor(o); const f = o - i; return { i: i, f: f }; });
-            let direction = 0;
-            const colateral = field.fieldInVarFloats.slice(l[direction].i, l[direction].i + 2);
-            const weights = () => [l[direction].f, 1 - l[direction].f];
-            const weightCaller = (weight, topLeft, fun) => {
-                return (grid, weightPassed) => {
-                    fun(grid[topLeft + 0], (0 + weight) * weightPassed);
-                    fun(grid[topLeft + 1], (1 - weight) * weightPassed);
-                };
-            };
-            const inner = weightCaller(l[1].f, l[1].i, (grid, w) => { grid.AddCarrier(w); });
-            const outer = weightCaller(l[0].f, l[1].i, inner);
-            outer(field.fieldInVarFloats, 1 /* electron has charge=1  */);
+            const l=cause.map(o=>{const i=Math.floor(o); const f=o-i; return {i:i,f:f}; } );
+            let direction=0
+            const colateral= field.fieldInVarFloats.slice( l[direction].i ,l[direction].i +2 )
+            const weights=()=>[l[direction].f, 1-l[direction].f]
+            const weightCaller= ( weight:number,topLeft:number , fun: (grid:Tupel[][]|Tupel[]|Tupel, w:number )=>void ) => {
+                return (grid: Tupel[]|Tupel[][] , weightPassed:number)=>{
+                fun(grid[ topLeft+0 ], (0+weight)*weightPassed )
+                fun(grid[ topLeft+1 ], (1-weight)*weightPassed )
+                }
+            }
+
+            const inner=weightCaller( l[1].f, l[1].i , (grid, w )=> { ( grid as Tupel).AddCarrier(w) }   )
+            const outer=weightCaller( l[0].f, l[1].i , inner                       )
+            outer( field.fieldInVarFloats, 1   /* electron has charge=1  */ )
+
             // const wi=weights()
             // direction++
             // const wk=weights()
@@ -110,28 +125,39 @@ export class Trajectory {
             //     } ) 
             // }
             // )  // this is not a join. Just cluster. No mention of start from 0 nor start from 1 :-)
+
+            
+
             // w.forEach( v=>{
             //     [l[0].i+k]
             // })
+
+
             // let reverse=false // co-ordinates
             // const shorthand = (i:number,k:number) => field.fieldInVarFloats[l[1].i+i][l[0].i+k] // not const
             // const reversed= (i:number,k:number) => reverse ? shorthand(k,i):shorthand(i,k);
+
             // do{
             //     for(let y=1;y>=0;y--){
+                    
             //         reversed(0,y)+=l[0].f
             //         reversed(1,y)+=1-l[0].f // interpolation ( not-so-functional coding style )
             //     }                    
             //     l.shift()
             //     reverse=!reverse
             // }while(reverse);
-        };
+        };      
+
         // var captureMe= number => String ;  // calls a method to set the charge in the other frame buffer
         // const hunter= () => distributeChargeOnGrid  ;  // does this capture  "capture Me". Wir brauchen wohl ein "Funktionsumfeld"
         // var captureMe= number => String ;  // recursion
         // const hunter= () => distributeChargeOnGrid  ;  // does this capture  "capture Me". Wir brauchen wohl ein "Funktionsumfeld"
-        for (let i = 0; i < this.electrons.length; i++) {
-            this.electrons[i].Set2(this.electrons[i - 1].location);
-            this.electrons[i].Sub(this.electrons[i - 2].location); //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
+
+
+        for(let i=0;i<this.electrons.length;i++){
+            this.electrons[i].Set2(this.electrons[i-1].location)
+            this.electrons[i].Sub(this.electrons[i-2].location) //+  // Is this verlet?? Yes, apparently it is just about staggering velocity.
+            
             // // Todo: Remove all electrons close by ( back link from field cell ). Code looks ugly 
             // // Espcially remove self !!
             //  // So I need old position of electron ah, cool I have it here. L
@@ -145,12 +171,15 @@ export class Trajectory {
             //      const l= this.electrons[i].location
             // field.fieldInVarFloats[l[1].i+i][l[0].i+k].Potential
             // }
-            applyForce(this.electrons[i].location, this.electrons[i - 1].location);
+
+            applyForce(this.electrons[i].location, this.electrons[i-1].location)
+
             // Set charge in field of next frame ( vector for matrix ). This is needed for debugging. Later ToDo: I add a single-frame switch
             {
-                const l = this.electrons[i].location;
-                const probe = field.fieldInVarFloats[l[1]][l[0]].GetCarrier(); //.Carrier
-                distributeChargeOnGrid(l);
+                const l=this.electrons[i].location
+                const probe=field.fieldInVarFloats[l[1]][l[0]].GetCarrier() //.Carrier
+
+                distributeChargeOnGrid(l)
             }
             //let tupel=[4,5]
             // at least I need to round location. Otherwise getAt will fail. floor and ceil define that potential is at floor?
@@ -166,10 +195,14 @@ export class Trajectory {
             //         field[corner[1][1-d]-corner[0][1-d]]
             //     }
             // }
+
             // I think one can read this as all corner. Again, for breaks symmetry. Though I need it for partial differntation
+
             //const force=new Array<number>();
+
             // field.getAt(...this.electrons[i-1].location) ; // Electron should always be within a field. Right now cells are supposed to be squares. They have a potential. I need the field. So I need neighbours. Plural? Staggered cells bilinear? Does also work in 3d
             //   // bilinear interpolation
+
             // // mimic Poisson. Start values? Don't I need Verlet anyway?
             // 2*this.electrons[i]-
             // this.electrons[i-]-  // current frame. V
@@ -178,19 +211,25 @@ export class Trajectory {
         // this.electrons.forEach(electron => {
         //     electron.Verlet();
         // });
+
         //return charge as Field.  //  ToDo: setAttribute?
     }
 }
+
 // So we inherit from Trajectory to not need to  pass  propagate()  through.
 // Or we we have this as field to construct our directed graph where core methods don't know about comfor methods ( I don't like hoisting )
-export class Cathode {
-    constructor(field) {
-        this.width = 8; // Indeed the map dictates the width. Transcribe on construction.
-        this.flow = new Trajectory[this.width];
-        this.field = field;
+export class Cathode{
+    public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
+    public flow:Trajectory[]=new Trajectory[this.width];
+    field: FieldToDiagonal;
+
+    constructor(field:  FieldToDiagonal  ){
+        this.field=field
     }
-    RenderMesh() {
-        this.flow[0].Propagate(this.field);
+
+    public RenderMesh(): number{
+
+        this.flow[0].Propagate(this.field)
         // Join trajectories which may go at different speed
         // Now I ( we all ) remember that the join algorithm does spontanous symmetry breaking, but otherwise its for in for.
         // Still we could try to generallize code use in Matrix.Add()
@@ -201,6 +240,7 @@ export class Cathode {
         return 3; // 1/[x+1]-[x]  // zero distance would have infinite energy due to charge-charge repulsion
     }
 }
+
 /*
 
 So I've got some divergence which cannot be explained
@@ -230,6 +270,7 @@ apply divergence calculation.
 
 
 */
+
 /*
 
 speed of light = 4 cells
@@ -265,5 +306,4 @@ So when an electron moves: remove field at old position, add at new.
 Record metal electron movement and add that to ohmic drift.
 
 Full maxwell equations has "inductivity" and thus slows down the signal and leads to a cut-off-
-*/ 
-//# sourceMappingURL=semiconductor.js.map
+*/

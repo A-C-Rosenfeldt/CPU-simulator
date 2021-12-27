@@ -1,3 +1,4 @@
+"use strict";
 /*
 Flat surface emitts electrons at each cell and every time step.
 Electrons span quads. This leads to tapes.
@@ -23,7 +24,9 @@ Quads are only used for display. Track-density = reciprok => color
 So maybe even (soft) limit the velocity of electrons to grid-size = mean free path in real solids-
 Charge-charge repulsion within the grid. So the tracks move as a whole. You could sample the field in the mean of the old vertices. Each vertex is only allowed to move in uh exception cascade unitl the middle normal of its edges.
 */
-export /*pass through ref to. ToDo: empty Interface as marker*/ class Electron {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Cathode = exports.Trajectory = exports.Electron = void 0;
+class Electron {
     constructor() {
         this.location = [0, 0];
         this.next = null; // bidirectional links uses a singly linked list .. good idea?
@@ -44,9 +47,10 @@ export /*pass through ref to. ToDo: empty Interface as marker*/ class Electron {
         });
     }
 }
+exports.Electron = Electron;
 // With Navier Stokes and co. you can either sit at a location or on a particle. The code for the former is in fieldStatic.ts ( bottom, commented out)
 // Here we go with particles, which should be faster and maybe even give a coherent ( haha ) motion when jumping into coax cable.
-export class Trajectory {
+class Trajectory {
     constructor() {
         // Although I was burned with fixed constants in the Matrix code, I (still) need them in the simulation code
         this.length = 12;
@@ -181,9 +185,10 @@ export class Trajectory {
         //return charge as Field.  //  ToDo: setAttribute?
     }
 }
+exports.Trajectory = Trajectory;
 // So we inherit from Trajectory to not need to  pass  propagate()  through.
 // Or we we have this as field to construct our directed graph where core methods don't know about comfor methods ( I don't like hoisting )
-export class Cathode {
+class Cathode {
     constructor(field) {
         this.width = 8; // Indeed the map dictates the width. Transcribe on construction.
         this.flow = new Trajectory[this.width];
@@ -201,6 +206,7 @@ export class Cathode {
         return 3; // 1/[x+1]-[x]  // zero distance would have infinite energy due to charge-charge repulsion
     }
 }
+exports.Cathode = Cathode;
 /*
 
 So I've got some divergence which cannot be explained
@@ -266,4 +272,3 @@ Record metal electron movement and add that to ohmic drift.
 
 Full maxwell equations has "inductivity" and thus slows down the signal and leads to a cut-off-
 */ 
-//# sourceMappingURL=semiconductor.js.map

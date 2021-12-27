@@ -1,7 +1,5 @@
-*.js
 *.log
-!app.js
-# needed for github.io, but complicates mocha.js
-!public/**/*.js
+source/**/*.js
+UnderTest/**/*.js
 *.js.map
 node_modules/

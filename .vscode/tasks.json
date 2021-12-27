@@ -5,17 +5,25 @@
     "tasks": [
         {
             "type": "typescript",
-            "tsconfig": "tsconfig.json",
-
+            "tsconfig": "src/tsconfig.test.json",
             "problemMatcher": [
                 "$tsc"
             ],
             "group": "build",
-            "label": "tsc: build - tsconfig.json"
+            "label": "tsc for node"
         },
         {
             "type": "typescript",
-            "tsconfig": "tsconfig.json",
+            "tsconfig": "src/tsconfig.json",
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "group": "build",
+            "label": "tsc for edge"
+        },
+        {
+            "type": "typescript",
+            "tsconfig": "src/tsconfig.json",
             "option": "watch",
             "problemMatcher": [
                 "$tsc-watch"
@@ -24,7 +32,44 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "label": "tsc: watch - tsconfig.json"
+            "label": "tsc for edge and watch"
+        },
+        {
+            "type": "typescript",
+            "tsconfig": "src/tsconfig.test.json",
+            "option": "watch",
+            "problemMatcher": [
+                "$tsc-watch"
+            ],
+            "group": "build",
+            "label": "tsc for node and watch"
+        },
+        {
+            "label": "[Mocha] Run Tests (relative to Workspace-Folder)",
+            "type": "shell",
+            "command": ".\\node_modules\\.bin\\mocha --recursive",
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            }
+        },
+        {
+            "type": "typescript",
+            "tsconfig": "src/tsconfig.test.json",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "group": "build",
+            "label": "tsc: build for node"
         }
     ]
 }

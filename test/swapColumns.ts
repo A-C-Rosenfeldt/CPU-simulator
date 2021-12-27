@@ -1,4 +1,4 @@
-import { Tridiagonal, Row, JoinOperatorIterator, Seamless, AllSeamless, Span, Result } from '../public/enforcePivot';
+import { Tridiagonal, Row, JoinOperatorIterator, Seamless, AllSeamless, Span, Result } from '../src/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 

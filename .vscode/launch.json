@@ -19,9 +19,7 @@
                 "--timeout",
                 "999999",
                 "--colors",
-                "--require",
-                "ts-node/register",                
-                "${workspaceFolder}/test/*.ts",              
+                "${workspaceFolder}/test/*.js",              
             ],
             "internalConsoleOptions": "openOnSessionStart",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
@@ -29,11 +27,18 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node",
-            "env": {
-                "TS_NODE_PREFER_TS_EXTS":"true",
-                "TS_NODE_PROJECT":"tsconfig.test.json"
-            }
+            "type": "pwa-node"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "name": "TS Test",
+            "args": [
+              "--reporter",
+              "spec",
+              "${file}"
+            ],
         },
         {
             "name": "Launch Edge",
@@ -59,7 +64,8 @@
             "request": "launch",
             "runtimeArgs": [
                 "test",
-                "inspect"
+                "inspect",
+                "scripts-prepend-node-path"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [

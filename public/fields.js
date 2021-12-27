@@ -1,4 +1,4 @@
-import { Tridiagonal, Span, Row, FromRaw } from './enforcePivot.js';
+import { Tridiagonal, Row } from './enforcePivot.js';
 import './field/semiconductor.js';
 import './field/metal.js';
 /*
@@ -100,79 +100,62 @@ class Mirror {
 // What about 2d ( wired or) ? I insert Y piece and keep all conections sufficiently separated?
 //  Yeah that creates a cross with jaggy diagonals. <- not in MVP because I can use metal instead
 var globalTime;
-class Contact {
-    constructor() {
-        // static properties
-        // this is added to the matrix (not the map)
-        this.OdeInhomogenous = 3; // Voltage in cable
-        this.Ode__homogenous = 50; // Impedance
-        //fromVss: number; // length=2
-        // dynamic variables -- these need to be solved by the matrix inverter. All currents are calculated within
-        // voltages: number[]; // Signals coming from both sides
-        //currents: number[]; // The solution is quite simple: A passing current going through the wire and the current coming from the semiconductor split between two equal resistors in parallel.
-    }
-    /*
-    contacts lead to shielded wires. So the differential equation needs to exhbit the impedance:
-      Current flows => voltage appears  ..
-    // .. relative to the voltage in the cable. This voltage is the sum of the forward and backwards signal
-       (I will use voltage for it => no sign change on the end).
-    // When the differential equation is solved, this will be the case.
-       Shielded wires act as resistors to the voltage comming in (both sides). Current comes in from both sides.
-    // This would have to be modelled like 2 times the voltage as a source and then a resistor connected
-       to the semiconductor (to get absolute and differential voltage right).
-    // termination at the end is made by means of transistors.
-    */
-    Flow(voltageInSemi) {
-        var voltages = this.wire.getVoltage(this.wirePos);
-        // ODE
-        var currentIntoSemi = voltages.map(v => v - voltageInSemi /* /R */);
-        // After solution of local voltage and current: Set outgoing signals on each side.
-        // Since the wire uses a rotating pointer into a fixed array, we need to update the values
-        // Otherwise the signal would just pass through us.
-        this.wire.setCurrent(this.wirePos, currentIntoSemi); // Todo: Wire is connected via R (parallel R made of both directions). So: set current in Flow step, get voltage in Field step
-        // equation from above as matrix. Square to be invertable
-        const R = //[
-         
-        //,[,],
-        [-1 /* new col only  */, +1 /*new col and row*/]; // we only add I to the homognous side.
-        //];
-        //this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
-        // new interface to Row
-        const a = new Array(3);
-        a[0] = new Span(0, 0);
-        a[1] = FromRaw(-1, +1); //R)
-        a[2] = new Span(0, 0);
-        this.matrix.row.push(new Row(a));
-        //matrix.appendOnDiagonal(R); //I
-        const VoltageInWire = 3;
-        this.column.concat(R.map(r => VoltageInWire * r) /*, 2 ???]*/);
-    }
+export class LinkIntoMatrix {
 }
-class Tupel {
+export class Contact extends LinkIntoMatrix {
+}
+export class Tupel extends LinkIntoMatrix {
     constructor() {
-        this.ChargeDensity = () => this.Carrier[Tupel.bufferId] + this.Doping;
+        super(...arguments);
+        this.ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping;
     }
     ToTexture(raw, p) {
         raw[p + 3] = 255;
         raw[p + 0] = this.BandGap * 255 / 3;
         const chargeDensity = this.ChargeDensity();
         raw[p + (chargeDensity > 0 ? 1 : 2)] = Math.abs(chargeDensity);
+        // todo voltage?
     }
     FromString(fixed) {
     }
     GetCarrier() {
-        return this.Carrier[Tupel.bufferId];
+        return this.CarrierCount[Tupel.bufferId];
     }
-    AddCarrier(val) {
-        this.Carrier[1 ^ Tupel.bufferId] = this.Carrier[Tupel.bufferId] + val;
+    AddCarrier(val, carrier = null) {
+        this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
+        // carrier.next=this.Electron
+        // this.Electron=carrier
     }
     SetCarrier(val) {
-        this.Carrier[1 ^ Tupel.bufferId] = val;
+        this.CarrierCount[1 ^ Tupel.bufferId] = val; // for surface charge on metal electrodes
+        // maybe free space optimzation, where close electrons interact via 1/r law. So I need infinitesimal math?   this.Carrier=null
     }
 }
-Tupel.bufferId = 0;
+Tupel.bufferId = 0; // todo:  static is problematic when add maps / staggered update
+// Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
+export class Metal extends Tupel {
+    constructor() {
+        super();
+        this.BandGap = 0; // this is the physical definition of a metal, but this leads to some special solvers which we implement in this derived class
+    }
+    ToTexture(raw, p) {
+        raw[p + 3] = 255;
+        raw[p + 0] = 0; //this.BandGap*255/3;
+        const chargeDensity = this.ChargeDensity();
+        raw[p + 1] = (chargeDensity);
+        raw[p + 2] = this.Potential;
+    }
+}
+class Insulator extends Tupel {
+    ToTexture(raw, p) {
+        raw[p + 3] = 255;
+        raw[p + 0] = this.BandGap * 255 / 3;
+        const chargeDensity = this.ChargeDensity();
+        raw[p + (chargeDensity > 0 ? 1 : 2)] = Math.abs(chargeDensity);
+    }
+}
 // import format, test GL
-export class StaticField {
+export class MapForField {
     // EG exampleField
     constructor(touchTypedDescription) {
         this.maxStringLenght = Math.max.apply(null, touchTypedDescription.map(t => t.length));
@@ -180,6 +163,8 @@ export class StaticField {
         this.touchTypedDescription = touchTypedDescription;
         // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
         // Yes we should because I do not want to expose this to  Field2Matrix
+        // for static electrodes. A test mode where each m gets a random value no matter the neighbours
+        this.m_count = touchTypedDescription.map(t => (t.match(/M/g) || []).length).reduce((a, c) => a + c, 0); // global search for m.  maybe just for sanity checks
     }
     Print() {
         const iD = new ImageData(this.maxStringLenght, this.touchTypedDescription.length);
@@ -232,29 +217,74 @@ export class StaticField {
         return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
     }
 }
-export class FieldToDiagonal extends StaticField {
-    constructor(touchTypedDescription) {
-        super(touchTypedDescription);
+export class FieldToDiagonal extends MapForField {
+    constructor(touchTypedDescription, contacts = null) {
+        super(touchTypedDescription); // ToDo: This parameter feedthrough came accidentally
         this.fieldInVarFloats = [];
+        this.contacts = contacts;
         //this.fieldInVarFloats[0][0]=new Tupel()
         this.ConstTextToVarFloats();
     }
-    // need to store the electric field somewhere
+    // needed for contacts
+    preprocessChar(char) {
+        return char;
+    }
+    static CreateContactBareMetal() {
+        return new Array('Z'.charCodeAt(0) - 'A'.charCodeAt(0));
+    }
+    static SetContact(self, char, c) {
+        self[char.charCodeAt(0) - 'A'.charCodeAt(0)] = c;
+    }
     // Bandgap may stay in text? But this strange replacement function?
     ConstTextToVarFloats() {
         // May be later: const pixel=new Float64Array(4*this.maxStringLenght * this.touchTypedDescription.length)
         this.touchTypedDescription.forEach((str, i) => {
             const row = new Array(str.length); //[]=[]
             // JS is strange still. I need index:      for (let c of str) 
-            for (let k = 0; k < str.length; k++) {
-                const c = str[k];
-                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
-                const tu = new Tupel();
-                tu.BandGap = bandgaps.get(c);
-                tu.Potential = 0; // field
-                tu.Doping = c === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
-                row[k] = tu;
+            //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
+            const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+            const forBlock = function (char) {
+                const n = Number.parseFloat(char);
+                if (Number.isNaN(n)) {
+                    if ('A' <= char && char <= 'Z') { // contact
+                        tu = new Metal();
+                        tu.Contact = this.contacts[char.charCodeAt(0) - 'A'.charCodeAt(0)]; // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
+                    }
+                    else {
+                        var tu = char == 'm' ? new Metal() : new Tupel(); // extended electrode
+                        tu.BandGap = public_bandgap.get(char);
+                    }
+                    tu.Doping = char === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
+                }
+                else {
+                    tu = new Metal();
+                    tu.Potential = n;
+                }
+                if (typeof tu.BandGap === 'undefined') {
+                    console.log("metal with undefined bandgap");
+                }
+                return tu;
+            };
+            var k = 0; // for(let k of str)  // I would need map()
+            for (; k < str.length; k++) {
+                row[k] = forBlock.call(this, str.charAt(k)); // str[k] works the same . Maybe destructure [...str] would be shorter?
             }
+            // const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0], ['M', 0]])
+            // const c = str.replace(/\d/, 'm')  // this is difficult code to read and in band.  this is potential. Not index into wire. Wire as bonding position instead
+            // for (let k = 0; k < str.length; k++) {
+            //   const tu = c[k] === str[k] ? new Tupel() : new Metal();
+            //   tu.BandGap = bandgaps.get(c[k])
+            //   if (tu instanceof Metal)
+            //     tu.Potential = Number.parseFloat(str[k])  // field :  case: static electrode, random value for test, connected to wire
+            //   else
+            //     tu.Potential = 0 // random is not good for testing. I stick with this 
+            //   tu.Doping = c === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
+            //   const contactId = Number.parseInt(str[k])
+            //   if (!Number.isNaN(contactId)) {
+            //     (tu as Metal).Contact = this.contacts[contactId] // Todo call virtual function. We do not have contacts yet
+            //   }
+            //   row[k] = tu;
+            // }
             this.fieldInVarFloats[i] = row;
         });
     }
@@ -302,32 +332,172 @@ export class FieldToDiagonal extends StaticField {
             // JS is strange still. I need index:      for (let c of str) 
             for (let k = 0; k < str.length; k++) {
                 const c = str[k];
-                // const a=new Array<Span<number>>(3)
-                // a[0]=new Span<number>(0,0)
-                // a[1]=FromRaw<number>(c.BandGap)
-                // a[2]=new Span<number>(0,0)
                 matrix.row[p] = Row.Single(p, c.BandGap); //new Row(a)//p, 0, [[], [ /* c.Potential // unsuited for testing*/], []])
                 p++;
             }
-            // small array. Trying to get semantics correct
-            //ps=ps.slice(0,1) 
-            //ps.unshift(p) 
         }
         return matrix;
+    }
+    // Poisson for bound ( and jagged ) array.
+    // override ToDiagonalMatrix
+    // no meander used for flatten, just wor by row
+    // So I am used to multiply like this: Matrix.Vector. So we have ( and I cannot help it ):
+    //  Q =  DGL.U
+    // later we invert for U
+    // But if we skip Q ( we don't care for grounden electrodes), we also need to separate U befor inversion:
+    //  Q =  DGL.U + DGL.u   // u meaning the boring u we already know. So we split the rows. Group by rows. But cen we do it already in this method?
+    //  <=>  Q =  DGL.U + DGL.u   //  group by U vs u  and this before the matrix with its pitch
+    ShapeToSparseMatrix(metalLiesOutside = false) {
+        const matrix = new Tridiagonal(new Array()); // this failsthis.flatLength) // number of rows. May need to grow, but no problem in sparse notation
+        const vector = []; // U vs u
+        let last = 0, i_mat_pre = 0;
+        for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
+            for (; i_pre < Math.min(i + 2, this.fieldInVarFloats.length); i_pre++) { // indices for  "one row down"=forward  refereces . I think, I can keep within this loop. Data access is a hard fact, separation of concern can be achieved by means of a callback
+                const str = this.fieldInVarFloats[i_pre];
+                for (let k = 0; k < str.length; k++) { // dupe of the main path follwing down below
+                    const cell = str[k];
+                    if (typeof str[k].Contact === 'object') { // flood fill has to marked all cells belonging to that electrode/contact
+                        str[k].RunningNumberOfJaggedArray = i_mat_pre++; // basic code which is long since in production. Extract into parent class?
+                        const ccc = str[k].Contact; // so I want to sort by local first and by type ( electrode ) second, to get a mostly diagonal matrix
+                        if (ccc.x == k && ccc.y == i_pre) { // how do we 
+                            ccc.RunningNumberOfJaggedArray = i_mat_pre; // Maybe this is the back link of Contact ? A little dirty, but may fit the solver
+                        }
+                    }
+                    else {
+                        if (typeof str[k].Contact === 'undefined') { // neither semiconductor  nor  fixed potential have a contact . But fixed and contact are the same for the field solver .. so mix it!
+                            if (cell.BandGap !== 0) {
+                                str[k].RunningNumberOfJaggedArray = i_mat_pre++;
+                            } //else{ // This is supposed to be the simple test case with fixed voltage which we do not need to solve for
+                            //this field has no own column or row on the matrix. It is pulled in via field coordinates //str[k].RunningNumberOfJaggedArray = undefined -i_vec_pre++; // test & tune ( in combination with doping )  // negative indices point to the rhs ( vector ) . U is given sure. But charge?  Ah so like programming despite that we later swap it                
+                            //}
+                        }
+                        else {
+                            throw "contact needs to be an object or undefined";
+                        }
+                    }
+                }
+            }
+            {
+                const str = this.fieldInVarFloats[i];
+                for (let k = 0; k < str.length; k++) { // second pass // JS is strange still. I need index:      for (let c of str) 
+                    const cell = str[k]; // for push aka charge.     // we don't push to const U fields ( and we don't solve for Q because they are supposed to be backed up by mass)
+                    if (typeof cell.RunningNumberOfJaggedArray !== 'undefined') { //  number means => simple test setup with given potential. Object means -> connected to wire with wave resistance
+                        var accumulator_curvature = 0;
+                        var accumulator_vec = 0;
+                        const setCells = []; // This is not a map because I don't access randomly
+                        console.log(" push starting ");
+                        for (var di = 0; di < 2; di++)
+                            for (var dk = 0; dk < 2; dk++) {
+                                const si = i - 1 + (di + dk); //  s=source=pull   // 00 01 10 11  monotonous increase
+                                if (si >= 0 && si < this.fieldInVarFloats.length) {
+                                    const str_source = this.fieldInVarFloats[si];
+                                    if (typeof str_source !== 'undefined') {
+                                        const sk = k - 0 + (di - dk); // for the si=const part :  +0-1 +1-0   => strong monotonous increase
+                                        const cell_source = str_source[sk];
+                                        if (typeof cell_source !== 'undefined') {
+                                            const i_vec = cell_source.RunningNumberOfJaggedArray;
+                                            if (typeof i_vec === 'undefined') { // so negative indices point to the rhs ( vector ) // U -> u
+                                                accumulator_vec += cell_source.Potential; // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                                            }
+                                            else {
+                                                setCells.push([i_vec, -1]); // para-diagonal
+                                                console.log(" push", i_vec);
+                                            }
+                                            accumulator_curvature++; //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
+                                        }
+                                    }
+                                }
+                            }
+                        vector[cell.RunningNumberOfJaggedArray] = accumulator_vec;
+                        { // sorry, I guess I may indeed need a sorting class
+                            const p = cell.RunningNumberOfJaggedArray;
+                            if (setCells.length < 1 || setCells[setCells.length - 1][0] < p) {
+                                setCells.push([p, accumulator_curvature]);
+                            }
+                            else {
+                                const i = setCells.findIndex(value => value[0] > p); // the docs say: "first index" . we hide the outer i, don't we?
+                                console.log(" insert p " + p + " in ", i);
+                                setCells.splice(i, 0, [p, accumulator_curvature]); // diagonal
+                            }
+                        }
+                        last = cell.RunningNumberOfJaggedArray;
+                        matrix.row.push(new Row(setCells)); // push pull  // Array is misused for  (pos|value)  pairs  and pos has to be ordered ( because this this removes ambigion in all my exisiting code .. uh, but see the ugly 3 lines above )
+                    }
+                }
+            } // var
+        } // for
+        //matrix.row.length = last-1     // remove const voltage .. so basically I shoul
+        return [vector, matrix];
     }
 }
 export class Field extends FieldToDiagonal {
     constructor() {
         super(...arguments);
-        this.bufferId = 0; // like field in interlaced video. Used to double buffer the carriers
+        this.bufferId = 0; // like field in video. Used to double buffer the carriers instead of doing interlaced.
+        // I feel like there already needs to be some code. For example:  fieldStatic.ts/
     }
-    ToDoubleSquareMatrixSortByKnowledge() {
+    ToDoubleSquareMatrixSortByKnowledge_naive() {
+        this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )
+        // Now the shape on left hand side should have "holes"? Jagged is not enough to describe this .. Jagged is all I got for free from the programming language
+        const [v, m] = this.ShapeToSparseMatrix(); // Laplace operator   to  chargeDensity = LaPlace &* voltage
+        // array: position in Matrix
+        // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
+        //const mr=
+        Field.AugmentMatrix_with_Unity(m); // this should create two Matrices to be compatible with swap columns and MatrixMultiply  //  itself:   unity &* chargeDensity = LaPlace &* voltage
+        //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
+        // shiftedOverlay uses Seamless[2]
+        this.GroupByKnowledge(m); // I still need the mapping to loop over and set random values ( with a given seed )
+        // Okay not really. We not only don't solve for U at electrode cells, but also don't try to satisfy poisson there
+        // So in reality we filter and we do it in Field and not in some Matrix code. Matrix inversion needs square matrix and it is already difficult enough to detect indefinite matrices ( where they coome from ) that I do not want LU stuff for fixed values which only happen in tests.
+        // But the matrix columns are not swapped, but they are del
+        // for extended electrode (not literal Potential) we now have U on the known side .. which is mostly true 
+        // we compact the known site to a single U and sort it back onto the unkonw side?
+        // Q is unknown. That Matrix stays almost square. We can clean rows and columns on the unknown site with a nonsquare matrix on the rhs.
+        //  floodfill  - columns ->  add up cells inside each row belonging to the columns  ( right multiply a U spread matrix, which is not square)
+        // How do I call floodfill from here. Import goes the other way.
+        //   right multiply changes number of columns .. number of rows still match lhs
+        // Why do my two cases ( float with fixed SUM(Q)  |   connected via R to an U) keep the Matrix square
+        //  ( I can write this code because I test the rest with cell potential )
+        // So fixed SUM(Q) = Q_{t-1}  ( steht das nicht schon irgendwo? ). Q is lhs an multiplies with unity so far.
+        //   Now all the Q on lhs create a new Row and sum up to Q from last frame (+ Delta Q due to charge carriers). Still square because we are allowed to move U to unknown ( lhs )
+        //    I will switch Q and U between the sides later anyway .. think: value/unit. So no Problem to have Q on the other side
+        //     But is it square? It adds row and column on the right. It adds one row to the left hmm
+        // With R:  Q_withCarriers +  ( U-U_connected ) / R  // this is the new row. It is even normal with Q on lhs and R on rhs
+        //   Here also U moves over to lhs and makes our matrix square => invertable
+        // The above method GroupByKnowledge() looks good. We just add our row, won't we?
+        m.inverseRectangular;
+        //var statics = [3, 4, 5] // this -> static value vector
+        // either make product handle v as sparse ( outside everything is zero (not NULL nor undefined))
+        //  or split off the unity matrix ( inverse of augment ). But that feels like lot of writing for not much benefit. Additional command :-(
+        m.MatrixProduct(v); // vector is aligned on the left side to multiply with the inverse?
+        // Todo
+        //this.GroupByKnowledge(m): Swap two times to get back to U and Q
+        // how do we get back the compact U .. also a second path? How do we skip the staticU cells? cell.RunningNumberOfJaggedArray! Each electrode needs a second RunningNumb
         // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
         // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns
         // So why not already supply the known columns and avoid this  unmotivated  create new unity matrix in Gauss-Jordan?
         // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
         // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
-        throw "not implemented";
+        //throw "616 not implemented"
+        return m; // null
+    }
+    CreateSides() {
+        // SortByKnowledge  does it all
+        //  M.swapColumns(startsToSwap,dropColumn) 
+    }
+    ToDoubleSquareMatrixOnlyWhatIsNeeded_GroundedElectrodes() {
+        const [v, m] = this.ShapeToSparseMatrix(); // Laplace operator   to  chargeDensity = LaPlace &* voltage
+        // type change. Due to RLE "trying to stick" we are not allowed to concat the matrices. Are we? Swap works generally as does RLE! Oh we do. So no influence due to the implemention detail "RLE"
+        Field.AugmentMatrix_with_Unity(m); //  itself:   unity &* chargeDensity = LaPlace &* voltage
+        //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
+        this.GroupByKnowledge(m); // depending on bandgap we know voltage or density. Once again we create an index
+        // Maybe  CleanCode will kick in, until then I want Matlab notebook stuff in  main(). Also one of the reason for this exercise:  m.inverse
+        // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
+        // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns
+        // So why not already supply the known columns and avoid this  unmotivated  create new unity matrix in Gauss-Jordan?
+        // To keep it generic and avoid book-keeping (debugging, demonstration/documentation), Field has to move its entries to left and right side. It can use this.fieldInVarFloats as an indirection to bind the vectors (field values)
+        // It maybe cool, to have a add/sub work over a combined, rectangular matrix. Question: How do I organize spans? Just generallize spans[] ?    
+        throw "639 not implemented";
         return null;
     }
     // I want to make this function as general as possible because I haven't jet found an argument against this concept.
@@ -352,17 +522,31 @@ export class Field extends FieldToDiagonal {
     }
     // for testing. Pure function
     // motivation: for inversion the original matrix need to be augmented by a unity matrix. They need to be a single matrix to let run Row.sub, row.trim, field.swap transparently over both.
-    static AugmentMatrix(M) {
-        M.row.forEach((r, i) => {
+    static AugmentMatrix_with_Unity(M) {
+        M.AugmentMatrix_with_Unity();
+        return;
+        // Todo
+        // const om:Row[] = M.row.map((r, i) => {
+        //   //const s=new Span<number>(1,i)
+        //   const or=new Row([[i,i+1]]);
+        //   or.data=[[1]]
+        //   return or
+        // })
+        // const other = new Tridiagonal(om)
+        // return other;
+        //    const other = new Tridiagonal(M.row.length)
+        const rows = M.row.forEach((r, i) => {
             r.data.push([1]);
             const s = M.row.length + i;
             r.starts.push(s);
             r.starts.push(s + 1);
         });
+        // this would lead to joins  //  return other
     }
     // right now this only does swaps between two groups:{ (un-)known }
     // Doesn' make thing easier to code and hard to display data oriented debugging. better do it on the spans before sending to the constructor[trim]
     // public only for testing. ToDo: extract into external class .. okay not this stuff it is almost trivial. look into the matrix stuff maybe?
+    // one reference in line 493
     groupByKnowledge(m, i, k) {
         return m.BandGap === 0;
         if (this.fieldInVarFloats[i][k].BandGap === 0) {
@@ -376,8 +560,11 @@ export class Field extends FieldToDiagonal {
         //throw "not fully implementd"
         //return 0
     }
-    SortByKnowledge(M) {
-        this.M = M;
+    // Sort by knowledge may be a reason to use a single matrix and a zero vector on the other side of the equation
+    // Depending on the number of (un) known  ( var  vs const )  columns ( at least in tests, maybe also in later applications),
+    // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
+    GroupByKnowledge(M, dropColumn = false) {
+        // todo: static function?  this.M = M;
         M.row.forEach((r, i) => {
             this.i = i;
             const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);
@@ -390,7 +577,7 @@ export class Field extends FieldToDiagonal {
                 return b; // lame, I know. Side-effects are just easier 
             }, false);
             // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
-            M.swapColumns(startsToSwap);
+            M.swapColumns(startsToSwap, dropColumn); // so this works on a single (rectangular) matrix to avoid the join (on row multiplication)? Starts to swap tells us which field cells just keep their value ( in case of dropColumn)
         });
     }
     knownItemsOnly(m, i, k) {
@@ -408,111 +595,6 @@ export class Field extends FieldToDiagonal {
         throw "not fully implemented";
         return null;
     }
-    // ToDo: The Matrix code does not want the special case: number of spans=3
-    ToSparseMatrix() {
-        // Tridiagonal instead of:  call meander in FinFet
-        // Field can be jagged array .. because of Java and the tupels and stuff. is possible. Boundary is boundaray
-        // 
-        const matrix = new Tridiagonal(this.flatLength); // number of rows. May need to grow, but no problem in sparse notation
-        // flatten
-        let i_mat = 0;
-        let pitch = 0;
-        // let ps=[p]  // Due to FinFet  triode Gate symmetry, asymmetric jaggies are a thing
-        // let c=''
-        for (let i = 0; i < this.fieldInVarFloats.length; i++) {
-            const str = this.fieldInVarFloats[i];
-            // JS is strange still. I need index:      for (let c of str) 
-            for (let k = 0; k < str.length; k++) {
-                // aparently bottleneck like parameters or RLE do not make much sense, better leak absolute positions from the beginning
-                // allocate max needed memory. Initialize with 0 
-                let span = [-pitch, -1, str.length].map((global, l) => new Span(3 - (Math.abs(1 - l) << 1), global + i_mat));
-                let rle = [pitch - 1, str.length - 1];
-                const c = str[k];
-                let k_mat = i_mat; // Start with diagonal // Tridiagonal is not yet tested. Maybe I need a second trick to tackle all shapes of sparseness:  this.Interlace(x,y)
-                // ToDo: Move behind the solver: Repeat this verschachtelter loop to multiply vector with matrix and to convert vector back to field:  flat[flatIndex]=this.field[x][y];
-                span[1].extends[1] = 4; //const proto:Span<number>[]=[[], [4], []]
-                //const build_h=new Span<number>(0,i_mat)
-                // Laplace will source all fields. Only target is XOR ChargeDensity.
-                // I need this for all bandgaps. LAter:sort   if (c.BandGap === 0) {
-                // Charge Carrier
-                //else 
-                {
-                    // Laplace 4x4 from the end of this file
-                    {
-                        if (k < str.length - 1) {
-                            span[1].extends[2] = -1; //.push(-1)
-                            rle[1]--;
-                        }
-                        if (k > 0) {
-                            span[1].extends[0] = -1; //.unshift(-1)
-                            k_mat--;
-                            rle[0]--;
-                        }
-                        // Jagged ( symmetry or later: wired-or  )
-                        if (i > 0 && this.fieldInVarFloats[i - 1].length > k) {
-                            span[0].extends[0] = -1; //.push(-1)
-                            rle[0]--;
-                        }
-                        else {
-                            span[0].start = span[1].start; //what was this? span[0]=span[1]
-                            rle[0] = 0;
-                        }
-                        if (i + 1 < this.fieldInVarFloats.length && this.fieldInVarFloats[i + 1].length > k) {
-                            span[2].extends[0] = -1; //.push(-1)
-                        }
-                        else {
-                            span[2].start = span[1].start + span[1].extends.length; //span[2]=span[1]+proto[1].length-1  // Maybe I should allow starts out of bounds?
-                            rle[1] = 0;
-                        }
-                    }
-                }
-                //span.filter()
-                matrix.row[i_mat] = new Row(span); // , proto)
-                this.fieldInVarFloats[i][k].RunningNumberOfJaggedArray = i_mat; // binding. This would allow for a dynamic column pivot ToDo in "enforcePivot". Row pivot happens inside the double-wide matrix
-                // new Row(k_mat, rle , proto, (proto[2].length===0?0: str.length) ) // pitch need to be relativ to pos ( not to array bounds )
-                i_mat++;
-            }
-            pitch = str.length;
-            // small array. Trying to get semantics correct
-            // ps=ps.slice(0,1) 
-            // ps.unshift(i_mat) 
-        }
-        return matrix;
-    }
-    ToMatrix0() {
-        // Tridiagonal instead of:  call meander in FinFet
-        // jagged array is possible. Boundary is boundaray
-        const matrix = new Tridiagonal(this.flatLength); // number of rows. May need to grow, but no problem in sparse notation
-        const pitch = [0, 0];
-        // ToDo find existing code about the top and low boundary
-        for (let i = 0; i < matrix.row.length; i++) {
-            matrix.row[i] = null; //  new Row(i,10,[[-1],[-1,4,-1],[-1]])
-            throw "implementation is in a different method";
-        }
-        // Todo: extablish this real version
-        let p = 0;
-        // copied from printGL
-        this.touchTypedDescription.forEach((str, i) => {
-            // JS is strange still. I need index:      for (let c of str) 
-            pitch[1] = pitch[0];
-            pitch[0] = str.length;
-            for (let k = 0; k < str.length; k++) {
-                const c = str[k];
-                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
-                let p = ((i * this.maxStringLenght) + k) << 2;
-                matrix.row[p++] = null; //new Row(i,pitch[1],[[-1],[-1,4,-1],[-1]],pitch[1])
-                throw "implementation is in a different method";
-                //iD.data.set([
-                // pixel[p++]=bandgaps.get(c)*50
-                // pixel[p++]=0
-                // pixel[p++]=  c==='-'?200:0; // charge density. Blue is so weak on my monitor
-                // pixel[p++] = 255
-                //  ((i*this.maxStringLenght)+k)<<2)
-                //}
-            }
-        });
-        return matrix;
-    }
 }
 // this example is later cut and refused (as in fuse, to weld) as needed
 // ToDo: The number does not make any sense anymore
@@ -528,21 +610,34 @@ export const exampleField = [
     [1, 'sssmmmm'],
     [3, 'sssi-im'],
     [3, 'sssiiii'],
-    [1, 'mmmmmmm'],
+    [1, 'mmmmmmm'], // simple boundary condition
 ].map(whatDoesNumberMean => whatDoesNumberMean.slice(-1)[0]);
 export const fieldTobeSquared = [
     // connected m  . Connected to wire with impedance=50
-    'sssm',
+    'sss0',
     'siii',
-    'i-im',
-    'sssi',
+    'i-i0',
+    'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
 ];
 export const bandsGapped = [
     // connected m  . Connected to wire with impedance=50
     'sssi',
     'siii',
     'i-is',
-    'sssi',
+    'sssi', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
+];
+export const arena = [
+    'mmmm',
+    'miim',
+    'miim',
+    'mmmm', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part 
+];
+export const arenaVerbatim = [
+    '00000',
+    '0iii0',
+    '0i1i0',
+    '0iii0',
+    '00000', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part 
 ];
 var html = `
   <div>
@@ -550,284 +645,6 @@ var html = `
   </div>
 `;
 // Some gates are connected to the silicon slab => current flowing
-const gate = new Field(['ex']); // So "m" is the inhomogenous part
+// Not prosecuted any further:   const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
 const instance = 'CGCFC'; // the ends are implicit
-// Partial differential equation
-class PDE {
-    // trivial, but needed due to  missing syntax features of  TypeScript 
-    constructor(cc, mm) {
-        this.c = cc;
-        this.m = mm;
-    }
-    DoDirection(d, reflection = false) {
-        return;
-    }
-}
-// I want to mimic the compact representation in the original Silicon.
-// the mirror in FIN reduces the area to process in the calculation
-// This, here in code, multiple metal connections to n-dopen Si are modelled
-export class FinFet {
-    constructor() {
-        //Gate: number[]; // Voltages
-        this.connectedToPowerRail = [false, false]; // VSS, VDD
-        this.floatPitch = 6;
-        // check: sum(sum()) == 0
-        // metal voltage can be read for Poisson, but writing leads to average over the segment.
-        // On Top and bottom one line refers to the inhomogenous part
-        // ToDo: Is there any way to reference the names of fields directly?
-        this.PIntern = new PDE([1, 1], [
-            ,
-            [0, -1, 0],
-            [-1, 4, -1],
-            [0, -1, 0]
-        ]);
-        this.PMirror = new PDE([1, 0], [
-            ,
-            [-1, 0],
-            [4, -2],
-            [-1, 0]
-        ]);
-        // see electrode aggregation
-        this.PGaps__ = new PDE([1, 1], [
-            ,
-            [0, 1],
-            [-1, -3],
-            [0, 1]
-        ]);
-        this.mat = Number[4][4];
-        this.homo = Number[12];
-        var element = "g";
-        switch (element) {
-        }
-        const crossSection = Tupel[4];
-        var c = crossSection[0];
-        c.BandGap = 3;
-        var c = crossSection[1];
-        c.BandGap = 3;
-        c.ChargeDensity = 1; // we start in enhancement mode
-        var c = crossSection[2];
-        c.BandGap = 3;
-        var c = crossSection[3];
-        c.BandGap = 1;
-        this.Field[0] = crossSection; //] as Tupel[][4];
-    }
-    PoissonGen() {
-        //?this.DoAll(new PDE())
-        return; //Matrix to invert 
-    }
-    CarrierGen() {
-        return; // nothing. Sideeffect: create new frame of carriers
-    }
-    // border special
-    // trying to replace  if  with data indirection
-    DoAllXandThenYOrSo(ode) {
-        const pitch = 10;
-        const width = 10;
-        var directions = [1, pitch];
-        var x = 0;
-        var y = 0;
-        ode.DoDirection(directions, true);
-        directions.push(-1);
-        do {
-            ode.DoDirection(directions);
-        } while (++y < width);
-        directions.shift();
-        ode.DoDirection(directions, true);
-    }
-    ToTexture(raw, p) {
-        for (let y = 0; y < 16; y++)
-            for (var x = 0; x < 4; x++) {
-                this.Field.ToTexture(raw, p + 4 * x);
-                this.Field.ToTexture(raw, p - 4 * x);
-            }
-    }
-    // 1x1 block. DGL to solve
-    Poisson(x, y) {
-        this.field[x][y].Potential = (this.field[x][y - 1].Potential
-            + this.field[x][y + 1].Potential
-            + this.field[x - 1][y].Potential
-            + this.field[x + 1][y].Potential) / 4 + this.field[x][y].ChargeDensity();
-    }
-    //PoissonDirection
-    // compact code for 2d
-    // And assign to? I dunno the gap between gates/electrodes is already present
-    // So we need a jagged array. Pitch depends on row. Hmm.
-    //current:Number[][]; // Backbuffer for Ohm
-    OhmX(y) {
-        let x = 0;
-        this.field;
-        let potentials = [this.field[x][y].Potential];
-    }
-    // I alternate between LaPlace (voltage from wire) and Ohm (current into wire)
-    OhmAll() {
-        // ToDo: For a metal electrode sum up all matrices
-        var segments = ['ex', 'am', 'ple'];
-        segments.forEach(segment => {
-            if (true /*source in other segment*/) {
-                var value = [3, 4, 5]; //segments.getPreviousValue();
-                var homo = (new Tridiagonal(4)).MatrixProductUsingTranspose(value); // 
-                throw "the multiplication-method was not realy tested using value:Array";
-            }
-        });
-        {
-            let xSize = 10;
-            let ySize = 10;
-            //for (
-            let y = 0;
-            let x = 0;
-            //)
-            let directions = [0, 0, 0, 0];
-            // aggregate over all directions where current can flow off
-            if (x === 0) {
-                directions[2] = this.OhmDirection(2, this.PMirror); // set current. We need to buffer this for the  the creditor process
-            }
-            else {
-                if (x < xSize - 1) {
-                    this.OhmDirection(2, this.PIntern);
-                    if (y === 0) {
-                        this.OhmDirection(2, this.PIntern);
-                        // how to move homogenous part to the other side? Multiply and negate.
-                    }
-                }
-                else {
-                }
-            }
-            // // Insolvenz: Alle bekommen ihren Anteil (current flows due to field strength until bucket is empty)
-            // // ECL and no HEMPT: I will dope the bulk and may even go differential to avoid this case
-            //Limit(p, currents:number[]){
-            for (let p = 0; p < 10; p++) { // iterate over all elements of the electrode        
-                let carrier = this.fieldFloat[p].GetCarrier();
-                //let currents=this.fieldFloat[p].Current.concat([-this.fieldFloat[p+1].Current[0],-this.fieldFloat[p+this.floatPitch].Current[0]])
-                let current = this.fieldFloat[p].Current.filter(out_c => out_c > 0).reduce((p, c) => p + c, 0); // ToDo: change to 1 cell per frame flow for semiconductor (MVP.. maybe GPU or WASM can be used to do multiple simulations steps per display frame(60fps)). Metal does one segment per frame ( via GaussJordan ).
-                // [0]-
-                // this.fieldFloat[p+1].Current[0]+
-                // this.fieldFloat[p].Current[1]-
-                // -this.fieldFloat[p+this.floatPitch].Current[1]
-                let minLimit = 0;
-                if (carrier < current) {
-                    // limit the time step
-                    let q = carrier / current;
-                    if (q < minLimit) {
-                        minLimit = q; // solve the worst negative charge cell per frame per segment
-                    }
-                }
-                //}
-                // ?? this.OhmDirection([0,3])
-                let E = this.field[x][y].Potential -
-                    this.field[x + 1][y].Potential;
-                let C = this.field[x][y].GetCarrier() -
-                    this.field[x + 1][y].GetCarrier();
-                let d = C * E;
-                this.field[x][y].AddCarrier(d);
-                this.field[x + 1][y].AddCarrier(-d);
-                //this.OhmDirection(1)
-                //this.OhmDirection(this.floatPitch)
-                this.OhmX(y++);
-                do {
-                } while (false);
-            }
-        }
-    }
-    OhmDirection(direction, pde) {
-        let y = 0;
-        let x = 0;
-        //let currents=directions.map(direction=>{
-        let E = this.field[x][y].Potential -
-            this.field[x + this.floatPitch[direction]][y].Potential; // why is there any pitch? I thought I store field as jagged array?
-        let C = //[
-         this.field[x][y].GetCarrier();
-        //this.fieldFloat[x+direction].GetCarrier()
-        //]
-        //let c=C[0]-C[1]
-        //let d=
-        return C * E; // Field strength 1  removes all carriers and the material becomes insulating
-    }
-    // if (C[0]+d<0) d=-C[0]
-    // if (C[1]-d<0) d=+C[1]
-    // this.field[x  ][y].SetCarrier(C[0]+d);
-    // this.field[x+1  ][y].SetCarrier(C[1]-d)        
-    // this.OhmX(y++)
-    //   do{
-    //   }while(false)
-    // }
-    // }
-    // I cannot check may calculations this way, also want Doping within to spread the charge. May later add wavefunctions?: "I only do one dimension: HEMT"
-    Ohm(x, y) {
-        // x should be = 3
-        const potentials = [1, 0]; // Vss = -5V , Gnd = 0V 
-        //this.Emitter.flow, this.Collector.slice(-1,-1) ]
-        // not really forEach: ToDo: convert to join
-        for (let n = 0; n < this.contacts.length; n++) {
-            const contact = this.contacts[n];
-            var current = contact.Flow(this.field[4 - 1][contact.semiPos].Potential); // Impedance
-            const r = 0; //  Now, segmentation is unified between semiconductor and metal.   this.contacts[n]..fromVss;
-            for (var j = r; j < r + 3; j++) { // Style: how big should contacts be? In a crystal diode they are quite big
-                const c = this.contacts[n];
-                this.field[4 - 1][j].Potential[j] = c.wire.flow[0][c.semiPos - globalTime] + c.wire.flow[1][c.semiPos + globalTime];
-            }
-        }
-        if (y >= 0) {
-            potentials[0] = this.field[x][y].Potential;
-        }
-        else {
-            const potentials = //[
-             [this.field[x][y],
-                this.field[x][y + 1] //,this.field[x+1][y+1]]
-            ];
-        }
-        const p = potentials; //.map(po=>po.Potential)
-        const voltages = p[1] - p[0];
-        //[  p[1][1]-p[1][0] + p[0][1]-p[0][0] ,
-        // p[1][1]-p[1][0] + p[0][1]-p[0][0]    ];
-        const c = this.field[x][y].Carrier; //.map(pot=>pot.Carrier)
-        // does not work beyond 1 dimension
-        const carrier = c[0] + c[1]; //[0] + c[0][1]+c[0][0];
-        // We operate in 2d
-        var field = new Tupel[20][20];
-        // nonlinear: how to solve?
-        // carrier movement is time-dependent
-        // lastFrame.carrier * current = thisFrame.carrier
-        // laplace(potential) = thisFrame.carrier    
-        let rhs = field.getCarrier();
-        // lastFrame.carrier * grad(potential)*Leitfähigkeit = current
-        // thisFrame.carrier = div(current) + lastFrame.carrier
-        // in homogenous medium this becomes
-        // thisFrame.carrier = (LaPlace(potential)+base) * lastFrame.carrier
-        // cannot solve carriers in this step
-        c[0] += carrier * voltages;
-        c[1] -= carrier * voltages;
-        //+this.field[x][y+1].Carrier
-        //current[x][y]=
-    }
-    OhmField() {
-        // to always get carriers from last fram
-        for (let x = 4 - 1; x >= 0; --x) {
-            for (let y = 4 - 1; y >= 0; --y) {
-            }
-        }
-    }
-    // Meander(x:number, y:number, level:number){
-    //   if (level-->0)
-    //   {
-    //     var check=Number[4][2];
-    //     this.Meander(level);
-    //   }
-    // }
-    Interlace(x, y) {
-        let combined = 0;
-        let last = 0;
-        let ror = (1 << 2 * 2);
-        for (let d = 0; d++; d < 2) {
-            last ^= x & ror;
-            combined |= last;
-            combined >>= 1;
-            x >>= 1;
-            last ^= y & ror;
-            combined |= last;
-            combined >>= 1;
-            y >>= 1;
-        }
-        return combined;
-    }
-}
 //# sourceMappingURL=fields.js.map

@@ -20,7 +20,7 @@ import {SimpleImage} from './GL'
 export class Span<T>{
     extends: Array<T>  // we duplicate part of the interface in order to never need to copy the items
     start:number
-    // doesn't work length:number
+    // doesn't work:  length:number
     unshift(...items: T[]): number{
         if (this.start){
             if (--this.start<0) {throw "below bounds" }
@@ -436,69 +436,129 @@ class Passes{
     }
 }
 
+// Clone in JS. I know that it is okay with Row and Matrix. Better not apply recursively on graphs which are not trees!
+// https://javascript.plainenglish.io/deep-clone-an-object-and-preserve-its-type-with-typescript-d488c35e5574
+export class cloneable {
+    public static deepCopy<T>(source: T): T {
+      return Array.isArray(source)
+      ? source.map(item => this.deepCopy(item))
+    //   : source instanceof Date
+    //   ? new Date(source.getTime())
+      : source && typeof source === 'object'
+            ? Object.getOwnPropertyNames(source).reduce((o, prop) => {
+               Object.defineProperty(o, prop, Object.getOwnPropertyDescriptor(source, prop)!);
+               o[prop] = this.deepCopy((source as { [key: string]: any })[prop]);
+               return o;
+            }, Object.create(Object.getPrototypeOf(source)))
+      : source as T;
+    }
+  }
 export class Row{
     starts:number[] //= [0,0,0,0,0,0]; // vs GC, number of test cases
     //ranges=[[0,1],[2,3],[4,5]]
     data:number[][] //= [[],[],[]] 
 
+    // for easy access from local variable
+    public last(a:Array<any>):any {
+        return a[a.length-1]
+    }
+
+    public lastSet(a:Array<any>,v):void {
+        a[a.length-1]=v
+    }
+
+    // flattens the starts for the join. Adapter to work with partial differential equation of field
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
-    // basically just flattens the starts? For the join?
     // Mirror and generally metal leads to values > 1 on the diagonal
-    constructor(start:Span<number>[]){//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
+    constructor(start:Span<number>[] | number[][] ){//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
         // Basically we could deal with 0 in data and 0 in range, but then we could just go back to full matrix
         // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
 
         // check for bounds
         // todo: remove zero length
-        // fuse spans
-        for(let pass=0;;pass++){
-            let counter=0
-            start.forEach(s=>{
-                const range=[s.extends.length,0]
-                //const ranpe=ranpe.slice(0,ranpe.length)
-                // only string has trim(). And it can't even return the number of trimmed items
+        // trim 0 values
+        this.starts=new Array() //counter<<1)  does not work for both types
+        this.data=new Array() //counter)
+        // Used only in two places in this funtion, but very much needed to clear things up. Promote?
+        const last= (a:Array<any>) => a[a.length-1]
+        const lasi= (a:Array<any>) => a[a.length-1]++
+        
+        {//for(let pass=0;;pass++){
+            let danglingBond=-1  // semi-open interval. We keep a gap of size 1 because there is no data to concat to yet.
+            
+            start.forEach( (s: (Span<number> | number[] ))  =>{
 
-                // trim 0 values
-                // todo: better two passes: over s and s reverse. That min stuff looks strange
-                s.forEach((t,i)=>{
-                    if (t!==0){
-                        for(let d=0;d<2;d++){
-                            range[d]=Math.min(range[d],i)  // what is this?
-                            i=-i
-                        }                    
+                if (Array.isArray( s )){
+                    // Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
+                    if (s[1] != 0){ // avoid zero length intervals
+                        if (s[0]==danglingBond){ 
+                                {//if (pass===1){
+                                    lasi(this.starts)
+                                    last(this.data).push(s[1])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                                }
+                        }else{
+                            {//if (pass===1){
+                                this.starts.push(s[0],s[0]+1) // should be  in placw
+                                this.data.push([s[1]])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                            }
+                           
+                        }
+                        danglingBond=s[0]
                     }
-                })
+                }else{
+                    const range=[s.extends.length,0]
+                    //const ranpe=ranpe.slice(0,ranpe.length)
+                    // only string has trim(). And it can't even return the number of trimmed items
 
-                // if after trim length still > 0 ( range is a closed interval)
-                if (range[0]<=-range[1]){
+                    // trim 0 values
+                    // todo: better two passes: over s and s reverse. That min stuff looks strange
+                    s.forEach((t,i)=>{
+                        if (t!==0){
+                            for(let d=0;d<2;d++){
+                                range[d]=Math.min(range[d],i)  // what is this?
+                                i=-i
+                            }                    
+                        }
+                    })
 
-                    if (pass===1){
-                        this.starts.splice(counter<<1,2,s.start+range[0],s.start+1-range[1]) // should be  in placw
-                        const part= s.extends.slice(range[0],1-range[1]) as Array<number> //  slice seems to return span.
-                        // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
-                        this.data[counter]=part //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                    // if after trim length still > 0 ( range is a closed interval)
+                    if (range[0]<=-range[1]){
+
+                        {//if (pass===1){
+                            const start=[s.start+range[0],s.start+1-range[1]]
+                            const value= s.extends.slice(range[0],1-range[1]) as Array<number>
+                            // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
+                            if (start[0]==danglingBond){
+                                lasi(this.starts)
+                                last(this.data).concat(value)
+                            }else{
+                                this.starts.push(...start)
+                                this.data.push(value) //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
+                            }
+                            danglingBond=s[0]
+                        }
                     }
-                    counter++
                 }
             })
 
-            if (pass>0){
-                break
-            }
-            this.starts=new Array(counter<<1)
-            this.data=new Array(counter)
-            
+            // if (pass>0){
+            //     break
+            // }
+
             // fun=(s:Span<number>,range)=>{
             //     this.starts.push(s.start+range[0],s.start-range[1])
             //     this.data.push(s.slice(range[0],range[1]))
             // }
         }
         
+        // no such elegant method this.removeSeams() // seamless should be called to become seamless
+
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
         if (this.starts.reduce<number>((v1,v0)=>v0>=v1? v0 : Number.MAX_SAFE_INTEGER,0) === Number.MAX_SAFE_INTEGER ) {
             console.log(this.starts)
+            console.log("no order 0")
             throw "no order";
         }
     }
@@ -587,14 +647,90 @@ export class Row{
         }
     }
 
-    // // to toggle between sub (inverse) and swap (conversion from field)
-    // sub may have removed seams?
-    splitAtSeam(pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
-        const jop=new JoinOperatorIterator(this.starts,[pos]) // source stream  ToDo use this instead of code below
-        
-        while(  (pos = jop.next()) < pos ){}
+    // similar to   shiftedOverlay()  .. only returns one half and does not swap anything within
+    // Oh, what do we do? Have a seam between left and right .. but at least not have a zero length span. Augment is buggy
+    // Oh, it just got more complicated
+    // Only one seam, so less loops ( for the other method I would need to place the code in a different project and don't let the debugger go in there, but instead show CI test results )
+    // Todo: Make this a test/case wrapper for orderByKnowledge(back)
+    //  ButThen: It is so short, humble and easy to debug and can probably create good error messages
+    // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
+    // sub() may have removed seams
+    //. So noswap, filter version . How to combine? RemoveSeams is called in there
+    split(side:number,pos:number /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */):Row{
 
-        return null //new Row(0);
+        const rr=new Array<Row>() //.fill( new Row([]) ) //cloneable.deepCopy(this))
+
+        var i=0
+        while(i< this.starts.length && this.starts[i]<pos) { i++ }  // orderByKnowledge has halves for this
+
+        var r=new Row([])        
+        if (side==0){
+            r.starts = this.starts.slice(0,i)
+            r.data=this.data.slice(0,i>>1) // like in orderByKnowledge. No spurious +1 or anything
+            var ultra = r.starts.length - 1
+        }else{
+            r.starts=this.starts.slice(i)
+            r.data=this.data.slice((i+1)>>1)  // ceil()
+            ultra=0                
+        }
+        //for(var side=0;side++;side<2){
+        if (i&1){                
+            var l=pos-r.starts[ultra]  // todo: search for last()
+            if (l!=0){
+                if (side==0){
+                    r.starts.push(pos)
+                    r.data.push(this.data[i>>1].slice(0,l))
+                }else{
+                    r.starts.unshift(pos)
+                    r.data.unshift(this.data[i>>1].slice(l))
+                }            
+            }
+        }
+
+        // I thinks this is also different in join. The swap array is mirrored, but the result is not pulled back to origin 
+        if (side==1){
+            r.starts.forEach((s,i)=>{ r.starts[i]-=pos  })
+        }
+        return r
+
+        //remove zero length
+
+       
+        rr[0].starts.push(pos)  // this is all checked in JoinOperatorITerator. I hate to do it here
+        rr[1].starts.slice(i)
+        rr[1].starts.unshift(pos) // this is all checked in JoinOperatorITerator. I hate to do it here
+
+
+
+
+        // rr[0].starts.forEach((s,i))
+
+
+        // this also does not distinguish between start filled  vd  start empty
+        // jop has active source. 
+        const jop=new JoinOperatorIterator(this.starts,[pos]) // does starts+data(no it does not), avoids zero length ( while also avoiding edge cases )
+        // // todo: No Start yet. Where is that
+        // const startss=new Array<Row>()
+        // var rl:number
+        // var seam=pos
+        // do{
+        //     var starts=new Array<Number>()            
+        //     while(  (rl = jop.next()) < seam ){
+        //         starts.push( rl )
+        //         // where is data?
+        //     }
+        //     const r=new Row([])
+        //     r.starts=starts
+
+
+        //     startss.push(t)
+        //     seam=this.starts[this.starts.length]
+        // }while( startss.length<2) // caller expects this 
+    
+        // //I need to get rid of pointers and iterators
+        // // constructor takes number[][] .. somehow I need something in between lying array and spans
+        // const testPoint=startss.map(start=>new Row(start))
+        // return null //new Row(0);
     }
 
     // trying to avoid  join  artifacts
@@ -699,19 +835,18 @@ export class Row{
         console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
 
-    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[]) {
+    // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
+    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: Seamless[] /* out parameter */, dropColumn=false) {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
         // rename trick //const row=this
         delayedRow.data = this.data
         delayedRow.starts = this.starts.map(s => s + (length >> 1)) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
 
-
         //join starts and swap
         const l = this.starts.length >> 1
         //for(let half=0;half<l;half+=l>>1){
         let jop = new JoinOperatorIterator(this.starts, delayedRow.starts, delayedSWP /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
-
 
         // ^ so this is one indirection less then needed
         // gotta change  FillValues.ValueSpanStartInMatrix 
@@ -839,43 +974,52 @@ export class Row{
         }))
     }
 
+    // ToDo: InnerProduct needs to see outside range as zeros and not out of bounds error
     innerProduct(column:number[] ):number{
         let acc=0
         this.data.forEach((d,i)=>{d.forEach((cell,j)=>{
-            acc+=cell*column[j+this.starts[i<<1]]
+            const index = j + this.starts[i << 1]
+            if (index<column.length) acc+=cell*column[index] // else  OutOfBounds === zero
         })})
         return acc
     }    
 
-    // only used for test. The other matrix will be an inverted Matrix, which is not sparse
-    innerProduct_Matrix(M: Tridiagonal):Row {
+    // only used for test. The other matrix will be an inverted Matrix, which is probably not really sparse
+    // Inverted Matrix is left. Do I need to change everything?
+    // Left is needed for all the = in the equation system. Why would a Matrix be right?
+    // Should I store columns in a Matrix? Vectors are no sparse anyway and they start at index=0 always.
+    // So it is for test. To compare with Matrix using Transpose?
+    innerProduct_Matrix(right: Tridiagonal):number[] { // Only a right Matrix produces a Row result. I've got no columns ..
         //const accs=new Span<number>(M.length(),0)
         //for (let acc_i = 0; acc_i < M.length(); acc_i++)
         // todo class cursor with ref to row
-        const cursors=new Array<number>(M.length()).fill(0) // other source is not sparse => no jop  
-        const accs=M.row.map((row,acc_i)=>{
-            let acc = 0
+        //const cursors=new Array<number>(right.length()).fill(0) // other source is not sparse => no jop  
+    
+        // for some reason we only need it here 
+        let acc_i=0
+        right.row.forEach((row:Row)=>{
+            acc_i= Math.max( acc_i, row.last(row.starts) )
+        })
+
+      
+    const result= new Array<number>(acc_i);
+    // this is only height. We need width (should I have that value?) : right.length(); 
+
+          while(acc_i-->0){
+              let acc=0
             this.data.forEach((d, i) => {
-                d.forEach((cell, j) => {
-                    acc += cell * row[j+this.starts[i<<1]].get(acc_i) // M.getAt(j+this.starts[i<<1], acc_i)
+                const base = this.starts[i << 1]  // a join which I could probly avoid with class Span but which complicated sparse join which was the motivation for my project .. Ah I should have done that later
+                d.forEach((cell, j) => {                    
+                    acc += cell * right.row[j+base].get(acc_i)  // main purpose is to use the KISS get and compare it with the join
+                    // M.getAt(j+this.starts[i<<1], acc_i)
                     // todo: don't dive into  row.find all the time. 
                 })
             })
-            //accs[acc_i]=
-            return acc
-        })
-
-        // not sparse .. huh?
-
-        {
-            let a=new Array<Span<number>>(3) //=[[],[],[]];
-            a[0]=new Span<number>(0,0) //.start=0)
-            //a[1]=accs
-            //a[2]=new Span<number>(0,accs.extends.length)
-            const row=new Row(a) //0,0,[[],[],[]])
-            //row.data[1]=accs
-            return row
+            result[acc_i]=acc
         }
+
+            //accs[acc_i]=
+            return result
     }
     
     
@@ -977,8 +1121,12 @@ export interface Matrix{
 
 export class Tridiagonal implements Matrix{
     row:Row[]
-    constructor(length:number){
-        this.row=new Array(length)
+    constructor(length:number|Row[]){
+        if (typeof length === "number")
+        {this.row=new Array(length)}
+        else{
+            this.row=length ;
+        }
         //I cannot create rows
         //I do not want thousand different constructors
         //user will have to fill the array
@@ -1007,7 +1155,8 @@ export class Tridiagonal implements Matrix{
         return this.row[row].get(column);
     }
 
-    public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */){
+    // Todo: make the same as [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
+    public swapColumns(swapHalf:number[] /* I only explicitly use bitfields if I address fields literally */, dropColumn=false){
         if (swapHalf.length>0){ // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
         let //adapter=[]
         // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
@@ -1031,7 +1180,8 @@ export class Tridiagonal implements Matrix{
             const length=this.row.length ; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
             
             // todo: this becomes a method of class Row
-            row.shiftedOverlay(length, delayedSWP, spans_new_Stream)
+            // What does "Overlay" mean?
+            row.shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn)
             //return spans_new_Stream
         })
 }}
@@ -1050,11 +1200,14 @@ export class Tridiagonal implements Matrix{
         
         for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s /*20201117 first test: 4*/){
             const o=this.row[r]
-            if (o.starts.slice(-1)[0]>this.row.length){
+            if (typeof o!=="undefined"){
+                 if (o.starts.slice(-1)[0]>this.row.length){
+                // o=undefined should not happen. I should probably not construct an undefined row todo..
                 console.log("Starts: "+o.starts+" > "+this.row.length)
                 throw "out of upper bound"
             }
             o.PrintGl(pixel, pointer)
+        }
         }
         return {width: s, height:s, pixel: pixel};
     }    
@@ -1071,45 +1224,69 @@ export class Tridiagonal implements Matrix{
         }
         return iD;
     }
-    // due to pitch I expect the other 
-    inverse(): Tridiagonal{
-        const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
 
-        for(let i=0;i<this.row.length;i++){
-            if (inve.row.length<=i){
-                throw "outofBounds in inverse "+i
+
+    // opposite of split()
+    // todo: write tests
+    AugmentMatrix_with_Unity(){
+        const M=this
+        const rows=M.row.forEach((r, i) => {
+            const s = M.row.length + i
+            if ( r.last(r.starts) < s ) {
+                r.starts.push(s)  // uh, do I have to accept seams or do I fuse left and right?
+                r.starts.push(s + 1)
+                r.data.push([1])
+            }else{
+                if ((r.starts.length & 1) != 0){                    
+                    throw "no fill up zeros span allowed because zero is default"
+                }else{
+                    r.last(r.data).push(1)
+                    r.lastSet(r.starts,s+1)
+                }
             }
+          })
+    }
+
+    // Only works on rectangular matrix. Inverse is a sideeffect in the right columns if you called "AugmentMatrix_with_Unity" before. Can only call it once. But 
+    inverseRectangular() /* in place  : Tridiagonal*/{
+        //we run inverse on 2x1 rectangular matrix //const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
+
+        // I try to hide the start index of arrays in languages. Thus I need forEach
+        this.row.forEach( (rl,i)=>{
+            // if (inve.row.length<=i){
+            //     throw "outofBounds in inverse "+i
+            // }
             if (typeof this.row[i] === "undefined"){
                 throw "this is undefined: "+i
             }
-            if (typeof inve.row[i] === "undefined"){
-                throw "inverse is undefined: "+i
-            }
-            if (this.row[i].get(i)===0) {
+            // if (typeof inve.row[i] === "undefined"){
+            //     throw "inverse is undefined: "+i
+            // }
+            if (Math.abs(rl.get(i))<0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
                 throw "division by zero (matrix undefinite)"
             }
-            const factor=1/this.row[i].get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
-            console.log("factor: "+factor+"  from "+this.row[i].data+ " and "+ inve.row[i].data);
-            [this.row[i],inve.row[i]].forEach(side=>side.scale(factor));
-            console.log("factor: "+factor+"   to  "+this.row[i].data+ " and "+ inve.row[i].data);
-            for(let k=0;k<this.row.length;k++)if (k!==i){
-               const f=this.row[k].get(i)
+            const factor=1/rl.get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
+            console.log("factor: "+factor+"  from "+rl.data );//+ " and "+ inve.row[i].data);
+            rl/* ,inve.row[i]].forEach(side=>side*/.scale(factor)//);
+            console.log("factor: "+factor+"   to  "+rl.data );//+ " and "+ inve.row[i].data);
+            this.row.forEach((rr,k)=>{ if (k!==i){
+               const f=rr.get(i)
                if (f!==0){
-                [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
+                //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                 // duplicated code leads to bugs! 2020-01-20
-                // this.row[k].sub(this.row[i],f) // ToDo: nuke column
+                rr.sub(rl,f) // ToDo: nuke column
                 // inve.row[k].sub(this.row[i],f)
                }
-            }
+            }})
         
-            for(let k=0;k<this.row.length;k++){ //if (k!==i){
-                const f=this.row[k].get(i);
+            this.row.forEach((rr,k)=>{
+                const f=rr.get(i);
                 const s= (k===i) ?1:0;
                 if (Math.abs(f-s)>0.001){
                     throw "column not empty i/live: "+f+" should be "+s
                 }
-             }
-        }
+             })
+        })
 
         console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
         for(let i=0;i<this.row.length>>1;i++){
@@ -1122,8 +1299,21 @@ export class Tridiagonal implements Matrix{
              }
         }
 
-        return inve
+      //  return inve
     }
+
+    // for unit test
+    inverse(): Tridiagonal{
+        const M=cloneable.deepCopy(this)
+        // clone .. for the multiplication tests. Deep Clone: Rows, start, data
+        M.AugmentMatrix_with_Unity()
+        M.inverseRectangular()
+        // return right half of clone
+        const M2=new Tridiagonal(0) // split does not work in place because it may need space at the seam
+        M2.row=M.row.map(r=>r.split(1,this.row.length ))
+        return M2
+    }
+    
     // ToDo on demand
     //inverseWithPivot(): void {
         // What is this pivot thing anyway? Double wide matrix. Check for largest element with unknown column header. Clear other entries in this column.
@@ -1204,15 +1394,23 @@ export class Tridiagonal implements Matrix{
 
     // both left half and full innerProduct (not really now, but it is --after all-- a Matrix) may make sense
     // inner product works, if the other matrix/vector is shorter. From a math point of view, I would need a Transpose function ( ToDo on demand )
+    // !! not in-place !!
 
-    MatrixProductUsingTranspose(that:number[]|Tridiagonal):Tridiagonal {
+    // Though I the sparse Matrix multiplication is my motivation for this project
+    // I still don't want users to see different method names.
+    // Also we are not in the inner loop and thus don't need to optimize for speed
+
+    MatrixProduct(that:Tridiagonal):Tridiagonal
+    MatrixProduct(that:number[]):number[]
+    MatrixProduct<CNC extends number[]|Tridiagonal>(that:CNC):CNC {
   
-        if (Array.isArray( that ) ) { // Poisson simulation uses columns
-            throw "Why would you even consider Transpose when you have dense arrays?"
-            // return this.row.map(r=>{
-            //     return r.innerProduct(that)
-            // })
-        } else{ // mostly to test inverse
+        if (Array.isArray( that ) ) { // Poisson simulation uses columns. // ToDo I have no other matrix multiplication method. Todo: Remove implementation detail from function name
+            const result = this.row.map(r => {
+               return r.innerProduct( that )
+            })
+
+            return result as CNC; // huh?
+        } else{ // UsingTranspose   // mostly to test inverse
             const t=new Transpose(that) // hoisting. Todo: Move dependet class up
             const result=this.row.map(r=>new SeamlessWithRef(r))
             let safety=10
@@ -1244,7 +1442,7 @@ export class Tridiagonal implements Matrix{
                 row.data=r.data_next     // 0 is removed as "not filled" in the per element writing to r.removeSeams
                 return  row //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
             })
-            return degen
+            return degen as CNC // huh?
         }            
     }
 
