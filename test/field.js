@@ -91,23 +91,23 @@ describe('sort columns all on one side', () => {
         const m = NoSwap.ShapeToSparseMatrix();
         (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.not.exist // field has only one cell which is grounden => nothing to solve
         // check .. ah JS without TS intellisense is a pain to write tests :-()
-        m.row ;
-        (0, chai_1.expect)(m.row.length).to.equal(0);
         //(0, chai_1.expect)(m.row[0]).to.exist;
         
         //NoSwap.row ;
         console.log(" use dynamic to access data ") // no typeScript anymore :-()
         //const scalar=new Tridiagonal(1)
         //scalar.row[0]=new Row(0,0,[[],[4],[]]) // Faktor 20
-        const result = 4; //scalar.getAt(0,0) //hello();
-        (0, chai_1.expect)(result).to.equal(4);
+       
     });    
     
     it('2021-12-18 insulator', () => {
-        const NoSwap=new fields_1.Field(insulatorScalar)
+        const contacts=fields_1.Field.CreateContactBareMetal()
+        fields_1.Field.SetContact(contacts,'M', new fields_1.Contact() )
+        const NoSwap=new fields_1.Field(insulatorScalar,contacts)
+        
         // the method should be able to just create the differential equation without the boundary ( closed space like on a sphere or torus). This matrix can not be inverted
         const m = NoSwap.ShapeToSparseMatrix();
-        (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.equal(1)
+        (0,chai_1.expect)(NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray).to.equal(0)
         // check
         //m.
         //const scalar=new Tridiagonal(1)
@@ -118,7 +118,11 @@ describe('sort columns all on one side', () => {
 
 
     it('2021-12-18 metal which expects a wire', () => {
-        const NoSwap=new fields_1.Field(['M'])
+
+        const contacts=fields_1.Field.CreateContactBareMetal()
+        fields_1.Field.SetContact(contacts,'M', new fields_1.Contact() )
+
+        const NoSwap=new fields_1.Field(['M'],contacts)
         // 2020 Version checkContact.lowImpedanceContacts[0].voltage=1
         // 2022, now I have CAPS for contacts and numerals for fixed potential.  Was: 
         NoSwap.fieldInVarFloats[0][0].Potential = 1; // 2021 Version
