@@ -157,7 +157,7 @@ class Insulator extends Tupel {
 // import format, test GL
 export class MapForField {
     // EG exampleField
-    constructor(touchTypedDescription, contacts = null) {
+    constructor(touchTypedDescription) {
         this.maxStringLenght = Math.max.apply(null, touchTypedDescription.map(t => t.length));
         this.flatLength = touchTypedDescription.map(t => t.length).reduce((a, c) => a + c, 0);
         this.touchTypedDescription = touchTypedDescription;
@@ -219,14 +219,21 @@ export class MapForField {
 }
 export class FieldToDiagonal extends MapForField {
     constructor(touchTypedDescription, contacts = null) {
-        super(touchTypedDescription, contacts); // ToDo: This parameter feedthrough came accidentally
+        super(touchTypedDescription); // ToDo: This parameter feedthrough came accidentally
         this.fieldInVarFloats = [];
+        this.contacts = contacts;
         //this.fieldInVarFloats[0][0]=new Tupel()
         this.ConstTextToVarFloats();
     }
     // needed for contacts
     preprocessChar(char) {
         return char;
+    }
+    static CreateContactBareMetal() {
+        return new Array('Z'.charCodeAt(0) - 'A'.charCodeAt(0));
+    }
+    static SetContact(self, char, c) {
+        self[char.charCodeAt(0) - 'A'.charCodeAt(0)] = c;
     }
     // Bandgap may stay in text? But this strange replacement function?
     ConstTextToVarFloats() {
@@ -241,7 +248,7 @@ export class FieldToDiagonal extends MapForField {
                 if (Number.isNaN(n)) {
                     if ('A' <= char && char <= 'Z') { // contact
                         tu = new Metal();
-                        tu.Contact = this.contacts[char.charCodeAt(0)]; // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
+                        tu.Contact = this.contacts[char.charCodeAt(0) - 'A'.charCodeAt(0)]; // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
                     }
                     else {
                         var tu = char == 'm' ? new Metal() : new Tupel(); // extended electrode
@@ -260,7 +267,7 @@ export class FieldToDiagonal extends MapForField {
             };
             var k = 0; // for(let k of str)  // I would need map()
             for (; k < str.length; k++) {
-                row[k] = forBlock(str.charAt(k)); // str[k] works the same . Maybe destructure [...str] would be shorter?
+                row[k] = forBlock.call(this, str.charAt(k)); // str[k] works the same . Maybe destructure [...str] would be shorter?
             }
             // const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0], ['M', 0]])
             // const c = str.replace(/\d/, 'm')  // this is difficult code to read and in band.  this is potential. Not index into wire. Wire as bonding position instead
@@ -404,7 +411,7 @@ export class FieldToDiagonal extends MapForField {
                         vector[cell.RunningNumberOfJaggedArray] = accumulator_vec;
                         { // sorry, I guess I may indeed need a sorting class
                             const p = cell.RunningNumberOfJaggedArray;
-                            if (setCells[setCells.length - 1][0] < p) {
+                            if (setCells.length < 1 || setCells[setCells.length - 1][0] < p) {
                                 setCells.push([p, accumulator_curvature]);
                             }
                             else {
