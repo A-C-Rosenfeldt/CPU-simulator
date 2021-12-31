@@ -11,7 +11,7 @@ module.exports = {
       "js"
     ],
     "spec": [
-      "test/*.js"
+      "test/**/*.js"
     ]
   }
 };
