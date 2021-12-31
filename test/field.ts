@@ -122,7 +122,7 @@ describe('i0', () => {
 	it('should all float to the refernece mirror',()=>{
 		const NoSwap = new Field(['i2'])
 		const [v,m] = NoSwap.ShapeToSparseMatrix();
-		const rn = NoSwap.fieldInVarFloats[0][1].RunningNumberOfJaggedArray;
+		const rn = NoSwap.fieldInVarFloats[0][0].RunningNumberOfJaggedArray;
 		expect(rn).to.equal(0)
 		expect(m.getAt(rn,rn)).to.equal(1)  //  1/1 = 1
 	})	
