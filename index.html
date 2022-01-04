@@ -2,10 +2,41 @@
     <title>Hello World</title>
     <link  rel="stylesheet" type="text/css" href="public/color.css"/>
 </head>
-<body style="background-color: rgb(28, 77, 83);">
-    Hier wird es nacher bunt.
+<body>
+    <a href="public/index.htm">The current demonstration page is in ./public</a>>
+    Simulating an 1982 home computer with 
+    a <a href="public/ISA.htm">6502 converted to load store</a>
+    and <a href="public/AudioVideo.htm"> Audio and Video  </a> .
 
-    <p class="bandGap_insulator"> Isolator </p>
+    <h2>About that 6502</h2>
+    <p>
+    I have to admit that I don't like the 6502 so much anymore (I like the flags, though. And the branches including the later branch always). It uses at least two cycles for every instruction,
+    so it could just as well use 16 bit instruction words as minimum length and encode some register fields.
+    The 8080 has 8 registers (AL, AH, BL, BH ..), which come in pairs. We only need 9 bits to address 3 of them.
+    We could have a thenth bit to select between byte or word like on 8086. So there would be 4 more purely 16 bit registers, like
+    BP, SP, SI, DI. Then not accesible by this there are also Instruction Pointer with own write back register, Stack Pointer,
+    and the ALU write back register. So 16 x 16 bit x (+support) 8 transistors = 2^(4+4+3=10+1) = 2048 transistors.
+    I became a MIPS fan, just that I read that interrupts need to be disabled while we process a delay slot.
+    So what? The 6502 does complex address mode calculations which cannot be interrupted.
+    For a budget CPU we need to share memory. Extra cache logic like MIPS is too expensive.
+    Instead this CPU uses variable length instructions (CISC) for memory access.
+    To keep the CPU regular it is probably best to avoid addressing modes.
+    With two source registers, how do I even specify an offset for store? With 16 bit encoding, how can I supply a constant?
+    With only one target register, how am I allowed to INC the address on LOAD ? Why did ARM drop this?
+    When I use two cycles for memory access, then I can write back two values!
+    Constant are loaded like in MIPS and RISCV with LoadLow 12bit and load high 4 bit. Or SH2 load 8 bit into low|high ?
+    Also: No zero register.
+    Yeah, sorry folks. If you need a constant, you've got to make sure that you loaded it into the register.
+    </p>
+    <p>
+        I still wonder if I should aim for some 8 bit instructions. So bookkeeping which needs a lot of simple instructions. Like INC, DEC, SHL.
+        Those could have single byte, single 16bit register encodings. I would also love to support for &= and += in one byte. So 6 bits for register.
+        Basically the opCode is like (uhh sounds very CISC): bit 0 set , then it is += stuff. Bit 1 set, then it is INC stuff. Otherwise: 2 bytes .
+    </p>
+    <!-- node app.js -->
+
+    <h2>Todo: Some writeup about the electric field simulation because the demo page is already full with pictures</h2>
+    <p class="bandGap_insulator"> Insulator </p>
 
   
     <canvas id="MatrixCanvas" width="600" height="400" style="border:1px solid #000000;">
