@@ -32,7 +32,40 @@
         I still wonder if I should aim for some 8 bit instructions. So bookkeeping which needs a lot of simple instructions. Like INC, DEC, SHL.
         Those could have single byte, single 16bit register encodings. I would also love to support for &= and += in one byte. So 6 bits for register.
         Basically the opCode is like (uhh sounds very CISC): bit 0 set , then it is += stuff. Bit 1 set, then it is INC stuff. Otherwise: 2 bytes .
+        For a clean display of the inner workings it is better to got with 16 bit bus and no 8 bit instructions.
+        Maybe addressing modes are really the way to go: We get a write back cycle because memory access needs two cycles. 
+        So basically we can combine any artihmetic instruction with a Load Store instruction.
+        Source or target register involved can be used for the Address ( pre vs post increment ) register (all 16 bit).
+        So for the += and ++ stuff the source / target distinction becomes really blurred. Basically we only name 3 registers,
+        one of which is a pure source. One source defines the byte (data) vs word (address, key), the other can be used to dump results.
+        CMP and Test already feature a 0 target register. Some instructions target the instructionPointer. So decoding needs 4 bits anyway.
+        CISC on x86 is complicated due to the encoding. People love addressing modes even on RISC. So clearly better keep fixed length instruction, but allow the "source" to be used as data target in Load.
+
+        What does a branch instruction do with two source registers? Conditional flag code needs to be in the first byte.
+        Condition is 3 bit .. so the opcode in the first byte is 2 bit and:
+        jump / branch ( interpret second reg as condition ), ALU with b/w flag.
+        Jumps can optionally move InstrucitonPointer to target and source to instructionPointer.
+        So what is the second byte: TargetAddress or condition ? So we have 3 immediate instructions: LoadLow, LoadHigh, Branch
+        Branch is important and should get large jumps ( word address, 00 interpreted as 100 etc.).
+        So jump also allows a conditional field ( like some others probably) and then only has target register in the second byte
+            ( or allow stack addressing modes ?). I don't really know .. maybe allow immediate offset?
+
+        A lot of processors don't have the simple source-target assignment as MIPS and RISCV and I think that this would never work on 16bit encoding.        
     </p>
+    <h2>Immediate values</h2>
+    <p>
+        So I came to the conclusion that the complicated immediate value of RISCV is justified. Likewise SH2 byte values.
+        A branch instruction ( not in MIPS style, but with flags ) only has to encode 3 bits. So 11 bits can be immediates?
+        Jump instructions are absolute in 6502. So I propose that you need to load one byte into a reg8 and then Jump loads 
+        the other byte as immediate. Jump can also work on 16bit registers: for switch as input and for target as link. Or both.
+        Since Jump needs to specify two regs=6 bit, it can only have a 8 bit immediate value.
+        Load needs to store its stuff somewhere and in vain of 8080, we store stuff in 8 bit regs.
+        Some reg,reg -> reg instruction would optionally need a immediate value in the first place, but we have only 4 bits:
+        widthFlag|reg). Or basically:  Width==8?  reg :  immediate ? 3 bit signed :  reg pair.
+        LoadStore for 6502 memory mapped IO would want absolute immediates like jump,
+        while LoadStore into datastructures wants to be an option on an arithmetic function:
+        write back to source1, use target for the data in memory. For const offset there is only a reg field => 4 bits.
+        </p>
     <!-- node app.js -->
 
     <h2>Todo: Some writeup about the electric field simulation because the demo page is already full with pictures</h2>

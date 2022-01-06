@@ -34,7 +34,111 @@
         Long spans feel like different sprites. So small rotations could be better be done in the CPU.
         On the other hand Bresenham is also used for edges, so these may be calculated in the GPU ( maybe in horizontal retrace? 
         </p>
-        <h3> Display BSP, The beam tree </h3>
+        <h3> Display BSP aka the Beam Tree </h3>
+        <p>
+            Raytracing and portal rendering feel like dead ends. Polygon rendering into a z-buffer always works. We still can use a tree to allow us to scale.
+            So we have scene graph for the scene. This allows us to have (large) vehicles, which can move and rotate. A BSP and spheres can rotate and translate
+            and thus are ideal geometry four bounding shapes. Bounding shapes of scene graph ( scene tree ) children overlap. For the spheres there exists a polygonal time algorithm for a tight fit.
+            A BSP is an optimization problem which needs itertion and heuristics and logs.
+            The root of the BSP feels a bit strange, so let us consider the case that we already cut out a convex shape (not necessaryly simplex??.
+            Now we look at the bounding box like a module in programming: With imports and exports.
+            So we export a 2d BSP for the projection through the volume with all the polygons which belong to this scene graph.
+            All volumes behind ( non-overlapping ) are occluded by this. I guess that this is not a portal because other occluders are also considered.
+            Occluders win, (inofficial) portals lose.
+            As we move up in the scene graph ( in order to render front to back ), we merge the BSP trees from the children.
+            I see no other watertight way for a polygon based scene ... espcially not the spheres, which would be come disks on a spherical "fisheye lense" projection.
+            With hirachical-z one would have to decide on a stop. Those jaggies just feel so ugly when all you need to do instead
+            are two Muls and one compare on a CPU with decent amount of bits.
+            To dive into a convex shape we take the BSP light pattern on the parent shape and apply all sibling occluders which are not strictly behind.
+            This visiblity pattern is so to say the parameter for the method invocation into the child.
+        </p>
+        <p>
+            BSP merge takes the large node and applies the cut to the destination (we basically build a fresh tree).
+            We still mark the origin of each cut. If we insert a convex region and it needs to be cut by a foreing cut,
+            we post pone this cut until a child* also wants to cut us. If the other tree reaches its leafs, and those have different opacy,
+            we may need to catch up. Due to sortingf by area, not much harm has been done, yet.
+            And now we can discard our occluded details. We only cut nodes and visible leafs.
+        </p>
+        <p>
+            Now, is there some clean-up possible? Proof? Unit test. I think I designed above splitter to avoid unecessary cuts.
+            How many adopting parents can a region have?
+            It feels weird to merge more than 2 BSP at once, but for early occlusion this may help.
+            Maybe keep the occluded area in an indexed aggregate and use transparent area for sort?
+            Looking at the 3d case: can we cache combinations of merged trees ( on the up path anyway),
+            but also with overlap with foreign scene graphs. So calc most intense overlap and cache?
+            We calc shadow on the way up.
+        </p>
+        <h2>Rounding errors and nearest pixel fall back</h2>
+        <p>If I aim for the Jag with 16bit factors or even for peace of mind even on 32 bit GBA,
+            the algorithm should not crash on rounding errors.
+            For frame to frame coherence and to avoid z-fighting,
+            I already thought up that a 3d polyhedron exports its 2d shiloutte ( watertight 2d BSP) into a range of directions.
+            So any tests on inequality of some multiply-accumulation needs to be done for extreme values.
+            So for the real render on screen, px wiggle is important on 16 bit systems.
+            I could either declare the BSP as truth and avoid any gaps due to wiggle ( leafs in BSP are always filled).
+            Or I could keep in pixel rasterizatio as fallback for high detail nodes which get too small on screen.
+            With leafs around 8px, it is best to just render them into the z-buffer. I could even use local ( to scene graph ) coordinates.
+            With smaller leafs, ray casting might be interesting. The nice thing about these is the floating point rounding local to
+            scene graph and BSP node, and there is not wiggle of vertices. Rather the rays get somewhat irregularyl.
+            We don't mind because affine texture mapping and Gouraud are already an approximation.
+            Wiggle on screen can be small with local screen coordinates before multiplication ( add is 32 bit anyway ).
+            8x8 px blocks can be affine: So you have the perspective bounding polyhedron projected on screen.
+            3d coordinates are tri-linearly interpolated. Feels like a gimmick, in this case. I don't see how this prevents leaks.            
+        </p>
+        <p> With homogenous coordinates, how difficult is it to calculate ranges?
+            Wiggle on screen ( which we minimize ), gives a range to each vertex position. The camera position has an error.
+            So for translation, these add up. With rotation ( in a scene graph ), each inner product consists of many products.
+            Each product needs to combine 2 * 2 borders and get min-max. Then min of the sum is sum of min ( wax likewise ).
+            Intersection tests add the cross product. Maybe, we get titghter limits and less branching going with the determinant. 
+        </p>
+        <p>
+            When I used the z-buffer rasterizer for an area, I may want to collect the number of occluded pixels for my aggregation.
+            Maybe, all pixels are indeed covered? I guess a loop with a hanging branch can do this for me at 10 cycles per pixel.
+            Not great, so only for small details.
+        </p>
+        <h2>draft</h2>
+        <p>
+            So it really comes down to the question: How efficient is this merge?
+            It will mix some levels in the tree.
+            If I cut right through all the polygons in the other tree, the number of cuts grows linear with (sqrt with number of polygons).
+            We do cut, but only consider regions of similar size. So "divorced" parents are created.            
+        </p>
+        <p>
+            How to speed up? One idea which fits my liking of high fps and static scenes (levle in a sim)
+            is to persist data across frames. For every calculation I calculate an error margin for the camera position.
+            I only dive into trees which exceed the margin.
+            But I this frame to frame coherence has to take a back seat in graphics for games.
+            Is there any way I can avoid the cuts, but still get a watertight result?
+            Can I allow for overlap like I do with scene graph -> 3d BSP? Something like max 8 cells overlap at one point?
+            So we have the top level cuts of both trees and then mark the children in the other trees that they overlap with two others.
+            So when we enter a 2d convex region, we check all overlapping 2d occluders.
+            It can happen that we need to dive into the occluders to match the area.
+            The real goal is of course to combine occluders, like some part of the tree after the split
+            are full of occluders,
+            or are full of holes,
+            or full of internal polygons.
+        </p>
+        <p>
+            So how do we keep our overlap limit? We merge not two BSP, but already all their overlapping ancestors.
+            So basically we always merge 2*8=16 BSP into 8 BSP? Maybe I should reduce that overlap number to 4 or add another limit.
+            Anyway, how do choose who to combine? Similar size. No combinatoric explosion due to cuts? Similar ancestors?
+            Number of cuts need to be the metric. If the data shrinks on merge we keep it. Otherwise discard. Persist statistics above frames.            
+        </p>
+        <p>
+            We sort cuts by area. So the largest area gets it cut served into the output.
+            So only large area cuts cut large area cuts.
+            We need to get rid of those cuts before we move so details.
+            This works because we have only two states per area ( transparant vs occluded).
+            So while we move down a tree we could either wander orthogonal to the large scale cut and not be botherd anymore.
+            Or we reached two leafs on both sides of the cut in the source which have the same state.
+            It can even be nodes with the same color on the edge and not child edges cutting (how costly to detect?). 
+            There can be quite large leafs because we want to create occluders.
+            That is we design the level not as an astorioid mine field or wood in winter,
+            but with compact rocks, walls, trees full of leafs.
+        </p>
+        <p>
+            Now again, we move up in our 3d tree. How do we detect good occluders? When we generally use a class of overlapping BSP
+        </p>
         <p>
             <a href="https://www.bluesnews.com/abrash/">Abrash</a>
             Sprites conjure the idea that a position is more important than the color. On CRTs sprites can be calculated at quite a high horizontal resolution, but vertical movement
