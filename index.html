@@ -66,6 +66,10 @@
         while LoadStore into datastructures wants to be an option on an arithmetic function:
         write back to source1, use target for the data in memory. For const offset there is only a reg field => 4 bits.
         </p>
+        <p>
+            With fully symmetric registers, I could enforce that the register used to hold the high-byte for jump and Load/Store has the low bits as register number. So Jump only needs to encode 4 more bits.
+            Now that may help if we try to pair jumps with other instructions a bit like MIPS does: CMP, Test .
+        </p>
     <!-- node app.js -->
 
     <h2>Todo: Some writeup about the electric field simulation because the demo page is already full with pictures</h2>
