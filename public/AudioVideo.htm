@@ -107,7 +107,10 @@
         The Jag can give me the sign of a 16bit*16bit multiplication. So we need 8 bit numbers: Local grid in a scene graph.
         This BSP breaks down for smooth vehicle movement.
         Or we calculate ranges anyway and round after every multiplication. Maybe even float stuff.
-        Multiplication is nice for ranges because we only need the product of all min(abs()) and all max(abs()). 
+        Multiplication is nice for ranges because we only need the product of all min(abs()) and all max(abs()).
+        For less bits (6502, or 2x2 digits on JRIS) one can distribute factors out.
+        The camera vector enters into the calculation preceding the 2d case.
+        It ends up as a polynom. Here just assume worst case and independent orders.
         (Area is nasty and only for heuristics: To calculate the determinant (area, cross * inner) of the triangle, I need a common denominator and thus 2 more multiplications.)
         </p>
         <p>
@@ -116,7 +119,29 @@
           We then want to order cuts along this edge. So we have to inverter a 3x3 matrix and thus have a determinant in the denominator with two multiplications.
           Though we can factor out an inner product if we order along on edge because two planes stay the same.
         </p>
-        <h2>draft</h2>
+        <p>
+            With the bottom-up approach inside a node we have a camera vector. Level of Detail, persistence, and occlusion is the motivation for the beam tree, so of course,
+            there is a field of view and the camere vector has a length. So there is really no special vector inside a node.
+            Already with low precision and a scope view ( not in MVP ), default transformation should work. We use the direction only for occlusion. For rendering, do gaps exist?
+            Linear interpolation bends our straigh lines and may lead to gaps in the BSP tree. So we apply error margins here. Or BSP rules. Only vertices are projected. A vertex is always assgined to a single node.
+            Overlap may be a problem here.
+        </p>
+        <p>
+            I want rounding be solved for persistence, and to avoid artifacts on retro systems.
+            I guess that nobody else cares. So I step in.
+            Since we use perspective projection, there is no real 3d geometric interpretation of the ranges.
+            When we reach the machine precision, stuff cannot be decided.
+            So I guess I fall back to a polygon mesh with z-buffer in screen space?
+            Or I try a different cut which is not on the tipping point?
+            It should no happen often, but does lead to complexity explosion in my BPS tree
+            because merge stops. Or I need variable precision? I want statistics!
+            Efficient BSP tree operation is the corner stone of the beam tree.
+            Then again, how pathologic needs a case to be that multiple BSP calculation steps fail?
+            Moire or lines of trees ?
+            When a merge aborts, basically we just don't get infor about watertight occlusion
+            because the object is so ill defined and full of holes like swiss cheese.
+        </p>
+        <h3>draft</h3>
         <p>
             So it really comes down to the question: How efficient is this merge?
             It will mix some levels in the tree.
