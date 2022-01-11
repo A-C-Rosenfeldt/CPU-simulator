@@ -29,6 +29,60 @@ describe('trim row (Accessing my code)', () => {
   });
 });
 
+describe('key value pairs like classical sparse matrix', () => {
+  it('should connect dangling bonds', () => {
+      //const scalar = new Tridiagonal(1);
+      const r = new Row([[3,6],[4,7]])
+      expect(r.starts.length).to.equal(2);
+      expect(r.starts[0]).to.equal(3);
+      expect(r.starts[1]).to.equal(5);
+      expect(r.data[0].length).to.equal(2);
+      const result = r.data[0][0]; //hello();
+      expect(result).to.equal(6);
+      expect(r.data[0][1]).to.equal(7);
+  });
+  it('should trim dangling bonds', () => {
+    //const scalar = new Tridiagonal(1);
+    const r = new Row([[2,0],[3,6],[4,7],[5,0]])
+    // rest like above
+    expect(r.starts.length).to.equal(2);
+    expect(r.starts[0]).to.equal(3);
+    expect(r.starts[1]).to.equal(5);
+    expect(r.data[0].length).to.equal(2);
+    const result = r.data[0][0]; //hello();
+    expect(result).to.equal(6);
+    expect(r.data[0][1]).to.equal(7);
+  });
+  it('should trim -- and there is a gap', () => {
+    //const scalar = new Tridiagonal(1);
+    const r = new Row([[2,0],[3,6],[5,7],[6,0]])
+    // rest like above
+    expect(r.starts.length).to.equal(4);
+    expect(r.starts[0]).to.equal(3);
+    expect(r.starts[1]).to.equal(4);
+    expect(r.starts[2]).to.equal(5);
+    expect(r.starts[3]).to.equal(6);
+    expect(r.data[0].length).to.equal(1);
+    const result = r.data[0][0]; //hello();
+    expect(result).to.equal(6);
+    expect(r.data[1][0]).to.equal(7);
+  });
+  it('should trim inside the gap', () => {
+    //const scalar = new Tridiagonal(1);
+    const r = new Row([[2,6],[3,0],[5,0],[6,7]])
+    // rest like above
+    expect(r.starts.length).to.equal(4);
+    expect(r.starts[0]).to.equal(2);
+    expect(r.starts[1]).to.equal(3);
+    expect(r.starts[2]).to.equal(6);
+    expect(r.starts[3]).to.equal(7);
+    expect(r.data[0].length).to.equal(1);
+    const result = r.data[0][0]; //hello();
+    expect(result).to.equal(6);
+    expect(r.data[1][0]).to.equal(7);
+  });
+});
+
 describe('Matrix Accessing my code', () => {
 
   it('shOuld reTurn 4', () => {

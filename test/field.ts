@@ -106,12 +106,13 @@ const contacts = ['m0m', 'iii', 'm1m'] // two contacts. What do with i on border
 // low impedance wires have the numbers 0 .. 4
 const degneratedScalarContacted: string[] = ['0']; // done
 const floatTo: string[] = ['2i']
-const contactsAverage: string[] = ['0i2']; // check average in center
-const contacts2d: string[] = ['0ii', 'ii1']; // should all float up to the one given potential
-const contactsSquare: string[] = ['0ii', 'iii', 'ii2']; // // check average in center
+const contactsAverage: string[] = ['4i2']; // check average in center
+const contacts2d: string[] = ['4ii', 
+                              'ii2']; // should all float up to the one given potential
+const contactsSquare: string[] = ['4ii', 'iii', 'ii2']; // // check average in center
 
-const contactsAverageV: string[] = ['0','i','2']; // check average in center
-describe('i0', () => {
+const contactsAverageV: string[] = ['4','i','2']; // check average in center
+describe('0i', () => {
 	it('should all float to the reference',()=>{
 		const NoSwap = new Field(floatTo)
 		const [v,m] = NoSwap.ShapeToSparseMatrix();
@@ -136,6 +137,12 @@ describe('i0', () => {
 		expect(m.getAt(rn,rn)).to.equal(1)  //  1/1 = 1
 		expect(v.length).to.equal(1)  //  to match matrix length
 		expect(v[0]).to.equal(2)  //  "float to"
+		
+		m.AugmentMatrix_with_Unity() // just adds a single 1
+		expect(m.getAt(rn,rn+1)).to.equal(1)  //  1/1 = 1				
+		m.inverseRectangular() // inplace?
+		expect(m.getAt(rn,rn+1)).to.equal(1)
+		expect(m.getAt(rn,rn)).to.equal(1)
 	})		
 })
 
@@ -146,8 +153,54 @@ describe('2i0', () => {
 		const rn = NoSwap.fieldInVarFloats[0][1].RunningNumberOfJaggedArray;
 		expect(rn).to.equal(0)
 		expect(m.getAt(rn,rn)).to.equal(2)  //  two sides
-		expect(v[0]).to.equal(2)  //  sum
+		expect(v[0]).to.equal(6)  //  sum
 	})	
+	it('should all float to the averageV',()=>{
+		const NoSwap = new Field(contactsAverageV)
+		const [v,m] = NoSwap.ShapeToSparseMatrix();
+		const rn = NoSwap.fieldInVarFloats[1][0].RunningNumberOfJaggedArray;
+		expect(rn).to.equal(0)
+		expect(m.getAt(rn,rn)).to.equal(2)  //  two sides
+		expect(v[0]).to.equal(6)  //  sum
+	})		
+	it('should all float to the average2d',()=>{
+		const NoSwap = new Field(contacts2d)
+		const [v,m] = NoSwap.ShapeToSparseMatrix();		
+		const rn = NoSwap.fieldInVarFloats[0][1].RunningNumberOfJaggedArray;
+		expect(rn).to.equal(0)
+		expect(m.getAt(rn,rn)).to.equal(3)  //   sides
+		expect(v.length).to.equal(4)  //  to match matrix length
+		let i=0 // regression test
+		expect(v[i++]).to.equal(4)  //  one pole  horizontally
+		expect(v[i++]).to.equal(2) //  other pole  vertically
+		expect(v[i++]).to.equal(4)  //  one pole  vertically
+		expect(v[i++]).to.equal(2) //  other pole horizontally
+
+		m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
+		expect(m.getAt(rn,rn+4)).to.equal(1)  //  the start of the other diagonal				
+		m.inverseRectangular() // inplace?
+		expect(m.getAt(rn,rn)).to.approximately(1,0.001)
+	})
+	it('should all float to the average Square',()=>{
+		const NoSwap = new Field(contactsSquare)
+		const [v,m] = NoSwap.ShapeToSparseMatrix();
+		const rn = NoSwap.fieldInVarFloats[0][1].RunningNumberOfJaggedArray;
+		expect(rn).to.equal(0)
+		expect(m.getAt(rn,rn)).to.equal(3)  //  3 sides
+		expect(v.length).to.equal(7)  //  to match matrix length
+		let i=0
+		expect(v[i++]).to.equal(4)  
+		expect(v[i++]).to.equal(0)  
+		expect(v[i++]).to.equal(4)  
+
+		//for(;i<4;i++){ // regression test
+		expect(v[i++]).to.equal(0)   //  Poisson does no diagonal
+		//}
+		expect(v[i++]).to.equal(2)  
+		expect(v[i++]).to.equal(0)  
+		expect(v[i++]).to.equal(2)  
+		// do inversion
+	})			
 })
 
 describe('sort columns all on one side', () => {

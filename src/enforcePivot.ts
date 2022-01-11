@@ -491,8 +491,8 @@ export class Row{
             start.forEach( (s: (Span<number> | number[] ))  =>{
 
                 if (Array.isArray( s )){
-                    // Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
-                    if (s[1] != 0){ // avoid zero length intervals
+                    //   Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
+                    if (s[1] != 0){ //  zero value leads to:    //  avoid zero length intervals
                         if (s[0]==danglingBond){ 
                                 {//if (pass===1){
                                     lasi(this.starts)
@@ -500,12 +500,12 @@ export class Row{
                                 }
                         }else{
                             {//if (pass===1){
-                                this.starts.push(s[0],s[0]+1) // should be  in placw
+                                this.starts.push(s[0],s[0]+1) // should be  in place
                                 this.data.push([s[1]])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                             }
                            
                         }
-                        danglingBond=s[0]
+                        danglingBond=s[0]+1 // same what we push
                     }
                 }else{
                     const range=[s.extends.length,0]
@@ -537,7 +537,7 @@ export class Row{
                                 this.starts.push(...start)
                                 this.data.push(value) //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
                             }
-                            danglingBond=s[0]
+                            danglingBond=start[start.length-1]
                         }
                     }
                 }
