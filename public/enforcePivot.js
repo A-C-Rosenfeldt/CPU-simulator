@@ -357,7 +357,7 @@ class Passes {
 }
 // Clone in JS. I know that it is okay with Row and Matrix. Better not apply recursively on graphs which are not trees!
 // https://javascript.plainenglish.io/deep-clone-an-object-and-preserve-its-type-with-typescript-d488c35e5574
-export class cloneable {
+export class Cloneable {
     static deepCopy(source) {
         return Array.isArray(source)
             ? source.map(item => this.deepCopy(item))
@@ -393,8 +393,8 @@ export class Row {
             let danglingBond = -1; // semi-open interval. We keep a gap of size 1 because there is no data to concat to yet.
             start.forEach((s) => {
                 if (Array.isArray(s)) {
-                    // Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
-                    if (s[1] != 0) { // avoid zero length intervals
+                    //   Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
+                    if (s[1] != 0) { //  zero value leads to:    //  avoid zero length intervals
                         if (s[0] == danglingBond) {
                             { //if (pass===1){
                                 lasi(this.starts);
@@ -403,11 +403,11 @@ export class Row {
                         }
                         else {
                             { //if (pass===1){
-                                this.starts.push(s[0], s[0] + 1); // should be  in placw
+                                this.starts.push(s[0], s[0] + 1); // should be  in place
                                 this.data.push([s[1]]); //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                             }
                         }
-                        danglingBond = s[0];
+                        danglingBond = s[0] + 1; // same what we push
                     }
                 }
                 else {
@@ -438,7 +438,7 @@ export class Row {
                                 this.starts.push(...start);
                                 this.data.push(value); //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
                             }
-                            danglingBond = s[0];
+                            danglingBond = start[start.length - 1];
                         }
                     }
                 }
@@ -1122,7 +1122,7 @@ export class Tridiagonal {
     }
     // for unit test
     inverse() {
-        const M = cloneable.deepCopy(this);
+        const M = Cloneable.deepCopy(this); // Todo: Clone within scale and sub
         // clone .. for the multiplication tests. Deep Clone: Rows, start, data
         M.AugmentMatrix_with_Unity();
         M.inverseRectangular();

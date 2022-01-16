@@ -1,4 +1,4 @@
-import { Row } from '../src/enforcePivot';
+import { Cloneable, Row, Tridiagonal } from '../src/enforcePivot';
 import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, Contact } from '../src/fields'
 import { main } from '../src/GL';
 import { ContactedField } from '../src/fieldStatic'
@@ -183,7 +183,8 @@ describe('2i0', () => {
 	})
 	it('should all float to the average Square',()=>{
 		const NoSwap = new Field(contactsSquare)
-		const [v,m] = NoSwap.ShapeToSparseMatrix();
+		const [v,m] = NoSwap.ShapeToSparseMatrix();  // todo v should be in the augmented columns .. but v gets added to charge by mobi
+		// v is a list of known voltages. Their influence on the unknowns is expressed via a forward multiplication with a matrix ( right hand side ) .. This is the way for connected electrodes. .. but for static voltages and for tests maybe .. it should no look like LU makes sense here
 		const rn = NoSwap.fieldInVarFloats[0][1].RunningNumberOfJaggedArray;
 		expect(rn).to.equal(0)
 		expect(m.getAt(rn,rn)).to.equal(3)  //  3 sides
@@ -200,7 +201,23 @@ describe('2i0', () => {
 		expect(v[i++]).to.equal(0)  
 		expect(v[i++]).to.equal(2)  
 		// do inversion
-	})			
+
+		//const o=new Tridiagonal(m) // clone
+		const o=m.inverse()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
+		// for augmention with something else then unity .. use class cloneable !
+		//m.inverseRectangular() // inplace? Inplace is bad to test
+		const e=m.MatrixProduct(o)  // should be 1 again
+		expect(e.getAt(0,0)).to.approximately(1,0.001)
+
+		// degenerated case because we have no contact and thus no bandgap==0 left in the matrix
+		// basically: NoSwap.ToDoubleSquareMatrixSortByKnowledge_naive(){
+		const c=Cloneable.deepCopy(m)
+		c.AugmentMatrix_with_Unity()
+		NoSwap.GroupByKnowledge(c) // NoSwap still has the method, but it should not have an effect
+		expect(m.getAt(0,0)===m.getAt(0,0)).to.be.true  
+		expect(m.getAt(0,1)===m.getAt(0,1)).to.be.true 
+		expect(m.getAt(1,0)===m.getAt(1,0)).to.be.true 
+	})	
 })
 
 describe('sort columns all on one side', () => {

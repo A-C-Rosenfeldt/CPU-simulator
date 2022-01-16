@@ -357,7 +357,9 @@ export class FieldToDiagonal extends MapForField {
                 for (let k = 0; k < str.length; k++) { // dupe of the main path follwing down below
                     const cell = str[k];
                     if (typeof str[k].Contact === 'object') { // flood fill has to marked all cells belonging to that electrode/contact
-                        str[k].RunningNumberOfJaggedArray = i_mat_pre++; // basic code which is long since in production. Extract into parent class?
+                        str[k].RunningNumberOfJaggedArray = i_mat_pre++; // unknown charge // basic code which is long since in production. Extract into parent class?
+                        if (cell.BandGap !== 0)
+                            throw "how can bandgap be === 0 and still form a contact .. we would need emitters like for the  metal-semi interface. But where to place them?";
                         const ccc = str[k].Contact; // so I want to sort by local first and by type ( electrode ) second, to get a mostly diagonal matrix
                         if (ccc.x == k && ccc.y == i_pre) { // how do we 
                             ccc.RunningNumberOfJaggedArray = i_mat_pre; // Maybe this is the back link of Contact ? A little dirty, but may fit the solver
@@ -366,7 +368,7 @@ export class FieldToDiagonal extends MapForField {
                     else {
                         if (typeof str[k].Contact === 'undefined') { // neither semiconductor  nor  fixed potential have a contact . But fixed and contact are the same for the field solver .. so mix it!
                             if (cell.BandGap !== 0) {
-                                str[k].RunningNumberOfJaggedArray = i_mat_pre++;
+                                str[k].RunningNumberOfJaggedArray = i_mat_pre++; // unknown voltage
                             } //else{ // This is supposed to be the simple test case with fixed voltage which we do not need to solve for
                             //this field has no own column or row on the matrix. It is pulled in via field coordinates //str[k].RunningNumberOfJaggedArray = undefined -i_vec_pre++; // test & tune ( in combination with doping )  // negative indices point to the rhs ( vector ) . U is given sure. But charge?  Ah so like programming despite that we later swap it                
                             //}
@@ -397,7 +399,7 @@ export class FieldToDiagonal extends MapForField {
                                         if (typeof cell_source !== 'undefined') {
                                             const i_vec = cell_source.RunningNumberOfJaggedArray;
                                             if (typeof i_vec === 'undefined') { // so negative indices point to the rhs ( vector ) // U -> u
-                                                accumulator_vec += cell_source.Potential; // bake in  potatial // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                                                accumulator_vec += cell_source.Potential; // bake in  potatial // no bookkeping // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
                                             }
                                             else {
                                                 setCells.push([i_vec, -1]); // para-diagonal
@@ -408,7 +410,7 @@ export class FieldToDiagonal extends MapForField {
                                     }
                                 }
                             }
-                        vector[cell.RunningNumberOfJaggedArray] = accumulator_vec;
+                        vector[cell.RunningNumberOfJaggedArray] = accumulator_vec; // Todo: Right Hand side ( aka forward ) Matrix with known variables
                         { // sorry, I guess I may indeed need a sorting class
                             const p = cell.RunningNumberOfJaggedArray;
                             if (setCells.length < 1 || setCells[setCells.length - 1][0] < p) {
@@ -465,11 +467,14 @@ export class Field extends FieldToDiagonal {
         // With R:  Q_withCarriers +  ( U-U_connected ) / R  // this is the new row. It is even normal with Q on lhs and R on rhs
         //   Here also U moves over to lhs and makes our matrix square => invertable
         // The above method GroupByKnowledge() looks good. We just add our row, won't we?
+        // Todo: v needs to be appened to the known side. Later: don't multiply with anything ( just 1 )  //added to the kown side after the multiplication with the other known variables
         m.inverseRectangular;
         //var statics = [3, 4, 5] // this -> static value vector
         // either make product handle v as sparse ( outside everything is zero (not NULL nor undefined))
         //  or split off the unity matrix ( inverse of augment ). But that feels like lot of writing for not much benefit. Additional command :-(
         m.MatrixProduct(v); // vector is aligned on the left side to multiply with the inverse?
+        // I want to use Matrix Product with the  knonw variables. So would be cool if the knonw consts would hide in a sandwich 
+        // when I look into the code, it looks more like MatrixProduct operates on the low indices .. because the width isn't even declared. Each row has its own width. Transpose uses the hight of the Matrix and then iterates the rows from 0 upwards
         // Todo
         //this.GroupByKnowledge(m): Swap two times to get back to U and Q
         // how do we get back the compact U .. also a second path? How do we skip the staticU cells? cell.RunningNumberOfJaggedArray! Each electrode needs a second RunningNumb
@@ -491,6 +496,8 @@ export class Field extends FieldToDiagonal {
         Field.AugmentMatrix_with_Unity(m); //  itself:   unity &* chargeDensity = LaPlace &* voltage
         //  itself:   0  =(unity |  LaPlace) &* ( voltage | chargeDensity )  // negate chargeDensity
         this.GroupByKnowledge(m); // depending on bandgap we know voltage or density. Once again we create an index
+        // Todo: v needs to be added to the kown side after the multiplication with the other known variables
+        // where id mul here?
         // Maybe  CleanCode will kick in, until then I want Matlab notebook stuff in  main(). Also one of the reason for this exercise:  m.inverse
         // class Field looks into this.fieldInVarFloats[each].bandgap, if 0, the potential is know, else the charge density is known
         // Gaus Jordan is supposed to clear the unknown columns. At the same time, it fills the known columns

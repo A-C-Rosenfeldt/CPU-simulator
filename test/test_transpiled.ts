@@ -223,7 +223,7 @@ then I changed: !this.filled[0] to this.filled[1]
 
 
     // sub now uses quite complicated helper classes. Even private classes should be tested. I mean, with fields within classes it is probably difficult to not destroy the tests, but with classes?
-    describe('Testing unequi-join integrate Seamless', () => {
+    describe('Testing unique-join integrate Seamless', () => {
 
       it('shOuld return 0', () => {
 

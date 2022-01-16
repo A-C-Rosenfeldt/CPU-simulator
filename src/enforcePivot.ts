@@ -438,7 +438,7 @@ class Passes{
 
 // Clone in JS. I know that it is okay with Row and Matrix. Better not apply recursively on graphs which are not trees!
 // https://javascript.plainenglish.io/deep-clone-an-object-and-preserve-its-type-with-typescript-d488c35e5574
-export class cloneable {
+export class Cloneable {
     public static deepCopy<T>(source: T): T {
       return Array.isArray(source)
       ? source.map(item => this.deepCopy(item))
@@ -1304,7 +1304,7 @@ export class Tridiagonal implements Matrix{
 
     // for unit test
     inverse(): Tridiagonal{
-        const M=cloneable.deepCopy(this)
+        const M=Cloneable.deepCopy(this) // Todo: Clone within scale and sub
         // clone .. for the multiplication tests. Deep Clone: Rows, start, data
         M.AugmentMatrix_with_Unity()
         M.inverseRectangular()
