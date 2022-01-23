@@ -180,6 +180,11 @@ describe('2i0', () => {
 		expect(m.getAt(rn,rn+4)).to.equal(1)  //  the start of the other diagonal				
 		m.inverseRectangular() // inplace?
 		expect(m.getAt(rn,rn)).to.approximately(1,0.001)
+		const potential = m.MatrixProduct(v)  // this is a good way to test the inverse. Later there are ofthen the fixed rails. So it may be nice to have them integrated into a sandwich column .. dunno
+		// If I stay with this MatrixProduct, I would need to concat(v & contacts) .. this test has no Contacts, though
+		// a good way to remember how v matches the columns of the Matrix is to imagine that you adjust those fixed potentials and then see how the potential goes up and down like a blanket in your bed.
+		// ToDo store potential in Field to utilize the  print2canvas routine
+		NoSwap.pullInSemiconductorVoltage(potential) // on bugs this hopefully throws
 	})
 	it('should all float to the average Square',()=>{
 		const NoSwap = new Field(contactsSquare)
@@ -217,6 +222,12 @@ describe('2i0', () => {
 		expect(m.getAt(0,0)===m.getAt(0,0)).to.be.true  
 		expect(m.getAt(0,1)===m.getAt(0,1)).to.be.true 
 		expect(m.getAt(1,0)===m.getAt(1,0)).to.be.true 
+
+		const potential = m.MatrixProduct(v)  // this is a good way to test the inverse. Later there are ofthen the fixed rails. So it may be nice to have them integrated into a sandwich column .. dunno
+		// If I stay with this MatrixProduct, I would need to concat(v & contacts) .. this test has no Contacts, though
+		// a good way to remember how v matches the columns of the Matrix is to imagine that you adjust those fixed potentials and then see how the potential goes up and down like a blanket in your bed.
+		// ToDo store potential in Field to utilize the  print2canvas routine
+		NoSwap.pullInSemiconductorVoltage(potential) // on bugs this hopefully throws
 	})	
 })
 

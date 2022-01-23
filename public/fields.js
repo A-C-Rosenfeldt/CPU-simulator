@@ -288,6 +288,19 @@ export class FieldToDiagonal extends MapForField {
             this.fieldInVarFloats[i] = row;
         });
     }
+    pullInSemiconductorVoltage(voltage) {
+        this.fieldInVarFloats.forEach((fi, i) => {
+            fi.forEach((fk, k) => {
+                const n = fk.RunningNumberOfJaggedArray;
+                if (typeof n == 'number') {
+                    if (fk.BandGap == 0)
+                        throw "only set voltage in Semiconductor at the moment";
+                    const v = voltage[n]; // for debug
+                    fk.Potential = v; // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+                }
+            });
+        });
+    }
     PrintGl() {
         const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length);
         // RGBA. This flat data structure resists all functional code
@@ -307,7 +320,7 @@ export class FieldToDiagonal extends MapForField {
                 let p = ((i * this.maxStringLenght) + k) << 2;
                 //iD.data.set([
                 pixel[p++] = c.BandGap; //bandgaps.get(c)*50
-                pixel[p++] = c.Potential;
+                pixel[p++] = c.Potential * 32; // octal (easy to type) to byte
                 pixel[p++] = c.Doping; // charge density. Blue is so weak on my monitor
                 pixel[p++] = 255;
                 //  ((i*this.maxStringLenght)+k)<<2)

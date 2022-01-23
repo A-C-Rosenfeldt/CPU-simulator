@@ -400,6 +400,20 @@ export class FieldToDiagonal extends MapForField {
     })
   }
 
+  pullInSemiconductorVoltage(voltage:number[]):void {
+    this.fieldInVarFloats.forEach( (fi,i) => {   // do I have a doube loop?
+      fi.forEach( (fk,k) =>{
+        const n=fk.RunningNumberOfJaggedArray
+        if (typeof n == 'number'){        
+          if (fk.BandGap == 0)
+          throw "only set voltage in Semiconductor at the moment";
+          const v=voltage[n] // for debug
+          fk.Potential=v // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+        }
+      })
+    })
+  }
+
   PrintGl(): SimpleImage { //ToPicture   print=text vs picture?
     const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length)
     // RGBA. This flat data structure resists all functional code
@@ -421,7 +435,7 @@ export class FieldToDiagonal extends MapForField {
 
         //iD.data.set([
         pixel[p++] = c.BandGap  //bandgaps.get(c)*50
-        pixel[p++] = c.Potential
+        pixel[p++] = c.Potential * 32  // octal (easy to type) to byte
         pixel[p++] = c.Doping // charge density. Blue is so weak on my monitor
         pixel[p++] = 255
         //  ((i*this.maxStringLenght)+k)<<2)
