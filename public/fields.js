@@ -400,7 +400,7 @@ export class FieldToDiagonal extends MapForField {
                         var accumulator_curvature = 0;
                         var accumulator_vec = 0;
                         const setCells = []; // This is not a map because I don't access randomly
-                        console.log(" push starting ");
+                        //console.log(" push starting ")
                         for (var di = 0; di < 2; di++)
                             for (var dk = 0; dk < 2; dk++) {
                                 const si = i - 1 + (di + dk); //  s=source=pull   // 00 01 10 11  monotonous increase
@@ -416,7 +416,7 @@ export class FieldToDiagonal extends MapForField {
                                             }
                                             else {
                                                 setCells.push([i_vec, -1]); // para-diagonal
-                                                console.log(" push", i_vec);
+                                                //console.log(" push",i_vec)
                                             }
                                             accumulator_curvature++; //span[1].extends[1]++   // i_mat  not ordered .. two pass? .. or "accumulator reg"?
                                         }
@@ -431,7 +431,7 @@ export class FieldToDiagonal extends MapForField {
                             }
                             else {
                                 const i = setCells.findIndex(value => value[0] > p); // the docs say: "first index" . we hide the outer i, don't we?
-                                console.log(" insert p " + p + " in ", i);
+                                //console.log(" insert p "+ p +" in ",i)
                                 setCells.splice(i, 0, [p, accumulator_curvature]); // diagonal
                             }
                         }

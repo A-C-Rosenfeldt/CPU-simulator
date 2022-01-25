@@ -9,7 +9,7 @@ describe('Multiply', () => {
 		for(var i=0;i<size;i++){
 		  unit.row[i]=Row.Single(i,5) //0,[[],[5],[]])
 		}
-		console.log("unit.row[0].starts[0] before "+unit.row[0].starts[0])
+		//console.log("unit.row[0].starts[0] before "+unit.row[0].starts[0])
 	})
 	it('Transpose diag', () => {
 		console.log("unit.row[0].starts[0] transpose "+unit.row[0].starts[0])
@@ -256,7 +256,7 @@ describe('Multiply', () => {
 		expect(rota.getAt(1,0)).approximately(0,0.001)
 
 		product.row.forEach((r,i)=>{
-			console.log(" starts: "+r.starts+"  values: "+r.data)
+			//console.log(" starts: "+r.starts+"  values: "+r.data)
 			if (i<2)
 			expect(r.starts).deep.eq([0,2])
 		})
@@ -284,7 +284,7 @@ describe('Multiply', () => {
 		let product2 = product.MatrixProduct(rota)
 
 		product2.row.forEach(r=>{
-			console.log(" starts: "+r.starts+"  values: "+r.data)
+			//console.log(" starts: "+r.starts+"  values: "+r.data)
 		})			
 
 		expect(product2.getAt(0,0)).approximately(5,0.001)

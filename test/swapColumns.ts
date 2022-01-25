@@ -16,7 +16,7 @@ class SeamlessMock implements Seamless{
   }
       removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, operator?: Result, nukeCol?: number, whatIf?: boolean) {
         this.start_next.push(pos) // pos should always pass the test at the end of  swapColumns()
-        console.log("remove Seams at least has to note pos: "+pos+" and filled "+filled+" to check the chain of XORs")
+        //console.log("remove Seams at least has to note pos: "+pos+" and filled "+filled+" to check the chain of XORs")
         if (fillValues.length===1){
         const f=fillValues[0] // array functionality for sub only. Degenerated case is simpler than type union
         if (this.start_next.length>0 && this.start_next[this.start_next.length-1]>f.start){
