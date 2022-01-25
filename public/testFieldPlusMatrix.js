@@ -9,6 +9,18 @@ c === '-' ? 200 : 0], // charge density. Blue is so weak on my monitor
 const contacts2d = ['4ii',
     'ii2']; // should all float up to the one given potential
 const contactsSquare = ['4ii', 'iii', 'ii2']; // // check average in center
+const exampleField = [
+    // connected m  . Connected to wire with impedance=50
+    '4444444',
+    'ssssss4',
+    'sssiii',
+    'sssi-im',
+    'sssiii',
+    'sss0000',
+    'sssi-im',
+    'sssiiii',
+    '2222222'
+]; // simple boundary condition
 import { Field } from './fields.js';
 import { main } from './GL.js';
 //import 'assert'
@@ -38,15 +50,15 @@ console.log("in TestFieldMatrix.ts");
     main('FM_Square_processed', imageGl);
 }
 {
-    const NoSwap = new Field(contactsSquare);
+    const NoSwap = new Field(exampleField);
     var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
-    main('FM_Square', imageGl);
+    main('FM_example', imageGl);
     // static field simulation
     const [v, m] = NoSwap.ShapeToSparseMatrix();
     const o = m.inverse();
     const potential = o.MatrixProduct(v);
     NoSwap.pullInSemiconductorVoltage(potential);
     var imageGl = NoSwap.PrintGl();
-    main('FM_Square_processed', imageGl);
+    main('FM__example_processed', imageGl);
 }
 //# sourceMappingURL=testFieldPlusMatrix.js.map
