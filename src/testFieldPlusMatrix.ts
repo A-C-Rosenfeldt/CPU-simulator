@@ -31,6 +31,7 @@ import { main, SimpleImage } from './GL.js';
 console.log("in TestFieldMatrix.ts");
 
 const images :SimpleImage[] =[]
+const imagesProcessed :SimpleImage[] =[]
 try
 {
 	{
@@ -47,7 +48,7 @@ try
 		NoSwap.pullInSemiconductorVoltage(potential)
 
 		var imageGl = NoSwap.PrintGl();
-		images.push( imageGl) //main('FM_2d_processed', imageGl);
+		imagesProcessed.push( imageGl) //main('FM_2d_processed', imageGl);
 	}
 
 	{
@@ -63,7 +64,7 @@ try
 		NoSwap.pullInSemiconductorVoltage(potential)
 		
 		var imageGl = NoSwap.PrintGl();
-		images.push( imageGl) //main('FM_Square_processed', imageGl);
+		imagesProcessed.push( imageGl) //main('FM_Square_processed', imageGl);
 	}
 
 	{
@@ -79,9 +80,10 @@ try
 		NoSwap.pullInSemiconductorVoltage(potential)
 		
 		var imageGl = NoSwap.PrintGl();
-		images.push( imageGl) //main('FM__example_processed', imageGl);
+		imagesProcessed.push( imageGl) //main('FM__example_processed', imageGl);
 	}
 
 }catch{}
 
-main('FM__example_processed',images)
+main('FM__example',images)
+main('FM__example_processed',imagesProcessed)

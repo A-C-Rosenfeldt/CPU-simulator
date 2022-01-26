@@ -26,6 +26,7 @@ import { main } from './GL.js';
 //import 'assert'
 console.log("in TestFieldMatrix.ts");
 const images = [];
+const imagesProcessed = [];
 try {
     {
         const NoSwap = new Field(contacts2d);
@@ -37,7 +38,7 @@ try {
         const potential = o.MatrixProduct(v);
         NoSwap.pullInSemiconductorVoltage(potential);
         var imageGl = NoSwap.PrintGl();
-        images.push(imageGl); //main('FM_2d_processed', imageGl);
+        imagesProcessed.push(imageGl); //main('FM_2d_processed', imageGl);
     }
     {
         const NoSwap = new Field(contactsSquare);
@@ -49,7 +50,7 @@ try {
         const potential = o.MatrixProduct(v);
         NoSwap.pullInSemiconductorVoltage(potential);
         var imageGl = NoSwap.PrintGl();
-        images.push(imageGl); //main('FM_Square_processed', imageGl);
+        imagesProcessed.push(imageGl); //main('FM_Square_processed', imageGl);
     }
     {
         const NoSwap = new Field(exampleField);
@@ -61,9 +62,10 @@ try {
         const potential = o.MatrixProduct(v);
         NoSwap.pullInSemiconductorVoltage(potential);
         var imageGl = NoSwap.PrintGl();
-        images.push(imageGl); //main('FM__example_processed', imageGl);
+        imagesProcessed.push(imageGl); //main('FM__example_processed', imageGl);
     }
 }
 catch (_a) { }
-main('FM__example_processed', images);
+main('FM__example', images);
+main('FM__example_processed', imagesProcessed);
 //# sourceMappingURL=testFieldPlusMatrix.js.map
