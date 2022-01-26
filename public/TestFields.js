@@ -9,21 +9,22 @@ ctx.moveTo(0, 0);
 ctx.lineTo(200, 100);
 ctx.stroke();
 let y = 10;
-{
+const images = [];
+try {
     const scala = new MapForField(exampleField);
     var image = scala.Print(); // check 2020082401039
     ctx.putImageData(image, 1, y += 6);
     var imageGl = scala.PrintGl();
-    main('FieldGl0', imageGl);
+    images.push(imageGl); //main('FieldGl0',imageGl) 
     //ctx.putImageData( image, 1, y+=6 );
     const diag = new FieldToDiagonal(fieldTobeSquared);
     // reproduce stuff from above
     var imageGl = diag.PrintGl();
-    main('FieldGl0_field', imageGl);
+    images.push(imageGl); //main('FieldGl0_field',imageGl) 
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
     let squared = diag.ToDiagonalMatrix();
     var imageGl = squared.PrintGl();
-    main('FieldGl0_mat', imageGl);
+    images.push(imageGl); //main('FieldGl0_mat',imageGl) 
     const NoSwap = new Field(bandsGapped);
     // ShapeToSparse Matrix groups by metal ( U=, Charge varies) vs semiconductor ( U varies, charge is moved in that other phase of the cycle )
     // Todo: Unit test for pure semi, pure metal, mixed
@@ -31,17 +32,17 @@ let y = 10;
     let vector;
     [vector, squared] = NoSwap.ShapeToSparseMatrix();
     var imageGl = squared.PrintGl();
-    main('FieldGl0_NoSwap', imageGl);
+    images.push(imageGl); //main('FieldGl0_NoSwap',imageGl) 
     // Constructor is too fat? Now that I parse already in the base class? ToDo!
     const tri = new Field(fieldTobeSquared);
     // reproduce stuff from above
     [vector, squared] = tri.ShapeToSparseMatrix();
     var imageGl = squared.PrintGl();
-    main('FieldGl0_tri', imageGl);
+    images.push(imageGl); //main('FieldGl0_tri',imageGl) 
     // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
     squared.row[1] = Row.Single(3, 5); //new Row(3,0,[[],[5],[]]);
     var imageGl = squared.PrintGl();
-    main('FieldGl0_tri_blank', imageGl);
+    images.push(imageGl); //main('FieldGl0_tri_blank',imageGl) 
     // So 4x4 -> 16x16. The diagonal is copied from field left-right, top-bottom. 16x16 would even have fit onto the C16 screen
     //squared=diag.ToMatrix()
     // test field solver
@@ -56,4 +57,6 @@ let y = 10;
     const h = new Map();
     h.has("A"); // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
 }
+catch (_a) { }
+main('FieldGl0', images);
 //# sourceMappingURL=TestFields.js.map

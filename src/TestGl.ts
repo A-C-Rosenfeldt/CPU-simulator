@@ -20,4 +20,4 @@ for(;i<64;){
   pixel[i++] = 255;
   }
 
-main("GlCanvas",{pixel:pixel,width:16,height:16});
+// dated: main("GlCanvas",{pixel:pixel,width:16,height:16});

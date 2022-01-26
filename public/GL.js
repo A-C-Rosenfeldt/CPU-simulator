@@ -10,56 +10,100 @@ export function main(canvasId, data) {
     }
     gl.clearColor(0.6, 0.0, 0.0, 1.0); // Set clear color to something unique
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader?
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader? Ah, this is after transformation. So I will render multiple fields with cables, but they all appear in one viewport with the ability to move the camera around and zoom and stuff.
     const ranges = [
-        { "attrib": 'aTextureCoord', "range": [0, 1] },
-        { "attrib": 'aVertexPosition', "range": [-1.0, 1.0] } // to target
+        { "attrib": 'aTextureCoord', "range": [0, 1], "rangeX": undefined } // from source
+        //, { "attrib":  'aVertexPosition'  , "range":[-1.0, 1.0] }  // to target
     ];
-    const shaderProgram = gl.createProgram();
-    {
+    data.forEach((datum, i) => {
+        const itemWidth = 10;
+        var left = (2 * i - data.length) * (itemWidth + 1) + 1; // i=0 && datalenght=1 => -itemwidth
+        ranges[1] =
+            { "attrib": 'aVertexPosition', "range": [-1.0, 1.0] // to target  // I need both for cross
+                //{ "attrib": 'aVertexPosition'
+                ,
+                "rangeX": [left, left + itemWidth * 2] }; // I need both for cross
+        const shaderProgram = gl.createProgram();
         {
-            const vertexShader = loadShader(gl, gl.VERTEX_SHADER, 
-            //        vertCode);
-            `
-  attribute vec2 ` + ranges[0].attrib + `;
-  attribute vec4 ` + ranges[1].attrib + `;
-  varying vec2 vTextureCoord;
-  void main() {
-    vTextureCoord = ` + ranges[0].attrib + `;    
-    gl_Position = ` + ranges[1].attrib + `;
-  }
-`);
-            gl.attachShader(shaderProgram, vertexShader);
-            const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, 
-            //        fragCode
-            `
-  precision mediump float;
-  uniform sampler2D uSampler;
-  varying vec2 vTextureCoord;    
-  void main(void) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-  }
-  `);
-            gl.attachShader(shaderProgram, fragmentShader);
+            {
+                /*
+                    We need to squeeze multiple fields into the viewport. [ 1/n 000  01000  0010  0001 ] * vec4
+        
+                    uniform mat4 uProjectionMatrix;
+        
+                    void main() {
+                      gl_Position = uProjectionMatrix  * aVertexPosition;
+                    }
+                */
+                var n;
+                const vertexShader = loadShader(gl, gl.VERTEX_SHADER, 
+                //        vertCode);
+                `
+            attribute vec2 ` + ranges[0].attrib + `;
+            attribute vec4 ` + ranges[1].attrib + `;
+            uniform mat4 SqueezeMatrix;
+            varying vec2 vTextureCoord;
+            void main() {
+              vTextureCoord = ` + ranges[0].attrib + `;    
+              gl_Position = SqueezeMatrix * ` + ranges[1].attrib + `;
+            }
+          `);
+                const vertexShader_ = loadShader(gl, gl.VERTEX_SHADER, 
+                //        vertCode);
+                `
+              attribute vec2 ` + ranges[0].attrib + `;
+              attribute vec4 ` + ranges[1].attrib + `;
+              uniform mat4 SqueezeMatrix;
+              varying vec2 vTextureCoord;
+              void main() {
+                vTextureCoord = ` + ranges[0].attrib + `;    
+                gl_Position =  ` + ranges[1].attrib + `;
+              }
+            `);
+                gl.attachShader(shaderProgram, vertexShader);
+                const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, 
+                //        fragCode
+                `
+          precision mediump float;
+          uniform sampler2D uSampler;
+          varying vec2 vTextureCoord;    
+          void main(void) {
+            gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+          }
+          `);
+                gl.attachShader(shaderProgram, fragmentShader);
+            }
+            gl.linkProgram(shaderProgram);
+            // If creating the shader program failed, alert
+            if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+                return null;
+            }
         }
-        gl.linkProgram(shaderProgram);
-        // If creating the shader program failed, alert
-        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-            alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-            return null;
+        //gl.useProgram(shaderProgram);
+        //gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
+        const boilerplate = initVertexBuffers.bind(gl, shaderProgram); // Readable?  Curry
+        // this removes all output ToDo
+        ranges.map(boilerplate); // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
+        loadTexture(gl, datum); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
+        gl.useProgram(shaderProgram);
+        {
+            const squeeze = new Float32Array(16);
+            squeeze.fill(0);
+            for (var i = 15; i > 0; i -= 5)
+                squeeze[i] = 1;
+            squeeze[0] = 1 / (data.length * (itemWidth + 1) - 1); // gaps are 10%
+            // linking needs to happen before? strange language
+            // use program also needs to be before
+            gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, 'SqueezeMatrix'), // we loaded the shader script. Does gl instert a pointer from there to our matrix?
+            false, squeeze); //projectionMatrix);
         }
-    }
-    //gl.useProgram(shaderProgram);
-    //gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
-    const boilerplate = initVertexBuffers.bind(gl, shaderProgram); // Readable?
-    // this removes all output ToDo
-    ranges.map(boilerplate); // sets reference in gl. This is due to OpenGl ( in contrast to Vulcan ) beeing procedual oriented ( not functional )
-    loadTexture(gl, data); // I think I will define all tiles in code. Only the circuit is loaded as text // gl.bind seems to work both for inputting new textureData as well as display on screen
-    gl.useProgram(shaderProgram);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0 /*offset*/, 4 /* vertexCount*/);
+    });
 }
 function initVertexBuffers(shaderProgram, screenGl) {
-    let cross = screenGl.range.map(x => (screenGl.range.map(y => [x, y])));
+    // square  .. todo: rectangle .. Gallery on 
+    let cross = screenGl.range.map(y => ((screenGl.rangeX || screenGl.range).map(x => [x, y])));
     // flat(2) the JS way
     for (let i = 0; i < 2; i++) {
         cross = [].concat.apply([], cross);
@@ -123,7 +167,7 @@ function loadTexture(gl, data) {
     const srcType = gl.UNSIGNED_BYTE;
     const texture = gl.createTexture();
     // does not make any sense and apparently Browser and a Nvidea drivers think so too:  gl.enable(gl.TEXTURE_2D);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, texture); // binds to the current texture unit ( global state ) and thus throws out the last   field we rendered
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);

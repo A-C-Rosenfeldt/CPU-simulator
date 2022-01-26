@@ -26,56 +26,62 @@ const exampleField: string[] = [  // own version for this script. There is anoth
 
 import { Row } from './enforcePivot.js';
 import { MapForField , /*exampleField,*/ FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, arenaVerbatim } from './fields.js';
-import { main } from './GL.js';
+import { main, SimpleImage } from './GL.js';
 //import 'assert'
 console.log("in TestFieldMatrix.ts");
 
+const images :SimpleImage[] =[]
+try
 {
-	const NoSwap = new Field(contacts2d)
+	{
+		const NoSwap = new Field(contacts2d)
 
-	
-    var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
-    main('FM_2d', imageGl);
+		
+		var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
+		images.push( imageGl) //main('FM_2d', imageGl);
 
-	// static field simulation
-	const [v,m] = NoSwap.ShapeToSparseMatrix();		
-	const o=m.inverse()
-	const potential = o.MatrixProduct(v)
-	NoSwap.pullInSemiconductorVoltage(potential)
+		// static field simulation
+		const [v,m] = NoSwap.ShapeToSparseMatrix();		
+		const o=m.inverse()
+		const potential = o.MatrixProduct(v)
+		NoSwap.pullInSemiconductorVoltage(potential)
 
-    var imageGl = NoSwap.PrintGl();
-    main('FM_2d_processed', imageGl);
-}
+		var imageGl = NoSwap.PrintGl();
+		images.push( imageGl) //main('FM_2d_processed', imageGl);
+	}
 
-{
-	const NoSwap = new Field(contactsSquare)
-	
-    var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
-    main('FM_Square', imageGl);
+	{
+		const NoSwap = new Field(contactsSquare)
+		
+		var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
+		images.push( imageGl) //main('FM_Square', imageGl);
 
-	// static field simulation
-	const [v,m] = NoSwap.ShapeToSparseMatrix();		
-	const o=m.inverse()
-	const potential = o.MatrixProduct(v)
-	NoSwap.pullInSemiconductorVoltage(potential)
-	
-    var imageGl = NoSwap.PrintGl();
-    main('FM_Square_processed', imageGl);
-}
+		// static field simulation
+		const [v,m] = NoSwap.ShapeToSparseMatrix();		
+		const o=m.inverse()
+		const potential = o.MatrixProduct(v)
+		NoSwap.pullInSemiconductorVoltage(potential)
+		
+		var imageGl = NoSwap.PrintGl();
+		images.push( imageGl) //main('FM_Square_processed', imageGl);
+	}
 
-{
-	const NoSwap = new Field(exampleField)
-	
-    var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
-    main('FM_example', imageGl);
+	{
+		const NoSwap = new Field(exampleField)
+		
+		var imageGl = NoSwap.PrintGl(); // voltage to small to display. 256 ticks
+		images.push( imageGl) //main('FM_example', imageGl);
 
-	// static field simulation
-	const [v,m] = NoSwap.ShapeToSparseMatrix();		
-	const o=m.inverse()
-	const potential = o.MatrixProduct(v)
-	NoSwap.pullInSemiconductorVoltage(potential)
-	
-    var imageGl = NoSwap.PrintGl();
-    main('FM__example_processed', imageGl);
-}
+		// static field simulation
+		const [v,m] = NoSwap.ShapeToSparseMatrix();		
+		const o=m.inverse()
+		const potential = o.MatrixProduct(v)
+		NoSwap.pullInSemiconductorVoltage(potential)
+		
+		var imageGl = NoSwap.PrintGl();
+		images.push( imageGl) //main('FM__example_processed', imageGl);
+	}
 
+}catch{}
+
+main('FM__example_processed',images)
