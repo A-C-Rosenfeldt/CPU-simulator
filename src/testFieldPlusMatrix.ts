@@ -74,7 +74,7 @@ try
 		images.push( imageGl) //main('FM_example', imageGl);
 
 		// static field simulation
-		const [v,m] = NoSwap.ShapeToSparseMatrix();		
+		const [v,m] = NoSwap.ShapeToSparseMatrix();	// V contains NaN entries, which makes no sense because V is already tailored to the fields where it is defintively needed
 		const o=m.inverse()
 		const potential = o.MatrixProduct(v)
 		NoSwap.pullInSemiconductorVoltage(potential)

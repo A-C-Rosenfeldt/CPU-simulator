@@ -528,8 +528,10 @@ export class FieldToDiagonal extends MapForField {
                   const cell_source = str_source[sk]
                   if (typeof cell_source !== 'undefined' ) {
                     const i_vec = cell_source.RunningNumberOfJaggedArray
-                    if (typeof i_vec === 'undefined') {   // so negative indices point to the rhs ( vector ) // U -> u
-                      accumulator_vec += cell_source.Potential // bake in  potatial // no bookkeping // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                    if (typeof i_vec === 'undefined' ){  // vector is only for static data without a place in the Matrix.
+                      if (typeof cell_source.Potential !== 'undefined' && !Number.isNaN(cell_source.Potential) ) {  // Just prevent poison to enter the akkumulator (prevent NaN).  dateed: // so negative indices point to the rhs ( vector ) // U -> u
+                        accumulator_vec += cell_source.Potential // bake in  potatial // no bookkeping // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
+                      }
                     } else {
                       setCells.push([i_vec, -1])  // para-diagonal
                       //console.log(" push",i_vec)
@@ -539,7 +541,7 @@ export class FieldToDiagonal extends MapForField {
                 }
               }
             }
-            vector[cell.RunningNumberOfJaggedArray] = accumulator_vec; // Todo: Right Hand side ( aka forward ) Matrix with known variables
+            vector[cell.RunningNumberOfJaggedArray] = accumulator_vec; // lots of zeros because we need to serve all Matrix Rows, but only have so many fixed potential cells      Todo: Right Hand side ( aka forward ) Matrix with known variables
             { // sorry, I guess I may indeed need a sorting class
               const p=cell.RunningNumberOfJaggedArray
               if (setCells.length<1 || setCells[setCells.length-1][0] < p){
