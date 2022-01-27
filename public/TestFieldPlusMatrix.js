@@ -68,4 +68,4 @@ try {
 catch (_a) { }
 main('FM__example', images);
 main('FM__example_processed', imagesProcessed);
-//# sourceMappingURL=testFieldPlusMatrix.js.map
+//# sourceMappingURL=TestFieldPlusMatrix.js.map
