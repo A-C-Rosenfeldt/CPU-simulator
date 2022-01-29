@@ -242,7 +242,7 @@ export class FieldToDiagonal extends MapForField {
             const row = new Array(str.length); //[]=[]
             // JS is strange still. I need index:      for (let c of str) 
             //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
-            const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+            const public_bandgap = new Map([['i', 2], ['_', 1], ['-', 2], ['s', 1], ['m', 0]]);
             const forBlock = function (char) {
                 const n = Number.parseFloat(char);
                 if (Number.isNaN(n)) {
@@ -252,9 +252,9 @@ export class FieldToDiagonal extends MapForField {
                     }
                     else {
                         var tu = char == 'm' ? new Metal() : new Tupel(); // extended electrode
-                        tu.BandGap = public_bandgap.get(char);
+                        tu.BandGap = public_bandgap.get(char) * 4;
                     }
-                    tu.Doping = char === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
+                    tu.Doping = char === '-' ? 8 : 0; // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
                 }
                 else {
                     tu = new Metal();
@@ -318,13 +318,16 @@ export class FieldToDiagonal extends MapForField {
             for (let k = 0; k < str.length; k++) {
                 const c = str[k];
                 let p = ((i * this.maxStringLenght) + k) << 2;
-                //iD.data.set([
-                pixel[p++] = c.BandGap; //bandgaps.get(c)*50
-                pixel[p++] = c.Potential * 32; // octal (easy to type) to byte
-                pixel[p++] = c.Doping; // charge density. Blue is so weak on my monitor
-                pixel[p++] = 255;
-                //  ((i*this.maxStringLenght)+k)<<2)
-                //}
+                [c.BandGap, c.Potential, c.Doping, 8].forEach(component => {
+                    pixel[p++] = Math.max(0, Math.min(255, component * 32 - 0.5));
+                    //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
+                    // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
+                    // pixel[p++] = c.Potential * 32  // g octal (easy to type) to byte. The calculation uses floats anyway .. so neither precision nor range of the output device have a meaning for it
+                    // pixel[p++] = c.Doping * 32 // charge density. Blue is so weak on my monitor. So this is a bit problematic because I cannot naturally combine charge density and bandgap in a single symbol
+                    // pixel[p++] = 255
+                    //  ((i*this.maxStringLenght)+k)<<2)
+                    //}
+                });
             }
         });
         return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
@@ -669,4 +672,3 @@ var html = `
 // Some gates are connected to the silicon slab => current flowing
 // Not prosecuted any further:   const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
 const instance = 'CGCFC'; // the ends are implicit
-//# sourceMappingURL=fields.js.map

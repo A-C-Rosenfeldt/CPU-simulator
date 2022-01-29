@@ -19,7 +19,7 @@ export function main(canvasId: string, data: SimpleImage[]) {
 
 
 
-  gl.clearColor(0.6, 0.0, 0.0, 1.0);   // Set clear color to something unique
+  gl.clearColor(0.1, 0.4, 0.6, 1.0);   // Set clear color to something unique .. but not aggresive red .. high charge density should be . though I need to emphasise blue. Maybe low potential and high charge is unrealisitc enough
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // so why this stuff  AND  the vertex shader? Ah, this is after transformation. So I will render multiple fields with cables, but they all appear in one viewport with the ability to move the camera around and zoom and stuff.

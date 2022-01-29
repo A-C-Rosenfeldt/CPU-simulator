@@ -73,4 +73,3 @@ catch (_a) {
     console.warn("not all fields could be created");
 }
 main('MatrixCanvasGlSwapMiddle', images);
-//# sourceMappingURL=TestenforcePivot.js.map

@@ -452,4 +452,3 @@ export class ContactedField extends FieldWMatrix {
 // }
 // mat=Number[4][4];
 // homo=Number[12]
-//# sourceMappingURL=fieldStatic.js.map

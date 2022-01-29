@@ -6,9 +6,9 @@ bandgaps.get(c) * 30,
 0,
 c === '-' ? 200 : 0], // charge density. Blue is so weak on my monitor
 */
-const contacts2d = ['4ii',
-    'ii2']; // should all float up to the one given potential
-const contactsSquare = ['4ii', 'iii', 'ii2']; // // check average in center
+const contacts2d = ['4ss',
+    'ss2']; // should all float up to the one given potential
+const contactsSquare = ['4ss', 'sss', 'ss2']; // // check average in center
 const exampleField = [
     // connected m  . Connected to wire with impedance=50
     '4444444',
@@ -68,4 +68,3 @@ try {
 catch (_a) { }
 main('FM__example', images);
 main('FM__example_processed', imagesProcessed);
-//# sourceMappingURL=TestFieldPlusMatrix.js.map

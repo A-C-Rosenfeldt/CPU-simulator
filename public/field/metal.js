@@ -52,4 +52,3 @@ conductivity hmm need field update. there is no short-cut
 dielectric constant: local instant flow. Q stays constant :-)
 
 */ 
-//# sourceMappingURL=metal.js.map

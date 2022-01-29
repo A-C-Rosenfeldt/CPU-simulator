@@ -8,9 +8,9 @@ bandgaps.get(c) * 30,
 c === '-' ? 200 : 0], // charge density. Blue is so weak on my monitor
 */
 
-const contacts2d: string[] = ['4ii', 
-                              'ii2']; // should all float up to the one given potential
-const contactsSquare: string[] = ['4ii', 'iii', 'ii2']; // // check average in center
+const contacts2d: string[] = ['4ss', 
+                              'ss2']; // should all float up to the one given potential
+const contactsSquare: string[] = ['4ss', 'sss', 'ss2']; // // check average in center
 
 const exampleField: string[] = [  // own version for this script. There is another on index.htm
 	// connected m  . Connected to wire with impedance=50

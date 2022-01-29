@@ -320,7 +320,7 @@ export class FieldToDiagonal extends MapForField {
 
   constructor(touchTypedDescription: string[], contacts: Contact[] = null) {
     super(touchTypedDescription); // ToDo: This parameter feedthrough came accidentally
-    this.contacts= contacts
+    this.contacts = contacts
     //this.fieldInVarFloats[0][0]=new Tupel()
     this.ConstTextToVarFloats();
   }
@@ -332,11 +332,11 @@ export class FieldToDiagonal extends MapForField {
 
   // ToDo: Map? But this is supposed to always be a 32 element array. Large-scale layout in XML
   contacts: Contact[]
-  static CreateContactBareMetal():Contact[]{
-    return new Array<Contact>('Z'.charCodeAt(0)-'A'.charCodeAt(0))
+  static CreateContactBareMetal(): Contact[] {
+    return new Array<Contact>('Z'.charCodeAt(0) - 'A'.charCodeAt(0))
   }
-  static SetContact(self:Contact[],char:String,c:Contact){
-    self[char.charCodeAt(0)-'A'.charCodeAt(0)]=c
+  static SetContact(self: Contact[], char: String, c: Contact) {
+    self[char.charCodeAt(0) - 'A'.charCodeAt(0)] = c
   }
 
   // Bandgap may stay in text? But this strange replacement function?
@@ -348,18 +348,18 @@ export class FieldToDiagonal extends MapForField {
       // JS is strange still. I need index:      for (let c of str) 
       //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
 
-      const public_bandgap = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])
+      const public_bandgap = new Map([['i', 2], ['_', 1], ['-', 2], ['s', 1], ['m', 0]])
       const forBlock = function (char: string): Tupel {
         const n = Number.parseFloat(char)
         if (Number.isNaN(n)) {
           if ('A' <= char && char <= 'Z') { // contact
             tu = new Metal()
-            tu.Contact = this.contacts[char.charCodeAt(0)-'A'.charCodeAt(0)] // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
+            tu.Contact = this.contacts[char.charCodeAt(0) - 'A'.charCodeAt(0)] // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
           } else {
             var tu = char == 'm' ? new Metal() : new Tupel()  // extended electrode
-            tu.BandGap = public_bandgap.get(char)
+            tu.BandGap = public_bandgap.get(char) * 4
           }
-          tu.Doping = char === '-' ? 200 : 0 // charge density. Blue is so weak on my monitor
+          tu.Doping = char === '-' ? 8 : 0 // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
         } else {
           tu = new Metal();
           tu.Potential = n
@@ -400,15 +400,15 @@ export class FieldToDiagonal extends MapForField {
     })
   }
 
-  pullInSemiconductorVoltage(voltage:number[]):void {
-    this.fieldInVarFloats.forEach( (fi,i) => {   // do I have a doube loop?
-      fi.forEach( (fk,k) =>{
-        const n=fk.RunningNumberOfJaggedArray
-        if (typeof n == 'number'){        
+  pullInSemiconductorVoltage(voltage: number[]): void {
+    this.fieldInVarFloats.forEach((fi, i) => {   // do I have a doube loop?
+      fi.forEach((fk, k) => {
+        const n = fk.RunningNumberOfJaggedArray
+        if (typeof n == 'number') {
           if (fk.BandGap == 0)
-          throw "only set voltage in Semiconductor at the moment";
-          const v=voltage[n] // for debug
-          fk.Potential=v // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+            throw "only set voltage in Semiconductor at the moment";
+          const v = voltage[n] // for debug
+          fk.Potential = v // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
         }
       })
     })
@@ -433,15 +433,17 @@ export class FieldToDiagonal extends MapForField {
         const c = str[k]
         let p = ((i * this.maxStringLenght) + k) << 2;
 
-        //iD.data.set([
-        pixel[p++] = c.BandGap  //bandgaps.get(c)*50
-        pixel[p++] = c.Potential * 32  // octal (easy to type) to byte
-        pixel[p++] = c.Doping // charge density. Blue is so weak on my monitor
-        pixel[p++] = 255
-        //  ((i*this.maxStringLenght)+k)<<2)
-        //}
+        [c.BandGap, c.Potential, c.Doping, 8].forEach(component => {
+          pixel[p++] = Math.max(0, Math.min(255, component * 32 - 0.5))
+          //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
+          // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
+          // pixel[p++] = c.Potential * 32  // g octal (easy to type) to byte. The calculation uses floats anyway .. so neither precision nor range of the output device have a meaning for it
+          // pixel[p++] = c.Doping * 32 // charge density. Blue is so weak on my monitor. So this is a bit problematic because I cannot naturally combine charge density and bandgap in a single symbol
+          // pixel[p++] = 255
+          //  ((i*this.maxStringLenght)+k)<<2)
+          //}
+        });
       }
-
     })
     return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
   }
@@ -523,13 +525,13 @@ export class FieldToDiagonal extends MapForField {
               const si = i - 1 + (di + dk) //  s=source=pull   // 00 01 10 11  monotonous increase
               if (si >= 0 && si < this.fieldInVarFloats.length) {
                 const str_source = this.fieldInVarFloats[si]
-                if (typeof str_source !== 'undefined' ) {
+                if (typeof str_source !== 'undefined') {
                   const sk = k - 0 + (di - dk) // for the si=const part :  +0-1 +1-0   => strong monotonous increase
                   const cell_source = str_source[sk]
-                  if (typeof cell_source !== 'undefined' ) {
+                  if (typeof cell_source !== 'undefined') {
                     const i_vec = cell_source.RunningNumberOfJaggedArray
-                    if (typeof i_vec === 'undefined' ){  // vector is only for static data without a place in the Matrix.
-                      if (typeof cell_source.Potential !== 'undefined' && !Number.isNaN(cell_source.Potential) ) {  // Just prevent poison to enter the akkumulator (prevent NaN).  dateed: // so negative indices point to the rhs ( vector ) // U -> u
+                    if (typeof i_vec === 'undefined') {  // vector is only for static data without a place in the Matrix.
+                      if (typeof cell_source.Potential !== 'undefined' && !Number.isNaN(cell_source.Potential)) {  // Just prevent poison to enter the akkumulator (prevent NaN).  dateed: // so negative indices point to the rhs ( vector ) // U -> u
                         accumulator_vec += cell_source.Potential // bake in  potatial // no bookkeping // positive sign becaus other side //  default =0     //  For test I really need values, no reference to wire  // This is only run once on boot. So it only works with vec.Potential = const
                       }
                     } else {
@@ -543,17 +545,17 @@ export class FieldToDiagonal extends MapForField {
             }
             vector[cell.RunningNumberOfJaggedArray] = accumulator_vec; // lots of zeros because we need to serve all Matrix Rows, but only have so many fixed potential cells      Todo: Right Hand side ( aka forward ) Matrix with known variables
             { // sorry, I guess I may indeed need a sorting class
-              const p=cell.RunningNumberOfJaggedArray
-              if (setCells.length<1 || setCells[setCells.length-1][0] < p){
-                setCells.push([p,accumulator_curvature])
-              }else{
-                const i=setCells.findIndex( value => value[0] > p ) // the docs say: "first index" . we hide the outer i, don't we?
+              const p = cell.RunningNumberOfJaggedArray
+              if (setCells.length < 1 || setCells[setCells.length - 1][0] < p) {
+                setCells.push([p, accumulator_curvature])
+              } else {
+                const i = setCells.findIndex(value => value[0] > p) // the docs say: "first index" . we hide the outer i, don't we?
                 //console.log(" insert p "+ p +" in ",i)
-                setCells.splice(i,0,[p,accumulator_curvature]) // diagonal
+                setCells.splice(i, 0, [p, accumulator_curvature]) // diagonal
               }
             }
             last = cell.RunningNumberOfJaggedArray
-            matrix.row.push( new Row(setCells) ) // push pull  // Array is misused for  (pos|value)  pairs  and pos has to be ordered ( because this this removes ambigion in all my exisiting code .. uh, but see the ugly 3 lines above )
+            matrix.row.push(new Row(setCells)) // push pull  // Array is misused for  (pos|value)  pairs  and pos has to be ordered ( because this this removes ambigion in all my exisiting code .. uh, but see the ugly 3 lines above )
           }
         }
       } // var

@@ -6,4 +6,3 @@ const args = [42, "hello", true];
 foo(42, "hello", true);
 foo(args[0], args[1], args[2]);
 foo(...args);
-//# sourceMappingURL=TypeScriptSpike.js.map

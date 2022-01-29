@@ -266,4 +266,3 @@ Record metal electron movement and add that to ohmic drift.
 
 Full maxwell equations has "inductivity" and thus slows down the signal and leads to a cut-off-
 */ 
-//# sourceMappingURL=semiconductor.js.map

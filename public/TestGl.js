@@ -18,4 +18,3 @@ for (; i < 64;) {
 }
 export {};
 // dated: main("GlCanvas",{pixel:pixel,width:16,height:16});
-//# sourceMappingURL=TestGl.js.map

@@ -165,4 +165,3 @@ class DynamicContact extends Contact {
         this.column.concat(R.map(r => VoltageInWire * r) /*, 2 ???]*/);
     }
 }
-//# sourceMappingURL=wire.js.map

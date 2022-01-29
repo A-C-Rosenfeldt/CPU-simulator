@@ -59,4 +59,3 @@ try {
 }
 catch (_a) { }
 main('FieldGl0', images);
-//# sourceMappingURL=TestFields.js.map
