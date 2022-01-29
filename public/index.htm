@@ -19,10 +19,12 @@
     <!-- <canvas id="GlCanvas" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas> -->
     <p class="bandGap_insulator"> Insulator </p>
     Color Codes: red=bandgap, blue = charge density <br/>
-    <canvas id="FieldsCanvas" width="100" height="100" style="border:1px solid #000000;" class=""></canvas>
-    <canvas id="FieldGl0" width="700" height="100" style="border:1px solid #000000;" class=""></canvas>
+    <canvas id="FieldGl0" width="540" height="100" style="border:1px solid #000000;" class=""></canvas>
     This field will be converted to matrix in the section after the next section
     <br/>
+    <canvas id="FieldsCanvas" width="100" height="100" style="border:1px solid #000000;" class=""></canvas>
+    <canvas id="FieldGl" width="640" height="300" style="border:1px solid #000000;" class=""></canvas>
+    <br/>    
     <h3> display values in a matrix and then add a row to another. Test spare-datastructure </h3>
     <!-- <canvas id="MatrixCanvasGl"  width="100" height="100" style="border:1px solid #914242;"  class=""></canvas>     
     <canvas id="MatrixCanvasGl0" width="100" height="100" style="border:1px solid #24803f;"  class=""></canvas>     
@@ -80,11 +82,14 @@
     </div>
     <script src="TestFieldPlusMatrix.js" type="module" ></script>
 
+    <canvas id="inverse" width="300" height="300" style="border:1px solid #6e2480;"  class=""></canvas>
+
+    <p>
     reduce console.log output!
     what about the large field in the showcase?
     add some electrodes?
  cosine generator with 3 s period .. Even just hard code sine, too , to show 3 independant electrodes
-
+</p>
     <!-- would need  MDN.createWebGLProgramFromIds() --><script id="vertex-shader" type="x-shader/x-vertex"></script>
 
     <!-- type="text/javascript"   <canvas id="GlCanvas" width="600" height="400" style="border:1px solid #000000;">

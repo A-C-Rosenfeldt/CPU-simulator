@@ -81,6 +81,8 @@ try
 		
 		var imageGl = NoSwap.PrintGl();
 		imagesProcessed.push( imageGl) //main('FM__example_processed', imageGl);
+
+		main('inverse',[o.PrintGl()])
 	}
 
 }catch{}

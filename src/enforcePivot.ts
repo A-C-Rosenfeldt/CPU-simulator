@@ -953,11 +953,12 @@ export class Row{
     static printScale=30;
 
     // parent has to initialize buffer because we fill only defined values
-    PrintGl(targetRough:Uint8Array, targetFine:number ){
+    PrintGl(targetRough:Uint8Array, targetFine:number, range:number[] ){
+        const scale=range.map(r=>Math.abs(r)>0.001? 255/r : 1 );
         this.data.forEach((d,i)=>d.forEach((cell,j)=>{
             let p=targetFine+(this.starts[i<<1]+j)<<2
-            targetRough[p++]=cell<0?cell*Row.printScale:0
-            targetRough[p++]=cell>0?cell*Row.printScale:0
+            targetRough[p++]=cell<0?cell*scale[0]:0
+            targetRough[p++]=cell>0?cell*scale[1]:0
             targetRough[p++]=0
             targetRough[p++]=255 // better not do black numbers on black screen  
         }))
@@ -1197,7 +1198,17 @@ export class Tridiagonal implements Matrix{
             pixel[i++] = 128
             pixel[i++] = 255
         }
-        
+        //let range = []; // color codes would say [0,0], but that is not what "range" means
+        const range = this.row.reduce((pr, r) => {
+            return r.data.reduce((ps, span) => {
+                return span.reduce((pc, c) => {
+                    if (pc.length > 0) {
+                        return [Math.min(pc[0], c), Math.max(pc[1], c)];
+                    }
+                    return [c, c];
+                }, ps)
+            }, pr)
+        }, [] )
         for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s /*20201117 first test: 4*/){
             const o=this.row[r]
             if (typeof o!=="undefined"){
@@ -1206,7 +1217,7 @@ export class Tridiagonal implements Matrix{
                 //console.log("Starts: "+o.starts+" > "+this.row.length)
                 throw "out of upper bound"
             }
-            o.PrintGl(pixel, pointer)
+            o.PrintGl(pixel, pointer,range)
         }
         }
         return {width: s, height:s, pixel: pixel};
