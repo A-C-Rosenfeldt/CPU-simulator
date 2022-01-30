@@ -954,7 +954,7 @@ export class Row{
 
     // parent has to initialize buffer because we fill only defined values
     PrintGl(targetRough:Uint8Array, targetFine:number, range:number[] ){
-        const scale=range.map(r=>Math.abs(r)>0.001? 255/r : 1 );
+        const scale=range.map(r=>Math.abs(r)>0.003? 255/r : 1 );
         this.data.forEach((d,i)=>d.forEach((cell,j)=>{
             let p=targetFine+(this.starts[i<<1]+j)<<2
             targetRough[p++]=cell<0?cell*scale[0]:0
@@ -1120,6 +1120,11 @@ export interface Matrix{
 
 }
 
+export class Snapshot{
+    rowNumber: Number;
+    image:SimpleImage ;
+}
+
 export class Tridiagonal implements Matrix{
     row:Row[]
     constructor(length:number|Row[]){
@@ -1189,7 +1194,7 @@ export class Tridiagonal implements Matrix{
 
     PrintGl():SimpleImage{
         const s=this.row.length
-        const pixel = new Uint8Array(s*s*4); // 2+4+4 = 10
+        const pixel = new Uint8Array(s*s*4*2); // 2+4+4 = 10
         // RGBA. This flat data structure resists all functional code
         for(let i=0;i<pixel.length;){
             // greenscreen
@@ -1209,10 +1214,10 @@ export class Tridiagonal implements Matrix{
                 }, ps)
             }, pr)
         }, [] )
-        for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s /*20201117 first test: 4*/){
+        for(let r=0, pointer=0;r<this.row.length;r++, pointer+=s*2 /*20201117 first test: 4*/){
             const o=this.row[r]
             if (typeof o!=="undefined"){
-                 if (o.starts.slice(-1)[0]>this.row.length){
+                 if (o.starts.slice(-1)[0]>this.row.length*2+1){ // augment for inverse and rail voltages
                 // o=undefined should not happen. I should probably not construct an undefined row todo..
                 //console.log("Starts: "+o.starts+" > "+this.row.length)
                 throw "out of upper bound"
@@ -1220,7 +1225,7 @@ export class Tridiagonal implements Matrix{
             o.PrintGl(pixel, pointer,range)
         }
         }
-        return {width: s, height:s, pixel: pixel};
+        return {width: s*2, height:s, pixel: pixel};
     }    
     print():ImageData{
         const s=this.row.length
@@ -1259,7 +1264,8 @@ export class Tridiagonal implements Matrix{
     }
 
     // Only works on rectangular matrix. Inverse is a sideeffect in the right columns if you called "AugmentMatrix_with_Unity" before. Can only call it once. But 
-    inverseRectangular() /* in place  : Tridiagonal*/{
+    inverseRectangular(snapshot:Snapshot[]=[]) /* in place  : Tridiagonal*/{
+        let shotCounter=0
         //we run inverse on 2x1 rectangular matrix //const inve=new Tridiagonal(this.row.length).setTo1() // I may want to merge the runlength encoders?
 
         // I try to hide the start index of arrays in languages. Thus I need forEach
@@ -1297,6 +1303,12 @@ export class Tridiagonal implements Matrix{
                     throw "column not empty i/live: "+f+" should be "+s
                 }
              })
+
+             // store snapshot immages
+             if (shotCounter<snapshot.length && snapshot[shotCounter].rowNumber==i){ // here again null and undefined make no sense
+                snapshot[shotCounter++].image= this.PrintGl()
+
+             }
         })
 
         //console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
@@ -1314,11 +1326,11 @@ export class Tridiagonal implements Matrix{
     }
 
     // for unit test
-    inverse(): Tridiagonal{
+    inverse(snapshot?:Snapshot[] ): Tridiagonal{
         const M=Cloneable.deepCopy(this) // Todo: Clone within scale and sub
         // clone .. for the multiplication tests. Deep Clone: Rows, start, data
         M.AugmentMatrix_with_Unity()
-        M.inverseRectangular()
+        M.inverseRectangular(snapshot)
         // return right half of clone
         const M2=new Tridiagonal(0) // split does not work in place because it may need space at the seam
         M2.row=M.row.map(r=>r.split(1,this.row.length ))
