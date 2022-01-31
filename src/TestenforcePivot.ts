@@ -14,7 +14,7 @@ import { main, SimpleImage } from './GL.js';
 
 let y=10
 const images :SimpleImage[] =[]
-try{
+//try{
     const scala=new Tridiagonal(1)
     scala.row[0]=Row.Single(0,4) //new Row(0,0,[[],[4],[]]) // Faktor 20
     // const image=scala.print() // check 2020082401039
@@ -72,19 +72,29 @@ try{
 
     // sub itself in action
     unit.row[2].sub(unit.row[3],1) // 20201117 this works. 20210101 not working with join and seamless helper classes
-    imageGl=unit.PrintGl() // 20201117 so here must be a bug. Solved. Was a const=4 in prototype
+    imageGl=unit.PrintGl(true) // 20201117 so here must be a bug. Solved. Was a const=4 in prototype
     images.push( imageGl) //main('MatrixCanvasGl15',imageGl)
-
+    let dupe1=new SimpleImage()
+    Object.assign( dupe1, imageGl ) // shallow copy
+    dupe1.pixel=dupe1.span
+    dupe1.width++
+    images.push( dupe1 )
+    
     unit.swapColumns([0]) // size=6 this should swap 0 and 3
     imageGl=unit.PrintGl()
     images.push( imageGl) //main('MatrixCanvasGlSwap',imageGl)
 
     unit.swapColumns([1]) // size=6 this should swap 0 and 3
-    imageGl=unit.PrintGl()
-    images.push( imageGl) //main('MatrixCanvasGlSwapMiddle',imageGl)      
-}catch{
-    console.warn("not all fields could be created")
-}
+    imageGl=unit.PrintGl(true)
+    images.push( imageGl) //main('MatrixCanvasGlSwapMiddle',imageGl)
+    let dupe=new SimpleImage()
+    Object.assign( dupe, imageGl ) // shallow copy
+    dupe.pixel=dupe.span
+    dupe.width++
+    images.push( dupe )
+// }catch{
+//     console.warn("not all fields could be created")
+// }
 
 main('MatrixCanvasGlSwapMiddle',images)
     

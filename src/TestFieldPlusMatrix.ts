@@ -90,7 +90,17 @@ try
 		var imageGl = NoSwap.PrintGl();
 		imagesProcessed.push( imageGl) //main('FM__example_processed', imageGl);
 
-		main('inverse',[o.PrintGl()].concat(shots.map(s=>s.image).reverse() ))
+		main('inverse',[o.PrintGl()]
+		.concat(shots.map(s=>s.image).reverse() )
+		.concat(shots.map(s=>{
+			const swapped=new SimpleImage()
+			swapped.pixel=s.image.span
+			swapped.width=s.image.width+1
+			swapped.height=s.image.height
+			return swapped
+		})//.reverse()
+		)
+		)
 	}
 
 }catch{}

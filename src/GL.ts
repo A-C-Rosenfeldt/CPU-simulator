@@ -197,6 +197,7 @@ export class SimpleImage {
   width: number
   height: number
   pixel: Uint8Array
+  span?: Uint8Array  // not so simple anymore
 }
 
 

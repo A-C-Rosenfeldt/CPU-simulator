@@ -23,7 +23,7 @@ const exampleField = [
 ]; // simple boundary condition
 import { Snapshot } from './enforcePivot.js';
 import { Field } from './fields.js';
-import { main } from './GL.js';
+import { main, SimpleImage } from './GL.js';
 //import 'assert'
 console.log("in TestFieldMatrix.ts");
 const images = [];
@@ -72,7 +72,16 @@ try {
         // })
         var imageGl = NoSwap.PrintGl();
         imagesProcessed.push(imageGl); //main('FM__example_processed', imageGl);
-        main('inverse', [o.PrintGl()].concat(shots.map(s => s.image).reverse()));
+        main('inverse', [o.PrintGl()]
+            .concat(shots.map(s => s.image).reverse())
+            .concat(shots.map(s => {
+            const swapped = new SimpleImage();
+            swapped.pixel = s.image.span;
+            swapped.width = s.image.width + 1;
+            swapped.height = s.image.height;
+            return swapped;
+        }) //.reverse()
+        ));
     }
 }
 catch (_a) { }

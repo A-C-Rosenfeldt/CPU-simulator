@@ -457,6 +457,9 @@ export class Row {
             throw "no order";
         }
     }
+    PrintSpanGl(pixel, pointer) {
+        throw new Error('Method not implemented.');
+    }
     // for easy access from local variable
     last(a) {
         return a[a.length - 1];
@@ -810,7 +813,7 @@ export class Row {
         this.data.push([1]);
     }
     // parent has to initialize buffer because we fill only defined values
-    PrintGl(targetRough, targetFine, range) {
+    PrintGl(targetRough, targetFine, range, layer, layerPointer) {
         const scale = range.map(r => Math.abs(r) > 0.003 ? 255 / r : 1);
         this.data.forEach((d, i) => d.forEach((cell, j) => {
             let p = targetFine + (this.starts[i << 1] + j) << 2;
@@ -819,6 +822,15 @@ export class Row {
             targetRough[p++] = 0;
             targetRough[p++] = 255; // better not do black numbers on black screen  
         }));
+        if (typeof layer !== 'undefined') {
+            this.starts.forEach((s, i) => {
+                let p = layerPointer + s << 2;
+                layer[p++] = i + ((i + 0) % 2) * 120; // start span   short but ugly palette
+                layer[p++] = i + ((i + 1) % 2) * 120; // start end    todo: fill
+                layer[p++] = 0; // i+((i+2)%3)
+                layer[p++] = 255; // better not do black numbers on black screen      
+            });
+        }
     }
     // parent has to initialize buffer because we fill only defined values
     print(targetRough, targetFine) {
@@ -950,6 +962,8 @@ export class Row {
 Row.printScale = 30;
 export class Snapshot {
 }
+export class Ranges {
+}
 export class Tridiagonal {
     constructor(length) {
         if (typeof length === "number") {
@@ -1011,29 +1025,45 @@ export class Tridiagonal {
             });
         }
     }
-    PrintGl() {
-        const s = this.row.length;
-        const pixel = new Uint8Array(s * s * 4 * 2); // 2+4+4 = 10
-        // RGBA. This flat data structure resists all functional code
-        for (let i = 0; i < pixel.length;) {
-            // greenscreen
-            pixel[i++] = 0;
-            pixel[i++] = 0;
-            pixel[i++] = 128;
-            pixel[i++] = 255;
-        }
+    PrintGl(showSpans = false) {
+        const b = new Ranges();
+        b.lastStart = 0;
         //let range = []; // color codes would say [0,0], but that is not what "range" means
-        const range = this.row.reduce((pr, r) => {
-            return r.data.reduce((ps, span) => {
+        const ranges = this.row.reduce((pr, r) => {
+            const a = new Ranges();
+            a.data = r.data.reduce((ps, span) => {
                 return span.reduce((pc, c) => {
-                    if (pc.length > 0) {
+                    if (typeof pc !== "undefined") { // code changes once I wrap it in an object :-(   }.length > 0) {
                         return [Math.min(pc[0], c), Math.max(pc[1], c)];
                     }
                     return [c, c];
                 }, ps);
-            }, pr);
-        }, []);
-        for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += s * 2 /*20201117 first test: 4*/) {
+            }, pr.data);
+            a.lastStart = pr.lastStart;
+            if (r.starts.length > 0) {
+                a.lastStart = Math.max(pr.lastStart, /*[r.starts[0],*/ r.starts[r.starts.length - 1]); //+ r.data[r.data.length - 1].length;//] ;
+            }
+            return a; // .concat(span); // todo: new type
+        }, b);
+        console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data);
+        //ranges.lastStart++ // the last closing border is at length
+        const s = this.row.length;
+        const pixels = [];
+        let bit = false;
+        do {
+            const pixel = new Uint8Array(s * (ranges.lastStart + (bit ? 1 : 0)) * 4); // 2+4+4 = 10        
+            // RGBA. This flat data structure resists all functional code
+            for (let i = 0; i < pixel.length;) {
+                // greenscreen
+                pixel[i++] = 0;
+                pixel[i++] = 0;
+                pixel[i++] = 128;
+                pixel[i++] = 255;
+            }
+            pixels.push(pixel);
+            bit = !bit;
+        } while (bit == showSpans);
+        for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += ranges.lastStart /*20201117 first test: 4*/) {
             const o = this.row[r];
             if (typeof o !== "undefined") {
                 if (o.starts.slice(-1)[0] > this.row.length * 2 + 1) { // augment for inverse and rail voltages
@@ -1041,10 +1071,13 @@ export class Tridiagonal {
                     //console.log("Starts: "+o.starts+" > "+this.row.length)
                     throw "out of upper bound";
                 }
-                o.PrintGl(pixel, pointer, range);
+                o.PrintGl(pixels[0], pointer, ranges.data, pixels[1], pointer + r);
+                // if (showSpans){
+                //     o.PrintGl(pixels[1], pointer, ranges.data)
+                // }                
             }
         }
-        return { width: s * 2, height: s, pixel: pixel };
+        return { width: ranges.lastStart, height: s, pixel: pixels[0], span: pixels[1] };
     }
     print() {
         const s = this.row.length;
@@ -1122,7 +1155,7 @@ export class Tridiagonal {
             });
             // store snapshot immages
             if (shotCounter < snapshot.length && snapshot[shotCounter].rowNumber == i) { // here again null and undefined make no sense
-                snapshot[shotCounter++].image = this.PrintGl();
+                snapshot[shotCounter++].image = this.PrintGl(true);
             }
         });
         //console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
