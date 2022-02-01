@@ -49,8 +49,8 @@ for (var i = 0; i < size; i++) {
     unit.row[i] = Row.Single(i, 5); //new Row(i,0,[[],[5],[]])
 }
 // whiteBox manipulation   to detect any effect of Swap{
-unit.row[0].data = [[4, 5, 6, 7]];
-unit.row[0].starts[1] += 3;
+unit.row[0].Value = [[4, 5, 6, 7]];
+unit.row[0].KeyValue[1] += 3;
 // }
 imageGl = unit.PrintGl();
 images.push(imageGl); //main('MatrixCanvasGl5',imageGl)   

@@ -561,10 +561,10 @@ export class Field extends FieldToDiagonal {
         // return other;
         //    const other = new Tridiagonal(M.row.length)
         const rows = M.row.forEach((r, i) => {
-            r.data.push([1]);
+            r.Value.push([1]);
             const s = M.row.length + i;
-            r.starts.push(s);
-            r.starts.push(s + 1);
+            r.KeyValue.push(s);
+            r.KeyValue.push(s + 1);
         });
         // this would lead to joins  //  return other
     }
@@ -578,9 +578,9 @@ export class Field extends FieldToDiagonal {
             // This code fails for "vertical" pitched spans with length > 1
             const m = this.M.row[this.i];
             const o = this.M.row.length >> 1;
-            const a = m.get(i);
-            m.set(m.get(i + o), i);
-            m.set(a, i + o); // moved clear into set
+            const a = m.getValue(i);
+            m.setValue(m.getValue(i + o), i);
+            m.setValue(a, i + o); // moved clear into set
         }
         //throw "not fully implementd"
         //return 0

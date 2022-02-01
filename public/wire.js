@@ -1,7 +1,7 @@
 /*
 For the electrodes I average U over all cells. Then impedance => current (in the global current timeStep)
 */
-import { FromRaw, Row, Span } from './enforcePivot.js';
+import { FromRaw, Row, KeyValueValue } from './enforcePivot.js';
 import { Contact } from './fields.js';
 // Todo: For Display I want to draw wires next to the patches. Use curves? Use less ressources? Bridges => netlist . How to edit?
 class Segment {
@@ -156,9 +156,9 @@ class DynamicContact extends Contact {
         //this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
         // new interface to Row
         const a = new Array(3);
-        a[0] = new Span(0, 0);
+        a[0] = new KeyValueValue(0, 0);
         a[1] = FromRaw(-1, +1); //R)
-        a[2] = new Span(0, 0);
+        a[2] = new KeyValueValue(0, 0);
         this.matrix.row.push(new Row(a));
         //matrix.appendOnDiagonal(R); //I
         const VoltageInWire = 3;

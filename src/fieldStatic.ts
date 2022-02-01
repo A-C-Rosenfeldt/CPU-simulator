@@ -1,4 +1,4 @@
-import {Tridiagonal, Span, Row, FromRaw} from './enforcePivot'
+import {Tridiagonal, KeyValueValue, Row, FromRaw} from './enforcePivot'
 import {Wire} from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
 import {SimpleImage} from './GL'
 import './field/semiconductor'

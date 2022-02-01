@@ -1,7 +1,7 @@
 /*
 For the electrodes I average U over all cells. Then impedance => current (in the global current timeStep)
 */
-import { FromRaw, Row, Span } from './enforcePivot.js'
+import { FromRaw, Row, KeyValueValue } from './enforcePivot.js'
 import {Contact} from './fields.js'
 import {ContactedField as FinFet} from './fieldStatic.js'
 
@@ -193,10 +193,10 @@ class /*SemiconductorMetal*/ DynamicContact extends Contact {
       //];
       //this.matrix.row.push(new Row(this.matrix.row.length,0,[[],R,[]])); //V
       // new interface to Row
-      const a=new Array<Span<number>>(3)
-      a[0]=new Span<number>(0,0)
+      const a=new Array<KeyValueValue<number>>(3)
+      a[0]=new KeyValueValue<number>(0,0)
       a[1]=FromRaw<number>(-1,+1)//R)
-      a[2]=new Span<number>(0,0)
+      a[2]=new KeyValueValue<number>(0,0)
       this.matrix.row.push(new Row(a));
   
       //matrix.appendOnDiagonal(R); //I

@@ -17,25 +17,25 @@ import { SimpleImage } from './GL'
 // explain a CPU
 
 // we could store left and right side of the equation
-export class Span<T>{
-    extends: Array<T>  // we duplicate part of the interface in order to never need to copy the items
-    start: number
+export class KeyValueValue<T>{
+    Value: Array<T>  // we duplicate part of the interface in order to never need to copy the items
+    KeyValue: number
     // doesn't work:  length:number
     unshift(...items: T[]): number {
-        if (this.start) {
-            if (--this.start < 0) { throw "below bounds" }
+        if (this.KeyValue) {
+            if (--this.KeyValue < 0) { throw "below bounds" }
         }
 
-        return this.extends.unshift.apply(this, items)
+        return this.Value.unshift.apply(this, items)
     }
     constructor(len: number, s: number) { //start:number, data:Arry<T>){
-        this.extends = new Array<T>(len)
-        this.start = s
+        this.Value = new Array<T>(len)
+        this.KeyValue = s
         //this.length=len
     }
 
     forEach(callbackfn: (value: T, index: number, array: T[]) => void, thisArg?: any): void {
-        this.extends.forEach(callbackfn)
+        this.Value.forEach(callbackfn)
     }
     // shedOfStart(a,b):Array<T>{
     //     //ParentClass.prototype JS 
@@ -46,65 +46,65 @@ export class Span<T>{
     //string:number[]=[]
 }
 
-class SpanWithCommonFactor<T> extends Span<T>{
+class SpanWithCommonFactor<T> extends KeyValueValue<T>{
     factor: number
 }
 
 // Consider: RowConstructor which takes Span instead of Array<Span> ( check for .Start )
-export function FromRaw<T>(...b: Array<T>): Span<T> {
-    const s = new Span<T>(b.length, 0);  // set prototype . Ducktyping alone won't call correct unshift
+export function FromRaw<T>(...Values: Array<T>): KeyValueValue<T> {
+    const keyValueValue = new KeyValueValue<T>(Values.length, 0);  // set prototype . Ducktyping alone won't call correct unshift
     // transfer values without destroying prototype and being somewhat comaptible with C# and Java
     // Does this translate into arguments[] ?
-    for (var i = 0; i < b.length; i++) {
-        s.extends[i] = b[i]
+    for (var i = 0; i < Values.length; i++) {
+        keyValueValue.Value[i] = Values[i]
     }
-    return s
+    return keyValueValue
 }
 
 interface ValuesInSpan {
     filled: boolean;
-    ValueSpanStartInMatrix: number;
+    KeyValueInMatrix: number;
 }
 
 interface DoublyIndirect {
-    mp: number;
-    max: number;
+    mpKeyValue: number;
+    maxKeyKeyValue: number;
 }
 class FilledFrom implements DoublyIndirect, ValuesInSpan {
     //filled=false;
-    from = 0;     // position in starts. We may trace the first element, but do not yet have a record of a previous boundary
+    KeyKeyValue = 0;     // position in starts. We may trace the first element, but do not yet have a record of a previous boundary
     // fromfrom=0; // position in Matrix
-    max = 0
-    readonly ex: Array<number>;
+    maxKeyKeyValue = 0
+    readonly exKeyValue: Array<number>;
     //SummandForJoin=0 // only needed for swap, not for sub.  todo remove. I want join to be short. I do not shift for anything else
 
-    get mp() {
+    get mpKeyValue() {
         // apparently "undefined" is used in join ..  if (this.from < 1) throw "right hand side of string needs to be at minimum at 1"
-        return this.ex[this.from];
+        return this.exKeyValue[this.KeyKeyValue];
     }
 
-    constructor(s: Array<number>) {
+    constructor(KeyValue: Array<number>) {
         // todo: maybe only store s?
-        this.max = s.length
-        this.ex = s;
+        this.maxKeyKeyValue = KeyValue.length
+        this.exKeyValue = KeyValue;
     }
 
     // Interface Value
     get filled() {
-        return (this.from & 1) === 1  // looks back like ValueSpanStartInMatrix
+        return (this.KeyKeyValue & 1) === 1  // looks back like ValueSpanStartInMatrix
     }
-    get ValueSpanStartInMatrix() {
+    get KeyValueInMatrix() {
         // apparently "undefined" is used in join ..  if (this.from < 1) throw "right hand side of string needs to be at minimum at 1"
-        return this.ex[this.from - 1 /* anchor of span is on the low end, but join tracks the high end for the "end condition" .. todo: switch */];
+        return this.exKeyValue[this.KeyKeyValue - 1 /* anchor of span is on the low end, but join tracks the high end for the "end condition" .. todo: switch */];
     }
 }
 
-class NowNotOnlyStartInMatrixButAlsoValuesAtThatPos extends FilledFrom {
-    readonly values: number[][]
+class KeyValueValue_InMatrix extends FilledFrom {
+    readonly KeyValue: number[][]
     factor: number;
     constructor(r: Row) {
-        super(r.starts)
-        this.values = r.data // Todo: hide some data using private scope in base class
+        super(r.KeyValue)
+        this.KeyValue = r.Value // Todo: hide some data using private scope in base class
     }
 }
 
@@ -112,38 +112,38 @@ class NowNotOnlyStartInMatrixButAlsoValuesAtThatPos extends FilledFrom {
 // Todo: sub uses this
 // Todo: swap uses this
 export class JoinOperatorIterator {
-    s = new Array<number[]>()
-    i = new Array<FilledFrom>() // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+    KeyValue = new Array<number[]>()
+    iKeyValue = new Array<FilledFrom>() // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     filled = 0
     filled_last: number
-    behind = -1 // join operator, please leave me alone  :number
+    behindKeyValue = -1 // join operator, please leave me alone  :number
 
     // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
-    constructor(...s: number[][]);
-    constructor(initi: boolean, ...s: number[][]);
+    constructor(...keyValue: number[][]);
+    constructor(initi: boolean, ...keyValue: number[][]);
     constructor() { //}...s:number[][]){
         if (arguments.length > 0) {
             let t = (typeof arguments[0] !== "boolean")  // I cannot find a different way
             // for sub and innerProduct
-            let d = -1
+            let KeyKeyValue = -1
             for (let k = t ? -1 : 0; ++k < arguments.length;) {
-                const u = arguments[k] as number[]
-                if (!Array.isArray(u)) {
+                const keyValue = arguments[k] as number[]
+                if (!Array.isArray(keyValue)) {
                     throw " I try to capture the last parameters! That should lead to an array of arrays! "
                 }
                 // if (d>=0 && this.s[d]>u){
                 //     throw " starts need to grow monotonously! u: "+u
                 // }
-                this.s[++d] = u
+                this.KeyValue[++KeyKeyValue] = keyValue
                 if (t) {
-                    this.i[d] = new FilledFrom(u)  // I do not know. Maybe for swap? I am in the middle of refactor right now
+                    this.iKeyValue[KeyKeyValue] = new FilledFrom(keyValue)  // I do not know. Maybe for swap? I am in the middle of refactor right now
                 }
             }
             //console.log(" this.s :  "+this.s)
             try {
                 //console.log(" this.s[0] :  "+this.s[0])
             } catch { }
-            this.behind = Math.max(...this.s.map(s => s[s.length - 1])) + 1
+            this.behindKeyValue = Math.max(...this.KeyValue.map(keyValue => keyValue[keyValue.length - 1])) + 1
         }
     }
 
@@ -169,43 +169,40 @@ export class JoinOperatorIterator {
         //      return neu; 
         //     } ) // this sets the order of indices. Feels okay
         //this.filled_last=this.filled_last
-        const min = this.i.reduce((p, v) => {
-            return (v.from < v.max && v.mp < p) ? v.mp : p;  // could set a break point on some part of a line in  VSC
-        }, this.behind
+        const minKeyValue = this.iKeyValue.reduce((pKeyValue, v) => {
+            return (v.KeyKeyValue < v.maxKeyKeyValue && v.mpKeyValue < pKeyValue) ? v.mpKeyValue : pKeyValue;  // could set a break point on some part of a line in  VSC
+        }, this.behindKeyValue
         ) // uh. again a join
 
         //if (min<this.last) // this would lead to an endless loop
         {
-            this.i.forEach((c) => {
-                if (min === c.mp) { // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
-                    c.from++;
+            this.iKeyValue.forEach((c) => {
+                if (minKeyValue === c.mpKeyValue) { // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
+                    c.KeyKeyValue++;
                     // c.filled =  !c.filled  ; // ^= 1 << i
-
                 }
             })
 
         }
-        return min
+        return minKeyValue
         //if ((this.i[0][0].from < this.s[0].length || this.i[0][1] < this.s[1].length) )
         {
-
-
             // //console.log("i "+i+" a "+a)
             const pass1gap = this.filled;
 
                 /*do*/{
                 // trying to avoid infinity, null and undefined for better readability
 
-                let cursor = this.s.map(s => [this.behind, s.length])
+                let cursor = this.KeyValue.map(s => [this.behindKeyValue, s.length])
                 //new Array<[number,number]>(this.i.length).fill([),s.length])
                 // let I:number=this.s[1][this.s[1].length-1]+1
                 // let A:number=this.s[0][this.s[0].length-1]+1
 
-                let min = this.behind
+                let min = this.behindKeyValue
                 cursor.forEach((c, i) => {
-                    const k = this.i[0][i].from
+                    const k = this.iKeyValue[0][i].from
                     if (k < c[1]) {
-                        c[0] = this.s[i][k]
+                        c[0] = this.KeyValue[i][k]
                     }
                     if (min > c[0]) {
                         min = c[0]
@@ -242,19 +239,19 @@ export class JoinOperatorIterator {
                 // }
             }//while(false)
         }
-        return this.behind + 1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
+        return this.behindKeyValue + 1 //null // if (variable === null)    // only in collections: undefined  // if (typeof myVar !== 'undefined')
     }
 }
 
 export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIterator {
-    i: NowNotOnlyStartInMatrixButAlsoValuesAtThatPos[]
+    iKeyValue: KeyValueValue_InMatrix[]
     // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
     constructor(...r: Row[]) { //s: number[][])
         // constructor(initi:boolean, ...s:number[][]);
         // constructor()
         //{ //}...s:number[][]){
-        super(false, ...r.map(r => r.starts)) // base class is already complicated enough. Hide the values!  //  uh, messy. Maybe I just have bad luck with my flat parameters?
-        this.i = r.map(r => new NowNotOnlyStartInMatrixButAlsoValuesAtThatPos(r))
+        super(false, ...r.map(r => r.KeyValue)) // base class is already complicated enough. Hide the values!  //  uh, messy. Maybe I just have bad luck with my flat parameters?
+        this.iKeyValue = r.map(r => new KeyValueValue_InMatrix(r))
 
         // for (let k = arguments.length; --k >= 0;) {
         //     const u = arguments[k] as number[]
@@ -276,8 +273,8 @@ export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIte
 
 export interface Seamless {
     removeSeams(//criterium: ((a: number) => boolean),
-        fillValues: Span<number>[], // sourceStart: number[],
-        pos: number, filled: boolean,
+        fillKeyValueValues: KeyValueValue<number>[], // sourceStart: number[],
+        keyValue: number, filled: boolean,
         operation?: Result, nujeCol?: number,
         whatIf?: boolean  // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
@@ -285,7 +282,7 @@ export interface Seamless {
     flush()
 
     data_next: number[][]
-    start_next: number[]
+    KeyValue_next: number[]
 }
 export class AllSeamless implements Seamless {
     private _data_next: number[][] = []
@@ -299,15 +296,15 @@ export class AllSeamless implements Seamless {
         this._data_next.push(value)
         this.flushed = false
     }
-    private _start_next: number[] = []
-    public get start_next(): number[] {
+    private _keyValue_next: number[] = []
+    public get KeyValue_next(): number[] {
         if (!this.flushed) {
             throw "not sealed"
         }
-        return this._start_next
+        return this._keyValue_next
     }
-    public start_push(value: number) {
-        this._start_next.push(value)
+    public keyValue_push(value: number) {
+        this._keyValue_next.push(value)
         this.flushed = false
     }
 
@@ -319,18 +316,18 @@ export class AllSeamless implements Seamless {
     //. Todo: Try both ways
     // two passes where motivated by memory allocation, but mess with the OOP structure
     filled = [false, false] // todo: no array.. here we need an array to remember that old pos to know if we have to flush? 
-    pos_input = -1 // state is your enemy. Keep in sync with delayed Slice [-1,-1] // needed for slice
+    keyValue_input = -1 // state is your enemy. Keep in sync with delayed Slice [-1,-1] // needed for slice
     //pos_output = [0,-1] // pos[1] lags behind on output if seams are eliminated. 
-    concatter = new Array<number[]>()
-    fillValues = new Array<Span<number>>() // undefined is not the logical start value  // where to put this? Apparently sub also already delays  and  swap also needs it .. so better put in in Seamless? Caller just needs a simple reorder of calls. Todo in swap? Single Responsible .. logs sure look strange
+    concatterValue = new Array<number[]>()
+    fillKeyValueValues = new Array<KeyValueValue<number>>() // undefined is not the logical start value  // where to put this? Apparently sub also already delays  and  swap also needs it .. so better put in in Seamless? Caller just needs a simple reorder of calls. Todo in swap? Single Responsible .. logs sure look strange
     // it is important to only strong monotonic pos before using the data values for the last span
     // swap has weak monotonic cutter for center (which may or may not be needed)
     // robust code, cleaner logs, delay stuff all in one place: Delay in class AllSeamless
 
     removeSeams(//criterium: ((a: number) => boolean),
-        _fillValues: Span<number>[] | SpanWithCommonFactor<number>[], // sourceStart: number[],
-        pos: number, filled: boolean,
-        operation: Result = null, nukeCol?: number,
+        _fillKeyValueValues: KeyValueValue<number>[] | SpanWithCommonFactor<number>[], // sourceStart: number[],
+        keyValue: number, filled: boolean,
+        operationValue: Result = null, nukeCol_KeyValue?: number,
         whatIf = false // expose the triviality of this premature optimization
     )  // these come indirectly ( gap:number=> gap:bool?) from JoinOperator
     {
@@ -338,12 +335,12 @@ export class AllSeamless implements Seamless {
         //console.log("should be [5] 2: "+(_fillValues as Span<number>[]).map(f=>f.extends + "  ,  "))
 
         //throw "nase" 
-        if (this.pos_input < pos) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
+        if (this.keyValue_input < keyValue) { // eat zero length  ( Row constructor does this too, but it is only one line ). No code outside this block!
 
             //console.log(" going from filled?:" + this.filled[1] + " to filled?: "+  this.filled[0] + " to filled: "+filled );
             //console.log("should be [5] 6: "+this.fillValues.map(f=>f.extends)+" should be [5] 3: "+(_fillValues as Span<number>[]).map(f=>f.extends))
 
-            if (this.pos_input >= 0 && (this.filled[1] != this.filled[0])) { this.start_push(this.pos_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
+            if (this.keyValue_input >= 0 && (this.filled[1] != this.filled[0])) { this.keyValue_push(this.keyValue_input) } // now that we advanced, lets note last border (if it was a real edge) // todo pos_input>=0 is indeed bad for the cutter in swap. Though now I use zero length cutter...
 
             // properties? With delegates I get to use Arrays!
             // Test run: pos=1 fillValues.start=0 filled is homogenous .. concatter is already prepared to accept data
@@ -355,10 +352,10 @@ export class AllSeamless implements Seamless {
                     } {
                         // from filled to gap .. flush.  Join encounters a border, determines "filled" and we can use the positios to cut out ranges in the source Rows
                         { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
-                            const t = Array.prototype.concat.apply([], this.concatter)
+                            const t = Array.prototype.concat.apply([], this.concatterValue)
                             this.data_push(t) // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                            if (this._data_next.length > (this._start_next.length >> 1)) { throw "I could not belive it, but log claims 1: " + this._data_next.length + " > " + this._start_next.length + " >>1  " }
-                            this.concatter = new Array<number[]>()
+                            if (this._data_next.length > (this._keyValue_next.length >> 1)) { throw "I could not belive it, but log claims 1: " + this._data_next.length + " > " + this._keyValue_next.length + " >>1  " }
+                            this.concatterValue = new Array<number[]>()
                         }
                     }
                 } // RLE does not have seams  // Was for Tridiagonal: we care for all seams
@@ -368,32 +365,36 @@ export class AllSeamless implements Seamless {
             //!whatIf &&
             // 2021-01-03 pulled before concat
             // The caller already delays the value parameters ( filled, start ) one call behind the position parameter (pos). The caller combines the filled states of the sources. Seamless only accepts filled after pos advance anyway.
-            if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
+            if (this.filled[0] /* edge tracking  need have to be over filled area */ && this.fillKeyValueValues.length > 0) { //this.pos.length>1) { // fuse spans   // maybe invert meaning   =>  gap -> filled.  Filled (true) and .extends (length>0) parameters should agree
                 //console.log("should be [5] 4: "+this.fillValues.map(f=>f.extends))
                 //console.log('going to slice '+this.fillValues.map(fv=>" '"+fv.extends+"' slice("+ (this.pos_input - fv.start)+","+( pos - fv.start)+" factor?: "+ (fv as SpanWithCommonFactor<number>).factor+")"))
-                if (this.fillValues.some(fv => fv.extends.length < pos - fv.start)) {
+                if (this.fillKeyValueValues.some(fv => fv.Value.length < keyValue - fv.KeyValue)) {
                     throw "out of bounds 1: " + filled + " was " + this.filled[0] // break point here to investigate stack
                 }
-                const cut = this.fillValues.map(fv => fv.extends.slice(this.pos_input - fv.start, pos - fv.start));
-                if (operation === null) {
-                    this.concatter.push(cut[0]) //;console.log("push c: "+cut[0])
+                const cutValues = this.fillKeyValueValues.map(fv => fv.Value.slice(this.keyValue_input - fv.KeyValue, keyValue - fv.KeyValue));
+                if (operationValue === null) {
+                    this.concatterValue.push(cutValues[0]) //;console.log("push c: "+cut[0])
                 } else {
                     // Violation of  Single Responsibility Principle for  Sub
                     // ToDo: Trouble is, I do not really need the slices
-                    operation.clear() //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
-                    for (let k = this.pos_input; k < pos; k++) {
+                    operationValue.clear() //const result = new Array<number>() // this sets length, not capacity: pos - this.pos_input[1])
+                    for (let keyValue_runnerUp = this.keyValue_input; keyValue_runnerUp < keyValue; keyValue_runnerUp++) {
                         let sum = 0
-                        const retards = this.fillValues.map(fv => [fv.extends[k - fv.start], (fv as SpanWithCommonFactor<number>).factor])
+                        const retardedValues = this.fillKeyValueValues.map(fv => [fv.Value[keyValue_runnerUp - fv.KeyValue], (fv as SpanWithCommonFactor<number>).factor])
                         //console.log("REusltSub0 :"+retards.map(r=>r[1]))
-                        operation.operation(retards)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        if (keyValue_runnerUp===nukeCol_KeyValue){
+                            operationValue.resultValue.push(0)
+                        }else{
+                            operationValue.operation(retardedValues)  // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
+                        }
 
                     }
-                    this.concatter.push(operation.result) //;console.log("push r: "+operation.result)
+                    this.concatterValue.push(operationValue.resultValue) //;console.log("push r: "+operation.result)
                 }
             } /*else*/ { // flush buffer. Be sure to call before closing stream!
             }
 
-            this.pos_input = pos
+            this.keyValue_input = keyValue
             // Keep this below to get consisten logs
 
             // Delay three positions because: Confirm by advance (3), compare with previous value (2)
@@ -402,7 +403,7 @@ export class AllSeamless implements Seamless {
             this.filled[1] = this.filled[0] // last possible moment. Quite some lag to compensate
             this.filled[0] = filled
             // match value delay to position delay
-            this.fillValues = _fillValues // Todo: hide using inner function
+            this.fillKeyValueValues = _fillKeyValueValues // Todo: hide using inner function
         }
 
     }
@@ -411,15 +412,15 @@ export class AllSeamless implements Seamless {
     // Build pattern to avoid the state code in the accessor? 
     flush() {
         if (this.filled[1] /* condition derived from log while debugging. Maybe test? */) { // to keep even numbeer of open and close .. looks better in log .. also even worse than a seam (aesthetically) .  todo test for this
-            this.start_push(this.pos_input)
-            if ((this._start_next.length & 1) === 1) { throw "Matrix starts empty, and ends empty" }
-            const t: number[] = Array.prototype.concat.apply([], this.concatter)
+            this.keyValue_push(this.keyValue_input)
+            if ((this._keyValue_next.length & 1) === 1) { throw "Matrix starts empty, and ends empty" }
+            const t: number[] = Array.prototype.concat.apply([], this.concatterValue)
             //console.log("flush: "+this._start_next.join() + "->"+ t.join() +" by the way, filled: "+this.filled)
             // is filled, so there must be data available
-            if (this.concatter.length <= 0) { throw "with filled there needs to be data!" }
+            if (this.concatterValue.length <= 0) { throw "with filled there needs to be data!" }
 
             this._data_next.push(t)
-            if (this._data_next.length > (this._start_next.length >> 1)) { throw "I could not belive it, but log claims 2: " + this._data_next.length + " > " + this._start_next.length + " >>1  " }
+            if (this._data_next.length > (this._keyValue_next.length >> 1)) { throw "I could not belive it, but log claims 2: " + this._data_next.length + " > " + this._keyValue_next.length + " >>1  " }
         } else {
             //console.log("flush: not because stream is not active" )
         }
@@ -431,9 +432,9 @@ export class AllSeamless implements Seamless {
 class Passes {
     jop: JoinOperatorIterator
     // clearly different signatur => no function array or overloading!
-    pass_pos() {// gives pos and gap
+    pass_KeyValue() {// gives pos and gap
     }
-    pass_value() {
+    pass_Value() {
         // fills concater
     }
 }
@@ -459,9 +460,9 @@ export class Row {
     PrintSpanGl(pixel: Uint8Array, pointer: number) {
         throw new Error('Method not implemented.')
     }
-    starts: number[] //= [0,0,0,0,0,0]; // vs GC, number of test cases
+    KeyValue: number[] //= [0,0,0,0,0,0]; // vs GC, number of test cases
     //ranges=[[0,1],[2,3],[4,5]]
-    data: number[][] //= [[],[],[]] 
+    Value: number[][] //= [[],[],[]] 
 
     // for easy access from local variable
     public last(a: Array<any>): any {
@@ -476,7 +477,7 @@ export class Row {
     // this constructor tries to avoid GC. Maybe test later?
     // This does not leak in the data structure, which is JS style: full of pointers for added flexibility
     // Mirror and generally metal leads to values > 1 on the diagonal
-    constructor(start: Span<number>[] | number[][]) {//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
+    constructor(KeyValue: KeyValueValue<number>[] | number[][]) {//number[], data:number[][]){//pos:number, pitch:number, data:number[][], forwardpitch=pitch){
         // we need to filter and map at the same time. So forEach it is  (not functional code here)
         // Basically we could deal with 0 in data and 0 in range, but then we could just go back to full matrix
         // This doesn't yet split. Maybe ToDo  add statistics about internal 0s
@@ -484,8 +485,8 @@ export class Row {
         // check for bounds
         // todo: remove zero length
         // trim 0 values
-        this.starts = new Array() //counter<<1)  does not work for both types
-        this.data = new Array() //counter)
+        this.KeyValue = new Array() //counter<<1)  does not work for both types
+        this.Value = new Array() //counter)
         // Used only in two places in this funtion, but very much needed to clear things up. Promote?
         const last = (a: Array<any>) => a[a.length - 1]
         const lasi = (a: Array<any>) => a[a.length - 1]++
@@ -493,33 +494,33 @@ export class Row {
         {//for(let pass=0;;pass++){
             let danglingBond = -1  // semi-open interval. We keep a gap of size 1 because there is no data to concat to yet.
 
-            start.forEach((s: (Span<number> | number[])) => {
+            KeyValue.forEach((keyValue: (KeyValueValue<number> | number[])) => {
 
-                if (Array.isArray(s)) {
+                if (Array.isArray(keyValue)) {
                     //   Array is misused for  (pos|value)  pairs  //why would I add plain start without data. What is this Span thing even
-                    if (s[1] != 0) { //  zero value leads to:    //  avoid zero length intervals
-                        if (s[0] == danglingBond) {
+                    if (keyValue[1] != 0) { //  zero value leads to:    //  avoid zero length intervals
+                        if (keyValue[0] == danglingBond) {
                             {//if (pass===1){
-                                lasi(this.starts)
-                                last(this.data).push(s[1])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                                lasi(this.KeyValue)
+                                last(this.Value).push(keyValue[1])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                             }
                         } else {
                             {//if (pass===1){
-                                this.starts.push(s[0], s[0] + 1) // should be  in place
-                                this.data.push([s[1]])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
+                                this.KeyValue.push(keyValue[0], keyValue[0] + 1) // should be  in place
+                                this.Value.push([keyValue[1]])   //  no fuse? new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th 
                             }
 
                         }
-                        danglingBond = s[0] + 1 // same what we push
+                        danglingBond = keyValue[0] + 1 // same what we push
                     }
                 } else {
-                    const range = [s.extends.length, 0]
+                    const range = [keyValue.Value.length, 0]
                     //const ranpe=ranpe.slice(0,ranpe.length)
                     // only string has trim(). And it can't even return the number of trimmed items
 
                     // trim 0 values
                     // todo: better two passes: over s and s reverse. That min stuff looks strange
-                    s.forEach((t, i) => {
+                    keyValue.forEach((t, i) => {
                         if (t !== 0) {
                             for (let d = 0; d < 2; d++) {
                                 range[d] = Math.min(range[d], i)  // what is this?
@@ -532,15 +533,15 @@ export class Row {
                     if (range[0] <= -range[1]) {
 
                         {//if (pass===1){
-                            const start = [s.start + range[0], s.start + 1 - range[1]]
-                            const value = s.extends.slice(range[0], 1 - range[1]) as Array<number>
+                            const start = [keyValue.KeyValue + range[0], keyValue.KeyValue + 1 - range[1]]
+                            const value = keyValue.Value.slice(range[0], 1 - range[1]) as Array<number>
                             // SetPrototype was the old way. Now we have this way ( is this even proper OOP? ) . In CS 2.0 I would have needed a for loop
                             if (start[0] == danglingBond) {
-                                lasi(this.starts)
-                                last(this.data).concat(value)
+                                lasi(this.KeyValue)
+                                last(this.Value).concat(value)
                             } else {
-                                this.starts.push(...start)
-                                this.data.push(value) //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
+                                this.KeyValue.push(...start)
+                                this.Value.push(value) //new Array<number>().splice(0,0,...part) // ... seems to shed of "start" . In th                                
                             }
                             danglingBond = start[start.length - 1]
                         }
@@ -561,33 +562,33 @@ export class Row {
         // no such elegant method this.removeSeams() // seamless should be called to become seamless
 
         // //if (this.starts.reduce<boolean>((v1,v0)=>v1 || v0<0,false) ) {throw "out of lower bound";}
-        if (this.starts.reduce<number>((v1, v0) => v0 >= v1 ? v0 : Number.MAX_SAFE_INTEGER, 0) === Number.MAX_SAFE_INTEGER) {
+        if (this.KeyValue.reduce<number>((v1, v0) => v0 >= v1 ? v0 : Number.MAX_SAFE_INTEGER, 0) === Number.MAX_SAFE_INTEGER) {
             //console.log(this.starts)
             //console.log("no order 0")
             throw "no order";
         }
     }
 
-    static Single(pos: number, b: number): Row {
+    static Single(KeyValue: number, Value: number): Row {
         const a =//new Array<Span<number>>(3)
         //a[0]=new Span<number>(0,pos)
-        /*a[1]=*/[FromRaw<number>(b)]; a[0].start = pos
+        /*a[1]=*/[FromRaw<number>(Value)]; a[0].KeyValue = KeyValue
         //a[2]=new Span<number>(0,pos+1)
 
         return new Row(a)
     }
     private find(at: number): number[] {
-        let segment = this.starts.length
-        while (this.starts[--segment] > at) {
+        let segment = this.KeyValue.length
+        while (this.KeyValue[--segment] > at) {
             if (segment < 0) return null;
         };
-        return [segment, at - this.starts[segment]]
+        return [segment, at - this.KeyValue[segment]]
     }
-    get(at: number): number {
+    getValue(at: number): number {
         const tupel = this.find(at)
-        return tupel[0] & 1 ? 0 : this.data[tupel[0] >> 1][tupel[1]]
+        return tupel[0] & 1 ? 0 : this.Value[tupel[0] >> 1][tupel[1]]
     }
-    set(value: number, at: number) {
+    setValue(value: number, at: number) {
         const tupel = this.find(at)
         if (value === 0) { // used by field.group* (it does swaps)
             this.clear(tupel, at)
@@ -606,7 +607,7 @@ export class Row {
                 this.sub(Row.Single(at, value)) // without factor it just writes all nonnull components of argument to this.row
                 // this should find the date with length=0?
             } else {
-                this.data[tupel[0] >> 1][tupel[1]] = value
+                this.Value[tupel[0] >> 1][tupel[1]] = value
             }
         }
     }
@@ -616,14 +617,14 @@ export class Row {
         let segment = tupel[0]
         if ((segment & 1) === 0) {
             // similar code to set for the cases where trim
-            if (this.starts[segment] === at) { // we are looping big to low (because that is the way!) .  Zero span starts towards higher positions
-                this.data[tupel[0]].pop();//push(value)
-                this.starts[segment]-- // ToDo: check
+            if (this.KeyValue[segment] === at) { // we are looping big to low (because that is the way!) .  Zero span starts towards higher positions
+                this.Value[tupel[0]].pop();//push(value)
+                this.KeyValue[segment]-- // ToDo: check
                 return
             }
-            if (this.starts[segment + 1] === at) {
-                this.data[tupel[0]].shift()
-                this.starts[segment]++ // ToDo: check
+            if (this.KeyValue[segment + 1] === at) {
+                this.Value[tupel[0]].shift()
+                this.KeyValue[segment]++ // ToDo: check
                 return
             }
             // pop
@@ -631,24 +632,24 @@ export class Row {
             // case: cut
             // old: find data with length=0
             // new: 
-            this.starts.splice(segment, 0, tupel[1], tupel[1] + 1)
+            this.KeyValue.splice(segment, 0, tupel[1], tupel[1] + 1)
             segment >>= 1
-            const d = this.data[tupel[0]]
-            this.data.splice(segment, 0, this.data[tupel[0]].slice(0, tupel[1]), d.slice(0, tupel[1]), d.slice(tupel[1]))
+            const d = this.Value[tupel[0]]
+            this.Value.splice(segment, 0, this.Value[tupel[0]].slice(0, tupel[1]), d.slice(0, tupel[1]), d.slice(tupel[1]))
         }
     }
 
     is1(): boolean {
         return 1e-6 > (
-            Math.max.apply(this.data.map(d => Math.max.apply(d))) -
-            Math.min.apply(this.data.map(d => Math.min.apply(d))) // If no arguments are given, the result is +∞.
+            Math.max.apply(this.Value.map(d => Math.max.apply(d))) -
+            Math.min.apply(this.Value.map(d => Math.min.apply(d))) // If no arguments are given, the result is +∞.
         )
     }
 
     // GC friendly  inplace code  looks ugly :-(
     scale(factor: number) {
         if (factor !== 1) { // factor 1 should be default. Lets plot how it detoriates over the process
-            this.data.forEach(segment => segment.forEach((value, i) => segment[i] *= factor))
+            this.Value.forEach(segment => segment.forEach((value, i) => segment[i] *= factor))
         }
     }
 
@@ -666,44 +667,44 @@ export class Row {
         const rr = new Array<Row>() //.fill( new Row([]) ) //cloneable.deepCopy(this))
 
         var i = 0
-        while (i < this.starts.length && this.starts[i] < pos) { i++ }  // orderByKnowledge has halves for this
+        while (i < this.KeyValue.length && this.KeyValue[i] < pos) { i++ }  // orderByKnowledge has halves for this
 
         var r = new Row([])
         if (side == 0) {
-            r.starts = this.starts.slice(0, i)
-            r.data = this.data.slice(0, i >> 1) // like in orderByKnowledge. No spurious +1 or anything
-            var ultra = r.starts.length - 1
+            r.KeyValue = this.KeyValue.slice(0, i)
+            r.Value = this.Value.slice(0, i >> 1) // like in orderByKnowledge. No spurious +1 or anything
+            var ultra = r.KeyValue.length - 1
         } else {
-            r.starts = this.starts.slice(i)
-            r.data = this.data.slice((i + 1) >> 1)  // ceil()
+            r.KeyValue = this.KeyValue.slice(i)
+            r.Value = this.Value.slice((i + 1) >> 1)  // ceil()
             ultra = 0
         }
         //for(var side=0;side++;side<2){
         if (i & 1) {
-            var l = pos - r.starts[ultra]  // todo: search for last()
+            var l = pos - r.KeyValue[ultra]  // todo: search for last()
             if (l != 0) {
                 if (side == 0) {
-                    r.starts.push(pos)
-                    r.data.push(this.data[i >> 1].slice(0, l))
+                    r.KeyValue.push(pos)
+                    r.Value.push(this.Value[i >> 1].slice(0, l))
                 } else {
-                    r.starts.unshift(pos)
-                    r.data.unshift(this.data[i >> 1].slice(l))
+                    r.KeyValue.unshift(pos)
+                    r.Value.unshift(this.Value[i >> 1].slice(l))
                 }
             }
         }
 
         // I thinks this is also different in join. The swap array is mirrored, but the result is not pulled back to origin 
         if (side == 1) {
-            r.starts.forEach((s, i) => { r.starts[i] -= pos })
+            r.KeyValue.forEach((s, i) => { r.KeyValue[i] -= pos })
         }
         return r
 
         //remove zero length
 
 
-        rr[0].starts.push(pos)  // this is all checked in JoinOperatorITerator. I hate to do it here
-        rr[1].starts.slice(i)
-        rr[1].starts.unshift(pos) // this is all checked in JoinOperatorITerator. I hate to do it here
+        rr[0].KeyValue.push(pos)  // this is all checked in JoinOperatorITerator. I hate to do it here
+        rr[1].KeyValue.slice(i)
+        rr[1].KeyValue.unshift(pos) // this is all checked in JoinOperatorITerator. I hate to do it here
 
 
 
@@ -713,7 +714,7 @@ export class Row {
 
         // this also does not distinguish between start filled  vd  start empty
         // jop has active source. 
-        const jop = new JoinOperatorIterator(this.starts, [pos]) // does starts+data(no it does not), avoids zero length ( while also avoiding edge cases )
+        const jop = new JoinOperatorIterator(this.KeyValue, [pos]) // does starts+data(no it does not), avoids zero length ( while also avoiding edge cases )
         // // todo: No Start yet. Where is that
         // const startss=new Array<Row>()
         // var rl:number
@@ -741,9 +742,9 @@ export class Row {
     // trying to avoid  join  artifacts
     extendUnity(pos) {
         // Seamless is only for statistics on sparse inversion. Sub should still work with seams: //const drain=new Seamless()
-        this.data.push([1])
-        this.starts.push(pos)
-        this.starts.push(pos + 1)
+        this.Value.push([1])
+        this.KeyValue.push(pos)
+        this.KeyValue.push(pos + 1)
     }
 
 
@@ -753,7 +754,7 @@ export class Row {
     sub(that: Row, factor?: number, nukeCol = -2 /* < -1 <= pos */) {
         let start_next: number[] = new Array<number>() //        =this.starts.slice() // copy all elements
         let data_next: number[][] = new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
-        that.starts
+        that.KeyValue
         //let combinedStarts=[]
 
         // sides is only for target row
@@ -778,7 +779,7 @@ export class Row {
         //=new Array<Span<number>>()
         // was the old way to keep Seamless smaller. TDD at its worst I guess. Trapped me in Swap. \\let these:Span<number>[]=[]
         // Maybe we should check for input data. No idea what jop does without input though.
-        while ((pos = jop.next()) < jop.behind) { // last is just after the end in Matrix {  pos behind does not deliver any results with slice. We have the extra flush method to avoid application of superfical parameters
+        while ((pos = jop.next()) < jop.behindKeyValue) { // last is just after the end in Matrix {  pos behind does not deliver any results with slice. We have the extra flush method to avoid application of superfical parameters
 
             // inverting is supposed to clear (upper or lower) triangles completely
             // if (nukeCol < pos && nukeCol >= drain.pos_input[0]){
@@ -789,22 +790,22 @@ export class Row {
             //let pointer = this.data//;throw "this hack does not scale and especially does not work with filter"
             // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
 
-            if (jop.i.length != 2) throw "This is a binary operator!"
+            if (jop.iKeyValue.length != 2) throw "This is a binary operator!"
             // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
             // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
-            jop.i[1].factor = factor
-            const these = jop.i.filter(ii => ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            jop.iKeyValue[1].factor = factor
+            const these = jop.iKeyValue.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 //  const ii=jop.i[1][j]
-                if (typeof ii.ValueSpanStartInMatrix === "undefined" || typeof ii.ValueSpanStartInMatrix !== "number") {
-                    throw "all indizes should just stop before the end ii.mp. From: " + ii.ValueSpanStartInMatrix
+                if (typeof ii.KeyValueInMatrix === "undefined" || typeof ii.KeyValueInMatrix !== "number") {
+                    throw "all indizes should just stop before the end ii.mp. From: " + ii.KeyValueInMatrix
                 }
-                const thi = new SpanWithCommonFactor<number>(0, ii.ValueSpanStartInMatrix)
+                const thi = new SpanWithCommonFactor<number>(0, ii.KeyValueInMatrix)
                 thi.factor = ii.factor
 
-                if (typeof ii.from === "undefined" || typeof ii.from !== "number") {
+                if (typeof ii.KeyKeyValue === "undefined" || typeof ii.KeyKeyValue !== "number") {
                     throw "all indizes should just stop before the end ii.from"
                 }
-                thi.extends = (ii as NowNotOnlyStartInMatrixButAlsoValuesAtThatPos).values[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                thi.Value = (ii as KeyValueValue_InMatrix).KeyValue[ii.KeyKeyValue >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
                 //pointer = that.data
                 //console.log(" span.start: "+thi.start );
                 return thi
@@ -816,7 +817,7 @@ export class Row {
 
             const Sub = new ResultSub()
             // before filter Sub.factor=factor
-            drain.removeSeams(these, pos, !jop.i.every(v => v.filled === false), Sub, nukeCol);
+            drain.removeSeams(these, pos, !jop.iKeyValue.every(v => v.filled === false), Sub, nukeCol);
             // if ( jop.i[1][j] ){
             //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
             //     thi.extends=pointer.data[jop.i[j]>>1]
@@ -831,11 +832,11 @@ export class Row {
         // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
         // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
 
-        if (!jop.i.every(v => v.filled === false)) throw "last boundary should be a closing one"
+        if (!jop.iKeyValue.every(v => v.filled === false)) throw "last boundary should be a closing one"
 
         // flip buffers
-        this.starts = drain.start_next
-        this.data = drain.data_next
+        this.KeyValue = drain.KeyValue_next
+        this.Value = drain.data_next
 
         //console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
@@ -845,13 +846,13 @@ export class Row {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
         // rename trick //const row=this
-        delayedRow.data = this.data
-        delayedRow.starts = this.starts.map(s => s + (length >> 1)) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
+        delayedRow.Value = this.Value
+        delayedRow.KeyValue = this.KeyValue.map(s => s + (length >> 1)) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
 
         //join starts and swap
-        const l = this.starts.length >> 1
+        const l = this.KeyValue.length >> 1
         //for(let half=0;half<l;half+=l>>1){
-        let jop = new JoinOperatorIterator(this.starts, delayedRow.starts, delayedSWP /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
+        let jop = new JoinOperatorIterator(this.KeyValue, delayedRow.KeyValue, delayedSWP /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
 
         // ^ so this is one indirection less then needed
         // gotta change  FillValues.ValueSpanStartInMatrix 
@@ -868,7 +869,7 @@ export class Row {
 
             // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
             // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
-            jop.i.forEach((j, k) => {
+            jop.iKeyValue.forEach((j, k) => {
                 //console.log( j.ValueSpanStartInMatrix + " <= " + pos + " < " + j.ex[j.from] + " from: " + j.from + " <= " + j.ex.length + " filled " + j.filled)
             })
             //console.log("") // spacer
@@ -886,18 +887,18 @@ export class Row {
 
                 // [starts, delayedStarts] .. pos >= (length >> 1) => delayed Starts are the non-swapped starts. filled === i=0
                 spans_new_Stream.forEach((AS, i) => {
-                    const activeSource = (i === 0) === jop.i[2].filled ? 0 : 1
-                    const filled = jop.i[activeSource].filled  // XOR^3
+                    const activeSource = (i === 0) === jop.iKeyValue[2].filled ? 0 : 1
+                    const filled = jop.iKeyValue[activeSource].filled  // XOR^3
 
-                    const interfaceIsSharedWithSub = new Array<Span<number>>()
+                    const interfaceIsSharedWithSub = new Array<KeyValueValue<number>>()
                     // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
                     if (filled) {
-                        let t = new Span<number>(0, jop.i[activeSource].ValueSpanStartInMatrix)
+                        let t = new KeyValueValue<number>(0, jop.iKeyValue[activeSource].KeyValueInMatrix)
                         // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
-                        t.extends = this.data[jop.i[activeSource].from >> 1 /* Maybe I should write an accessor */] // 
+                        t.Value = this.Value[jop.iKeyValue[activeSource].KeyKeyValue >> 1 /* Maybe I should write an accessor */] // 
 
-                        const i = jop.i[activeSource].from
-                        if ((i >> 1) >= this.data.length) {
+                        const i = jop.iKeyValue[activeSource].KeyKeyValue
+                        if ((i >> 1) >= this.Value.length) {
                             //console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
                             //console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
                         }
@@ -923,84 +924,84 @@ export class Row {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2  1"
 
         spans_new_Stream.forEach(AS => AS.flush()) // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
-        this.starts = spans_new_Stream[0].start_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].start_next) // todo: inheritance from common base due to same private data.
+        this.KeyValue = spans_new_Stream[0].KeyValue_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].KeyValue_next) // todo: inheritance from common base due to same private data.
         try {
             //console.log(this.starts.length+" = "+ spans_new_Stream[0].start_next.length + " + " + spans_new_Stream[1].start_next.length)
         } catch {
             //console.log("span did not have two spans")
         }
         //console.log("row.starts: " + (this.starts))
-        if (this.starts.filter(r => r < 0).length > 0) {
-            throw "shifting forth and back  does not  match " + spans_new_Stream.map(s => "[" + s.start_next + "]") //this.starts // 0,-2,3,1
+        if (this.KeyValue.filter(r => r < 0).length > 0) {
+            throw "shifting forth and back  does not  match " + spans_new_Stream.map(s => "[" + s.KeyValue_next + "]") //this.starts // 0,-2,3,1
         }
-        this.data = Array.prototype.concat.apply([], spans_new_Stream.map(ns => ns.data_next))
+        this.Value = Array.prototype.concat.apply([], spans_new_Stream.map(ns => ns.data_next))
 
         try {
             //console.log(this.data.length+" = "+ spans_new_Stream[0].data_next.length + " + " + spans_new_Stream[1].data_next.length) // 2=0+1
         } catch {
             //console.log("data did not have two spans")
         }
-        if (this.data.length > (this.starts.length >> 1)) { throw "I could not belive it, but log claims 0: " + this.data.length + " > " + this.starts.length + " >>1  " }
+        if (this.Value.length > (this.KeyValue.length >> 1)) { throw "I could not belive it, but log claims 0: " + this.Value.length + " > " + this.KeyValue.length + " >>1  " }
     }
 
 
-    // parent needs to add Matrix.length
-    holdBothsides(i: number) {
-        /*
-        this.starts.unshift(-i+1);  // matrix is mirrord on the left
-        this.starts.unshift(-i);
-        */
-        this.starts.push(i)
-        this.starts.push(i + 1)
-        this.data.push([1])
-    }
+    // // parent needs to add Matrix.length
+    // holdBothsides(i: number) {
+    //     /*
+    //     this.starts.unshift(-i+1);  // matrix is mirrord on the left
+    //     this.starts.unshift(-i);
+    //     */
+    //     this.Value.push(i)
+    //     this.Value.push(i + 1)
+    //     this.KeyValue.push([1])
+    // }
 
     static printScale = 30;
 
     // parent has to initialize buffer because we fill only defined values
-    PrintGl(targetRough: Uint8Array, targetFine: number, range: number[], layer?: Uint8Array, layerPointer?:number) {
-        const scale = range.map(r => Math.abs(r) > 0.003 ? 1 / r : 1);
+    PrintGl(targetRoughValue: Uint8Array, targetFineKeyValue: number, ValueRange: number[], layer?: Uint8Array, layerPointer?:number) {
+        const scaleValue = ValueRange.map(r => Math.abs(r) > 0.003 ? 1 / r : 1);
         const gammaReziprok=1/2.2
-        this.data.forEach((d, i) => d.forEach((cell, j) => {
-            let p = targetFine + (this.starts[i << 1] + j) << 2
-            targetRough[p++] = cell < 0 ? Math.ceil(Math.pow( cell * scale[0] ,gammaReziprok)*255) : 0
-            targetRough[p++] = cell > 0 ? Math.ceil(Math.pow( cell * scale[1] ,gammaReziprok)*255) : 0
-            targetRough[p++] = cell===0.0 ?70:0 ; // Matrix.Inverse is supposed to set a real 0 there
-            targetRough[p++] = 255 // better not do black numbers on black screen  
+        this.Value.forEach((d, keyKeyValue) => d.forEach((value, keyValue) => {
+            let KeyValue = targetFineKeyValue + (this.KeyValue[keyKeyValue << 1] + keyValue) << 2
+            targetRoughValue[KeyValue++] = value < 0 ? Math.ceil(Math.pow( value * scaleValue[0] ,gammaReziprok)*255) : 0
+            targetRoughValue[KeyValue++] = value > 0 ? Math.ceil(Math.pow( value * scaleValue[1] ,gammaReziprok)*255) : 0
+            targetRoughValue[KeyValue++] = value===0.0 ?70:0 ; // Matrix.Inverse is supposed to set a real 0 there
+            targetRoughValue[KeyValue++] = 255 // better not do black numbers on black screen  
         }))
 
         if (typeof layer !== 'undefined'){
-            this.starts.forEach((s,i)=>{    // due to the join we start span and start gap. Ends with gap. So we don't need to pull in data.length!!!
-                let p = layerPointer + s << 2
-                layer[p++] = i+((i+0)%2)*120 // start span   short but ugly palette
-                layer[p++] = i+((i+1)%2)*120 // start end    todo: fill
-                layer[p++] = 0 // i+((i+2)%3)
-                layer[p++] = 255 // better not do black numbers on black screen      
+            this.KeyValue.forEach((keyValue,keyKeyValue)=>{    // due to the join we start span and start gap. Ends with gap. So we don't need to pull in data.length!!!
+                let KeyValue = layerPointer + keyValue << 2
+                layer[KeyValue++] = keyKeyValue+((keyKeyValue+0)%2)*120 // start span   short but ugly palette
+                layer[KeyValue++] = keyKeyValue+((keyKeyValue+1)%2)*120 // start end    todo: fill
+                layer[KeyValue++] = 0 // i+((i+2)%3)
+                layer[KeyValue++] = 255 // better not do black numbers on black screen      
             })
         }
     }
 
     // parent has to initialize buffer because we fill only defined values
     print(targetRough: ImageData, targetFine: number) {
-        this.data.forEach((d, i) => d.forEach((cell, j) => {
+        this.Value.forEach((d, i) => d.forEach((cell, j) => {
             targetRough.data.set([
                 cell < 0 ? cell * Row.printScale : 0,
                 0,
                 cell > 0 ? cell * Row.printScale : 0, 255], // cannot do black numbers on black screen
-                targetFine + (this.starts[i << 1] + j) << 2)
+                targetFine + (this.KeyValue[i << 1] + j) << 2)
         }))
     }
 
     // ToDo: InnerProduct needs to see outside range as zeros and not out of bounds error
-    innerProduct(column: number[]): number {
-        let acc = 0
-        this.data.forEach((d, i) => {
-            d.forEach((cell, j) => {
-                const index = j + this.starts[i << 1]
-                if (index < column.length) acc += cell * column[index] // else  OutOfBounds === zero
+    innerProduct(columnValue: number[]): number {
+        let accValue = 0
+        this.Value.forEach((d, i) => {
+            d.forEach((value, j) => {
+                const keyValue = j + this.KeyValue[i << 1]
+                if (keyValue < columnValue.length) accValue += value * columnValue[keyValue] // else  OutOfBounds === zero
             })
         })
-        return acc
+        return accValue
     }
 
     // only used for test. The other matrix will be an inverted Matrix, which is probably not really sparse
@@ -1015,30 +1016,29 @@ export class Row {
         //const cursors=new Array<number>(right.length()).fill(0) // other source is not sparse => no jop  
 
         // for some reason we only need it here 
-        let acc_i = 0
+        let acc_i_KeyValue = 0
         right.row.forEach((row: Row) => {
-            acc_i = Math.max(acc_i, row.last(row.starts))
+            acc_i_KeyValue = Math.max(acc_i_KeyValue, row.last(row.KeyValue))
         })
 
-
-        const result = new Array<number>(acc_i);
+        const resultValue = new Array<number>(acc_i_KeyValue);
         // this is only height. We need width (should I have that value?) : right.length(); 
 
-        while (acc_i-- > 0) {
+        while (acc_i_KeyValue-- > 0) {
             let acc = 0
-            this.data.forEach((d, i) => {
-                const base = this.starts[i << 1]  // a join which I could probly avoid with class Span but which complicated sparse join which was the motivation for my project .. Ah I should have done that later
-                d.forEach((cell, j) => {
-                    acc += cell * right.row[j + base].get(acc_i)  // main purpose is to use the KISS get and compare it with the join
+            this.Value.forEach((d, i) => {
+                const KeyValue = this.KeyValue[i << 1]  // a join which I could probly avoid with class Span but which complicated sparse join which was the motivation for my project .. Ah I should have done that later
+                d.forEach((value, keyValue) => {
+                    acc += value * right.row[keyValue + KeyValue].getValue(acc_i_KeyValue)  // main purpose is to use the KISS get and compare it with the join
                     // M.getAt(j+this.starts[i<<1], acc_i)
                     // todo: don't dive into  row.find all the time. 
                 })
             })
-            result[acc_i] = acc
+            resultValue[acc_i_KeyValue] = acc
         }
 
         //accs[acc_i]=
-        return result
+        return resultValue
     }
 
 
@@ -1068,31 +1068,31 @@ export class Row {
         // let p= Math.min.apply(0, j.i.map(i=>i.ex[0]) )  // does not work because pos lags behind from
         // let filled=false
         // //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
-        while ((pos = jop.next()) < jop.behind) {
+        while ((pos = jop.next()) < jop.behindKeyValue) {
             //const interfaceIsSharedWithSub = new Array<Span<number>>()
 
-            const filled = !jop.i.some(i => (i.from & 1) === 0)
+            const filled = !jop.iKeyValue.some(i => (i.KeyKeyValue & 1) === 0)
             //console.log(pos+" "+jop.i[0].from+ " 01 "+jop.i[1].from+ " filled: "+filled)
 
-            const these = jop.i.filter(ii => ii.from <= ii.max && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            const these = jop.iKeyValue.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 // code from sub
                 //  const ii=jop.i[1][j]
-                if (typeof ii.ValueSpanStartInMatrix === "undefined" || typeof ii.ValueSpanStartInMatrix !== "number") {
-                    throw "all indizes should just stop before the end ii.mp. From: " + ii.ValueSpanStartInMatrix
+                if (typeof ii.KeyValueInMatrix === "undefined" || typeof ii.KeyValueInMatrix !== "number") {
+                    throw "all indizes should just stop before the end ii.mp. From: " + ii.KeyValueInMatrix
                 }
-                const thi = new Span<number>(0, ii.ValueSpanStartInMatrix)
+                const thi = new KeyValueValue<number>(0, ii.KeyValueInMatrix)
 
-                if (typeof ii.from === "undefined" || typeof ii.from !== "number") {
+                if (typeof ii.KeyKeyValue === "undefined" || typeof ii.KeyKeyValue !== "number") {
                     throw "all indizes should just stop before the end ii.from"
                 }
-                thi.extends = (ii as NowNotOnlyStartInMatrixButAlsoValuesAtThatPos).values/*pointer*/[ii.from >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
+                thi.Value = (ii as KeyValueValue_InMatrix).KeyValue/*pointer*/[ii.KeyKeyValue >> 1]  // advance from RLE to values => join .. ToDo: inheritance from .starts:number[] to Span and let  TypeScript Check. Still the base type would just be a number. Also the index count differs by a factor of 2 
                 {
-                    const round = (ii.from >> 1) << 1
-                    if (thi.extends.length < ii.ex[round + 1] - ii.ex[round]) {
-                        throw "starts do not match  data.length " + thi.extends.length + " <= " + ii.ex[round + 1] + " - " + ii.ex[round] + " round : " + round
+                    const round = (ii.KeyKeyValue >> 1) << 1
+                    if (thi.Value.length < ii.exKeyValue[round + 1] - ii.exKeyValue[round]) {
+                        throw "starts do not match  data.length " + thi.Value.length + " <= " + ii.exKeyValue[round + 1] + " - " + ii.exKeyValue[round] + " round : " + round
                     }
 
-                    if (thi.extends.length <= pos - ii.ex[round]) {
+                    if (thi.Value.length <= pos - ii.exKeyValue[round]) {
                         throw "out of bounds 0. Filled should have toggled to false"
                     }
                 }
@@ -1103,7 +1103,7 @@ export class Row {
                 return thi
             })
             const mul = new ResultMul()
-            a.removeSeams(these, pos, jop.i.every(v => v.filled /* differs from sub */), mul /*inject multiply */) //, factor /* sorry */, nukeCol);
+            a.removeSeams(these, pos, jop.iKeyValue.every(v => v.filled /* differs from sub */), mul /*inject multiply */) //, factor /* sorry */, nukeCol);
 
             // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
 
@@ -1180,7 +1180,7 @@ export class Tridiagonal implements Matrix {
         return this.row.length
     }
     getAt(row: number, column: number) {
-        return this.row[row].get(column);
+        return this.row[row].getValue(column);
     }
 
     // Todo: make the same as [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
@@ -1222,7 +1222,7 @@ export class Tridiagonal implements Matrix {
         //let range = []; // color codes would say [0,0], but that is not what "range" means
         const ranges = this.row.reduce<Ranges | Row>((pr: Ranges, r) => {
             const a = new Ranges()
-            a.data = r.data.reduce((ps: number[], span) => {
+            a.data = r.Value.reduce((ps: number[], span) => {
                 return span.reduce((pc, c) => {
                     if (typeof pc !== "undefined" ) { // code changes once I wrap it in an object :-(   }.length > 0) {
                         return [Math.min(pc[0], c), Math.max(pc[1], c)];
@@ -1232,8 +1232,8 @@ export class Tridiagonal implements Matrix {
             }, pr.data)
 
             a.lastStart=pr.lastStart
-            if (r.starts.length > 0 ) {
-                a.lastStart =Math.max(pr.lastStart,/*[r.starts[0],*/r.starts[r.starts.length - 1] ) //+ r.data[r.data.length - 1].length;//] ;
+            if (r.KeyValue.length > 0 ) {
+                a.lastStart =Math.max(pr.lastStart,/*[r.starts[0],*/r.KeyValue[r.KeyValue.length - 1] ) //+ r.data[r.data.length - 1].length;//] ;
             }
 
             return a // .concat(span); // todo: new type
@@ -1264,7 +1264,7 @@ export class Tridiagonal implements Matrix {
         for (let r = 0, pointer = 0; r < this.row.length; r++, pointer += ranges.lastStart /*20201117 first test: 4*/) {
             const o = this.row[r]
             if (typeof o !== "undefined") {
-                if (o.starts.slice(-1)[0] > this.row.length * 2 + 1) { // augment for inverse and rail voltages
+                if (o.KeyValue.slice(-1)[0] > this.row.length * 2 + 1) { // augment for inverse and rail voltages
                     // o=undefined should not happen. I should probably not construct an undefined row todo..
                     //console.log("Starts: "+o.starts+" > "+this.row.length)
                     throw "out of upper bound"
@@ -1298,16 +1298,16 @@ export class Tridiagonal implements Matrix {
         const M = this
         const rows = M.row.forEach((r, i) => {
             const s = M.row.length + i
-            if (r.last(r.starts) < s) {
-                r.starts.push(s)  // uh, do I have to accept seams or do I fuse left and right?
-                r.starts.push(s + 1)
-                r.data.push([1])
+            if (r.last(r.KeyValue) < s) {
+                r.KeyValue.push(s)  // uh, do I have to accept seams or do I fuse left and right?
+                r.KeyValue.push(s + 1)
+                r.Value.push([1])
             } else {
-                if ((r.starts.length & 1) != 0) {
+                if ((r.KeyValue.length & 1) != 0) {
                     throw "no fill up zeros span allowed because zero is default"
                 } else {
-                    r.last(r.data).push(1)
-                    r.lastSet(r.starts, s + 1)
+                    r.last(r.Value).push(1)
+                    r.lastSet(r.KeyValue, s + 1)
                 }
             }
         })
@@ -1329,16 +1329,16 @@ export class Tridiagonal implements Matrix {
             // if (typeof inve.row[i] === "undefined"){
             //     throw "inverse is undefined: "+i
             // }
-            if (Math.abs(rl.get(i)) < 0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
+            if (Math.abs(rl.getValue(i)) < 0.0001) { // rounding error. To avoid: Use multiplication to clear rows and normalize afterwards. But even then: 64 bit feels a lot, but a checker chess board may almost make sense, but Laplace in 2d has a four, so only 32 fields. So yeah maybe check 4x4 sectors offline? But what about coding mistakes later?
                 throw "division by zero (matrix undefinite)"
             }
-            const factor = 1 / rl.get(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
+            const factor = 1 / rl.getValue(i) // resuts in -1 as Matrix: expel the -sign as far as possible out of my logic ( + commutes, *(+factor) is default)
             //console.log("factor: "+factor+"  from "+rl.data );//+ " and "+ inve.row[i].data);
             rl/* ,inve.row[i]].forEach(side=>side*/.scale(factor)//);
             //console.log("factor: "+factor+"   to  "+rl.data );//+ " and "+ inve.row[i].data);
             this.row.forEach((rr, k) => {
                 if (k !== i) {
-                    const f = rr.get(i)
+                    const f = rr.getValue(i)
                     if (f !== 0) {
                         //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                         // duplicated code leads to bugs! 2020-01-20
@@ -1349,7 +1349,7 @@ export class Tridiagonal implements Matrix {
             })
 
             this.row.forEach((rr, k) => {
-                const f = rr.get(i);
+                const f = rr.getValue(i);
                 const s = (k === i) ? 1 : 0;
                 if (Math.abs(f - s) > 0.001) {
                     throw "column not empty i/live: " + f + " should be " + s
@@ -1364,12 +1364,12 @@ export class Tridiagonal implements Matrix {
         })
 
         //console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
-        for (let i = 0; i < this.row.length >> 1; i++) {
+        for (let keyValue = 0; keyValue < this.row.length >> 1; keyValue++) {
             for (let k = 0; k < this.row.length; k++) { //if (k!==i){
-                const f = this.row[k].get(i);
-                const s = (k === i) ? 1 : 0;
-                if (Math.abs(f - s) > 0.001) {
-                    throw "column not empty i/delayed: " + f + " should be " + s
+                const value = this.row[k].getValue(keyValue);
+                const s = (k === keyValue) ? 1 : 0;
+                if (Math.abs(value - s) > 0.001) {
+                    throw "column not empty i/delayed: " + value + " should be " + s
                 }
             }
         }
@@ -1430,13 +1430,13 @@ export class Tridiagonal implements Matrix {
     inverseHalf() {
         //const inve=new Tridiagonal(this.row.length) // I may want to merge the runlength encoders?
 
-        for (let i = 0; i < this.row.length >> 1; i++) {
-            this.row[i].scale(1 / this.row[i].get(i)) // uh rounding. At least our cell of interest should be exactly 1 after this. Or?
+        for (let keyValue = 0; keyValue < this.row.length >> 1; keyValue++) {
+            this.row[keyValue].scale(1 / this.row[keyValue].getValue(keyValue)) // uh rounding. At least our cell of interest should be exactly 1 after this. Or?
             //this.row[i].set(1,i); // combat rounding while still minimizing the number of divides
-            for (let k = 0; k < this.row.length; k++)if (k !== i) {
-                const f = this.row[k].get(i)
+            for (let k = 0; k < this.row.length; k++)if (k !== keyValue) {
+                const f = this.row[k].getValue(keyValue)
                 if (f !== 0) {
-                    this.row[k].sub(this.row[i], f, i) // No rounding problems anymore. Multiplication with 1 is safe. Still, let's be a bit explicit here
+                    this.row[k].sub(this.row[keyValue], f, keyValue) // No rounding problems anymore. Multiplication with 1 is safe. Still, let's be a bit explicit here
                     //inve.row[k].sub(this.row[i],f)
                 } else {
                     throw "pivot is broken"
@@ -1444,8 +1444,8 @@ export class Tridiagonal implements Matrix {
             }
 
             for (let k = 0; k < this.row.length; k++) { //if (k!==i){
-                const f = this.row[k].get(i);
-                const s = (k === i) ? 1 : 0;
+                const f = this.row[k].getValue(keyValue);
+                const s = (k === keyValue) ? 1 : 0;
                 if (Math.abs(f - s) > 0.001) {
                     throw "column not empty live: " + f + " should be " + s
                 }
@@ -1453,10 +1453,10 @@ export class Tridiagonal implements Matrix {
         }
 
         //console.log("inside inverse Half "+this.row[0].data[0][0])
-        for (let i = 0; i < this.row.length >> 1; i++) {
+        for (let keyValue = 0; keyValue < this.row.length >> 1; keyValue++) {
             for (let k = 0; k < this.row.length; k++) { //if (k!==i){
-                const f = this.row[k].get(i);
-                const s = (k === i) ? 1 : 0;
+                const f = this.row[k].getValue(keyValue);
+                const s = (k === keyValue) ? 1 : 0;
                 if (Math.abs(f - s) > 0.001) {
                     throw "column not empty delayed: " + f + " should be " + s
                 }
@@ -1492,13 +1492,13 @@ export class Tridiagonal implements Matrix {
             while (t.next()) { // column by column. This fits second matrix to compensate for going cross rows. Left matrix doesn't care becaus MAC is along it rows. Result can't complain because we still stream it (no random access).
                 //const acc=that.row.map((dump)=>0) 
                 result.forEach(r => {
-                    const s = new Span<number>(1, t.pos)
-                    s.extends = [r.ref.innerProductRows(t.c)] // degenerated
+                    const keyValueValue = new KeyValueValue<number>(1, t.pos)
+                    keyValueValue.Value = [r.ref.innerProductRows(t.c)] // degenerated
                     //console.log(s.extends[0]); 
-                    if (isNaN(s.extends[0])) {
+                    if (isNaN(keyValueValue.Value[0])) {
                         throw "NaN does not make sense in my algorithm"
                     }
-                    r.removeSeams([s], t.pos, s.extends[0] !== 0)
+                    r.removeSeams([keyValueValue], t.pos, keyValueValue.Value[0] !== 0)
                 })
                 // let acc:number
                 // result[0].removeSeams([new Span(1,t.i)],t.i,acc!==0)
@@ -1514,8 +1514,8 @@ export class Tridiagonal implements Matrix {
             degen.row = result.map(r => {
                 const row = new Row([])
                 r.flush()
-                row.starts = r.start_next  // I really miss constructor overloading                
-                row.data = r.data_next     // 0 is removed as "not filled" in the per element writing to r.removeSeams
+                row.KeyValue = r.KeyValue_next  // I really miss constructor overloading                
+                row.Value = r.data_next     // 0 is removed as "not filled" in the per element writing to r.removeSeams
                 return row //todo  where do I already remove zeros after seamless? Should I  //r..innerProduct_Matrix(that)
             })
             return degen as CNC // huh?
@@ -1543,12 +1543,12 @@ export /* for unit test */ class RowCursor {
     noSideEffect = true
     advance(i: number): number {
         this.noSideEffect = false
-        this.noSideEffect = this.span < this.r.starts.length  // delay: Was there an advance before we got to the current position?  // this looks suspectivly like Seamless. Or more like jop. jop over all rows, but without the slice .. only subscript operator
+        this.noSideEffect = this.span < this.r.KeyValue.length  // delay: Was there an advance before we got to the current position?  // this looks suspectivly like Seamless. Or more like jop. jop over all rows, but without the slice .. only subscript operator
 
         // ensure edge to track
         // only accept seamless
-        while (this.r.starts[this.span] <= i) { // always track the next edge. otherwise first letter becomes a special case
-            if (this.r.starts.length <= this.span) {
+        while (this.r.KeyValue[this.span] <= i) { // always track the next edge. otherwise first letter becomes a special case
+            if (this.r.KeyValue.length <= this.span) {
                 //console.log("advance: no")
 
                 return this.getValue()
@@ -1559,15 +1559,15 @@ export /* for unit test */ class RowCursor {
         if (this.span === 0) {//console.log("advance: 0 : "+this.span+" . ")
             return 0
         }
-        this.pos = i - this.r.starts[this.span - 1] // trying to avoid simple copy.   Here again the problem of left and right edges of spans/strings :-(   When streaming: looks like lag.
+        this.pos = i - this.r.KeyValue[this.span - 1] // trying to avoid simple copy.   Here again the problem of left and right edges of spans/strings :-(   When streaming: looks like lag.
         //console.log("advance: 1 : "+this.span+" . "+this.pos)
         //this.noSideEffect=true
         return this.getValue();
     }
 
     getValue(): number {
-        const stupidDebugger = ((this.span & 1) === 0) || (this.r.starts.length <= this.span) ? 0  // gap
-            : this.r.data[this.span >> 1][this.pos]
+        const stupidDebugger = ((this.span & 1) === 0) || (this.r.KeyValue.length <= this.span) ? 0  // gap
+            : this.r.Value[this.span >> 1][this.pos]
         //console.log(" "+((this.span & 1) === 0) +" || "+ (this.r.starts.length<=this.span) + " ? 0 : this.r.data[" + (this.span>>1) +"][" +this.pos +"] " )
         if (typeof stupidDebugger === "undefined") {
             throw " jop and filled should have prevented this out of bounds access"
@@ -1620,18 +1620,18 @@ export class Transpose implements Matrix {
             anyProgress ||= j.noSideEffect // why is typeScript converting my method with sideEffects into this shortcut code? Just analyse the scopes, compiler!
             if (v !== 0 && typeof v !== "undefined") {
                 if (last === 0) {
-                    this.c.starts.push(i)
-                    this.c.data.push([])
+                    this.c.KeyValue.push(i)
+                    this.c.Value.push([])
                 }
-                this.c.data[this.c.data.length - 1].push(v)
+                this.c.Value[this.c.Value.length - 1].push(v)
             } else {
                 if (last !== 0) {
-                    this.c.starts.push(i)
+                    this.c.KeyValue.push(i)
                 }
             }
             last = v
         })
-        if (last !== 0) { this.c.starts.push(this.I.length) } // flush
+        if (last !== 0) { this.c.KeyValue.push(this.I.length) } // flush
 
         return anyProgress
     }
@@ -1642,20 +1642,20 @@ export class Transpose implements Matrix {
 
 
 export interface Result {
-    result: Array<number> // concatter / seamless expects this for slice and stuff
+    resultValue: Array<number> // concatter / seamless expects this for slice and stuff
     clear(): void
-    operation(retards: number[][]): void
+    operation(retardedValues: number[][]): void
 }
 class ResultSub implements Result {
-    result = new Array<number>()
-    clear() { this.result = new Array<number>() }
+    resultValue = new Array<number>()
+    clear() { this.resultValue = new Array<number>() }
     //factor:number 
 
     operation(retards: number[][]): void {
         //console.log("REusltSub0 :"+retards.map(r=>r[1]))
 
         const resultSpan = retards.reduce(this.loop, 0)
-        this.result.push(resultSpan)
+        this.resultValue.push(resultSpan)
     }
 
     private loop(p: number, c: number[]): number {
@@ -1669,11 +1669,11 @@ class ResultSub implements Result {
 
 
 class ResultMul implements Result {
-    result = [0] // degenerated .. sorry todo ? 
-    clear() { this.result = [0] }
+    resultValue = [0] // degenerated .. sorry todo ? 
+    clear() { this.resultValue = [0] }
     operation(retards: number[][]): void {
         //console.log(" ResultMul, retards: "+retards)
         const resultSpan = retards.map(r => r[0]).reduce((p, c) => p * c  /* , 1  reduce can't just spit out the only element if type is result of function. But then I do not want unecessary multiplication */) // some values can become 0. Doesn't look easy to incorporate a check here. Better rely on the Row construction check, which is already needed for the field_to_matrix transformation.
-        this.result[0] += (resultSpan)
+        this.resultValue[0] += (resultSpan)
     }
 }
