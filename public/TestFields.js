@@ -1,5 +1,5 @@
 import { Row } from './enforcePivot.js';
-import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, arenaVerbatim } from './fields.js';
+import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped } from './fields.js';
 import { main } from './GL.js';
 //import 'assert'
 console.log("in TestFields.ts");
@@ -35,15 +35,15 @@ try {
     //squared=diag.ToMatrix()
     // test field solver
     // fixed cells. Where is the code and the example data ( with verbatim digits in the field (map)) ?
-    const arena = new Field(arenaVerbatim);
-    // floating, distributed electrodes
-    // distributed electrode with contact to a wire at some potential
-    // How is map format as text? so map{ field, wire } . All relations are names with a single capital letter? And polywires have number
-    // Do I need XML for .. uh it is a netplan. field has number, wire has number + letter. refid.  Letter is extra: "fine location" attribute
-    // It is markup. So I could allow pre-layout: <connectToNext using="0" > with matching connectToPrevious using"A"  
-    // <connectTo refId="453" using="A0"     <!-- connector can be on wire and/or field
-    const h = new Map();
-    h.has("A"); // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
+    // const arena=new Field(arenaVerbatim)
+    // // floating, distributed electrodes
+    // // distributed electrode with contact to a wire at some potential
+    // // How is map format as text? so map{ field, wire } . All relations are names with a single capital letter? And polywires have number
+    // // Do I need XML for .. uh it is a netplan. field has number, wire has number + letter. refid.  Letter is extra: "fine location" attribute
+    // // It is markup. So I could allow pre-layout: <connectToNext using="0" > with matching connectToPrevious using"A"  
+    // // <connectTo refId="453" using="A0"     <!-- connector can be on wire and/or field
+    // const h=new Map<string, Tupel>()
+    // h.has("A") // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
 }
 catch (_a) { }
 main('FieldGl0', images);
@@ -62,12 +62,13 @@ try {
     var imageGl = scala.PrintGl();
     images.push(imageGl); //main('FieldGl0',imageGl) 
     //ctx.putImageData( image, 1, y+=6 );
-    const tri = new Field(exampleField);
-    // reproduce stuff from above
-    let [vector, squared] = tri.ShapeToSparseMatrix();
-    var imageGl = squared.PrintGl();
-    images.push(imageGl); //main('FieldGl0_tri',imageGl) 
-    // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
+    // Not yet .. Now we place it next to the inversion showcase
+    // const tri=new Field(exampleField);
+    // // reproduce stuff from above
+    // let [vector,squared]=tri.ShapeToSparseMatrix()
+    // var imageGl=squared.PrintGl()
+    // images.push( imageGl) //main('FieldGl0_tri',imageGl) 
+    // // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
 }
 catch (_b) { }
 main('FieldGl', images);

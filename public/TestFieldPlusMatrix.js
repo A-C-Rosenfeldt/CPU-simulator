@@ -59,6 +59,7 @@ try {
         images.push(imageGl); //main('FM_example', imageGl);
         // static field simulation
         const [v, m] = NoSwap.ShapeToSparseMatrix(); // V contains NaN entries, which makes no sense because V is already tailored to the fields where it is defintively needed
+        var matrixGl = m.PrintGl();
         const shots = [1, 2, 3].map(q => {
             const bowl = new Snapshot();
             bowl.rowNumber = Math.floor(q * m.row.length / 4);
@@ -74,6 +75,7 @@ try {
         imagesProcessed.push(imageGl); //main('FM__example_processed', imageGl);
         main('inverse', [o.PrintGl()]
             .concat(shots.map(s => s.image).reverse())
+            .concat([matrixGl])
             .concat(shots.map(s => {
             const swapped = new SimpleImage();
             swapped.pixel = s.image.span;

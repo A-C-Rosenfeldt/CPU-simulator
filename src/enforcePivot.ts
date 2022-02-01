@@ -959,12 +959,13 @@ export class Row {
 
     // parent has to initialize buffer because we fill only defined values
     PrintGl(targetRough: Uint8Array, targetFine: number, range: number[], layer?: Uint8Array, layerPointer?:number) {
-        const scale = range.map(r => Math.abs(r) > 0.003 ? 255 / r : 1);
+        const scale = range.map(r => Math.abs(r) > 0.003 ? 1 / r : 1);
+        const gammaReziprok=1/2.2
         this.data.forEach((d, i) => d.forEach((cell, j) => {
             let p = targetFine + (this.starts[i << 1] + j) << 2
-            targetRough[p++] = cell < 0 ? cell * scale[0] : 0
-            targetRough[p++] = cell > 0 ? cell * scale[1] : 0
-            targetRough[p++] = 0
+            targetRough[p++] = cell < 0 ? Math.ceil(Math.pow( cell * scale[0] ,gammaReziprok)*255) : 0
+            targetRough[p++] = cell > 0 ? Math.ceil(Math.pow( cell * scale[1] ,gammaReziprok)*255) : 0
+            targetRough[p++] = cell===0.0 ?70:0 ; // Matrix.Inverse is supposed to set a real 0 there
             targetRough[p++] = 255 // better not do black numbers on black screen  
         }))
 
@@ -1252,7 +1253,7 @@ export class Tridiagonal implements Matrix {
                 // greenscreen
                 pixel[i++] = 0;
                 pixel[i++] = 0;
-                pixel[i++] = 128;
+                pixel[i++] = bit?90:128 
                 pixel[i++] = 255;
             }
 
@@ -1341,7 +1342,7 @@ export class Tridiagonal implements Matrix {
                     if (f !== 0) {
                         //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                         // duplicated code leads to bugs! 2020-01-20
-                        rr.sub(rl, f) // ToDo: nuke column
+                        rr.sub(rl, f, i) // ToDo: nuke column
                         // inve.row[k].sub(this.row[i],f)
                     }
                 }
