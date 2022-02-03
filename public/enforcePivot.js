@@ -79,13 +79,13 @@ class KeyValueValue_InMatrix extends FilledFrom {
 export class JoinOperatorIterator {
     constructor() {
         this.KeyValue = new Array();
-        this.iKeyValue = new Array(); // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+        this.iKeyValues = new Array(); // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
         this.filled = 0;
         this.behindKeyValue = -1; // join operator, please leave me alone  :number
         if (arguments.length > 0) {
             let t = (typeof arguments[0] !== "boolean"); // I cannot find a different way
             // for sub and innerProduct
-            let KeyKeyValue = -1;
+            let iKeyValue = -1;
             for (let k = t ? -1 : 0; ++k < arguments.length;) {
                 const keyValue = arguments[k];
                 if (!Array.isArray(keyValue)) {
@@ -94,9 +94,9 @@ export class JoinOperatorIterator {
                 // if (d>=0 && this.s[d]>u){
                 //     throw " starts need to grow monotonously! u: "+u
                 // }
-                this.KeyValue[++KeyKeyValue] = keyValue;
+                this.KeyValue[++iKeyValue] = keyValue;
                 if (t) {
-                    this.iKeyValue[KeyKeyValue] = new FilledFrom(keyValue); // I do not know. Maybe for swap? I am in the middle of refactor right now
+                    this.iKeyValues[iKeyValue] = new FilledFrom(keyValue); // I do not know. Maybe for swap? I am in the middle of refactor right now
                 }
             }
             //console.log(" this.s :  "+this.s)
@@ -126,12 +126,12 @@ export class JoinOperatorIterator {
         //      return neu; 
         //     } ) // this sets the order of indices. Feels okay
         //this.filled_last=this.filled_last
-        const minKeyValue = this.iKeyValue.reduce((pKeyValue, v) => {
+        const minKeyValue = this.iKeyValues.reduce((pKeyValue, v) => {
             return (v.KeyKeyValue < v.maxKeyKeyValue && v.mpKeyValue < pKeyValue) ? v.mpKeyValue : pKeyValue; // could set a break point on some part of a line in  VSC
         }, this.behindKeyValue); // uh. again a join
         //if (min<this.last) // this would lead to an endless loop
         {
-            this.iKeyValue.forEach((c) => {
+            this.iKeyValues.forEach((c) => {
                 if (minKeyValue === c.mpKeyValue) { // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
                     c.KeyKeyValue++;
                     // c.filled =  !c.filled  ; // ^= 1 << i
@@ -151,7 +151,7 @@ export class JoinOperatorIterator {
                 // let A:number=this.s[0][this.s[0].length-1]+1
                 let min = this.behindKeyValue;
                 cursor.forEach((c, i) => {
-                    const k = this.iKeyValue[0][i].from;
+                    const k = this.iKeyValues[0][i].from;
                     if (k < c[1]) {
                         c[0] = this.KeyValue[i][k];
                     }
@@ -197,7 +197,7 @@ export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIte
         // constructor()
         //{ //}...s:number[][]){
         super(false, ...r.map(r => r.KeyValue)); // base class is already complicated enough. Hide the values!  //  uh, messy. Maybe I just have bad luck with my flat parameters?
-        this.iKeyValue = r.map(r => new KeyValueValue_InMatrix(r));
+        this.iKeyValues = r.map(r => new KeyValueValue_InMatrix(r));
         // for (let k = arguments.length; --k >= 0;) {
         //     const u = arguments[k] as number[]
         //     this.i[k] = new NowNotOnlyStartInMatrixButAlsoValuesAtThatPos(u)  // I do not know. Maybe for swap? I am in the middle of refactor right now
@@ -207,7 +207,7 @@ export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIte
 }
 export class AllSeamless {
     constructor() {
-        this._data_next = [];
+        this._Value_next = [];
         this._keyValue_next = [];
         this.flushed = true; // I do not support live FIFO at the moment. All readers want to do forEach on the data. Data is short, I do not ever expect streams to occure in THIS class
         this.starts = 0; // whatIf
@@ -225,10 +225,10 @@ export class AllSeamless {
         if (!this.flushed) {
             throw "not sealed";
         }
-        return this._data_next;
+        return this._Value_next;
     }
-    data_push(value) {
-        this._data_next.push(value);
+    Value_push(value) {
+        this._Value_next.push(value);
         this.flushed = false;
     }
     get KeyValue_next() {
@@ -270,9 +270,9 @@ export class AllSeamless {
                         // from filled to gap .. flush.  Join encounters a border, determines "filled" and we can use the positios to cut out ranges in the source Rows
                         { // flush .. sure this gap will have length>0 .. seems I need 3 {gap,pos}
                             const t = Array.prototype.concat.apply([], this.concatterValue);
-                            this.data_push(t); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
-                            if (this._data_next.length > (this._keyValue_next.length >> 1)) {
-                                throw "I could not belive it, but log claims 1: " + this._data_next.length + " > " + this._keyValue_next.length + " >>1  ";
+                            this.Value_push(t); // the JS way. I don't really know why, but here I miss pointers. (C# has them):
+                            if (this._Value_next.length > (this._keyValue_next.length >> 1)) {
+                                throw "I could not belive it, but log claims 1: " + this._Value_next.length + " > " + this._keyValue_next.length + " >>1  ";
                             }
                             this.concatterValue = new Array();
                         }
@@ -302,6 +302,9 @@ export class AllSeamless {
                         const retardedValues = this.fillKeyValueValues.map(fv => [fv.Value[keyValue_runnerUp - fv.KeyValue], fv.factor]);
                         //console.log("REusltSub0 :"+retards.map(r=>r[1]))
                         if (keyValue_runnerUp === nukeCol_KeyValue) {
+                            // KeyValue is processed higher up
+                            // this.concatterValue.push(operationValue.resultValue)
+                            // operationValue.clear()
                             operationValue.resultValue.push(0);
                         }
                         else {
@@ -338,9 +341,9 @@ export class AllSeamless {
             if (this.concatterValue.length <= 0) {
                 throw "with filled there needs to be data!";
             }
-            this._data_next.push(t);
-            if (this._data_next.length > (this._keyValue_next.length >> 1)) {
-                throw "I could not belive it, but log claims 2: " + this._data_next.length + " > " + this._keyValue_next.length + " >>1  ";
+            this._Value_next.push(t);
+            if (this._Value_next.length > (this._keyValue_next.length >> 1)) {
+                throw "I could not belive it, but log claims 2: " + this._Value_next.length + " > " + this._keyValue_next.length + " >>1  ";
             }
         }
         else {
@@ -636,26 +639,61 @@ export class Row {
         this.KeyValue.push(pos);
         this.KeyValue.push(pos + 1);
     }
+    static RLE(oldValue, oldKeyValues) {
+        return [oldValue, oldKeyValues]; // Todo!
+        let newKeyValues = [];
+        let newValues = [];
+        oldValue.forEach((value, i) => {
+            let oldKeyValue = oldKeyValues[i << 1]; // looks like I should provide two interfaces
+            let lastNewKeyValue = -1;
+            const valueChangesToKeyPlusOne = (v, newKeyValue) => {
+                if ((lastNewKeyValue > 0) != (v === 0.0)) {
+                    newKeyValues.push(oldKeyValue + newKeyValue); // first event reproduces old KeyValue
+                    if (v === 0.0) { // similar to trim? any code in Join? Maybe an ugly version. todo!
+                        newValues.push(value.slice(lastNewKeyValue, newKeyValue));
+                        lastNewKeyValue = -1;
+                    }
+                    else {
+                        lastNewKeyValue = newKeyValue;
+                    }
+                }
+            };
+            value.forEach(valueChangesToKeyPlusOne);
+            valueChangesToKeyPlusOne(0.0, value.length);
+        });
+        return [newValues, newKeyValues];
+    }
     // todo: remove in child class due to all the calls
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
     // Doesn't look like this code knows about the number of spans. So do I really need the constraint? After all, I cannot enforce anything using spans. Permutation is transparent to this.
     sub(that, factor, nukeCol = -2 /* < -1 <= pos */) {
-        let start_next = new Array(); //        =this.starts.slice() // copy all elements
-        let data_next = new Array(); // becomes the new Data array. Created push by push, splice by splice
+        // let start_next: number[] = new Array<number>() //        =this.starts.slice() // copy all elements
+        // let data_next: number[][] = new Array<number[]>() // becomes the new Data array. Created push by push, splice by splice
         that.KeyValue;
         //let combinedStarts=[]
         // sides is only for target row
         /*for (let side = -1; side <= +1; side += 2)*/ //{
-        let n = 0; //: number /// for pass=2
+        // let n = 0 //: number /// for pass=2
         // not using passes right now. Maybe need to add aflush . for (let pass = 0; pass < 2; pass++) {
         //console.log('pass '+pass+' data '+this.data.map(d=>d.length).join())
         // was needded for  TRI diagonal. Not for RLE. We do pivot like text book (no innovation) .let gaps: number[][] = [[], []]
-        const jop = new JopWithRefToValue(this, that); // source stream  ToDo use this instead of code below
+        const jop = /*nukeCol<0 ?*/ new JopWithRefToValue(this, that); // source stream  ToDo use this instead of code below
+        //:  new JopWithRefToValue(this, that, Row.Single(nukeCol,0))  // make sure that we have spans around the 0.0 . Afterward we trim them. Two many seams!  
+        const drain = Row.StaticSub(jop, factor, nukeCol); // after we filled concater in the last cycle of the loop and set filled=false, we now confirm that no zero length are to come
+        // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
+        // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
+        if (!jop.iKeyValues.every(v => v.filled === false))
+            throw "last boundary should be a closing one";
+        // Remove nuked 0.0 and lucky 0.0 and flip buffers
+        [this.Value, this.KeyValue] = Row.RLE(drain.data_next, drain.KeyValue_next);
+        //console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
+    }
+    static StaticSub(jop, factor, nukeCol) {
         const drain = new AllSeamless(); // target stream
-        let i = 0; // this  Mybe use .values instead?
-        let a = 0; // that
-        let story = [];
-        let gap = 0;
+        // let i = 0 // this  Mybe use .values instead?
+        // let a = 0 // that
+        // let story: number[] = []
+        // let gap = 0
         //let data_i=0
         //let concatter:number[][]=new Array<number[]>() //,cut1:number[];
         let pos;
@@ -670,12 +708,12 @@ export class Row {
             // } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
             //let pointer = this.data//;throw "this hack does not scale and especially does not work with filter"
             // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
-            if (jop.iKeyValue.length != 2)
+            if (jop.iKeyValues.length != 2)
                 throw "This is a binary operator!";
             // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
             // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
-            jop.iKeyValue[1].factor = factor;
-            const these = jop.iKeyValue.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            jop.iKeyValues[1].factor = factor;
+            const these = jop.iKeyValues.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 //  const ii=jop.i[1][j]
                 if (typeof ii.KeyValueInMatrix === "undefined" || typeof ii.KeyValueInMatrix !== "number") {
                     throw "all indizes should just stop before the end ii.mp. From: " + ii.KeyValueInMatrix;
@@ -694,7 +732,7 @@ export class Row {
             // first pass, just store pos for slice()
             const Sub = new ResultSub();
             // before filter Sub.factor=factor
-            drain.removeSeams(these, pos, !jop.iKeyValue.every(v => v.filled === false), Sub, nukeCol);
+            drain.removeSeams(these, pos, !jop.iKeyValues.every(v => v.filled === false), Sub, nukeCol);
             // if ( jop.i[1][j] ){
             //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
             //     thi.extends=pointer.data[jop.i[j]>>1]
@@ -705,14 +743,7 @@ export class Row {
         ;
         // This should be  equivalent to pos=jop.last, but is somewhat more concise: we are out of bounds and need to get outta here!
         drain.flush(); // after we filled concater in the last cycle of the loop and set filled=false, we now confirm that no zero length are to come
-        // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
-        // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
-        if (!jop.iKeyValue.every(v => v.filled === false))
-            throw "last boundary should be a closing one";
-        // flip buffers
-        this.KeyValue = drain.KeyValue_next;
-        this.Value = drain.data_next;
-        //console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
+        return drain;
     }
     // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
     shiftedOverlay(length, delayedSWP, spans_new_Stream /* out parameter */, dropColumn = false) {
@@ -740,7 +771,7 @@ export class Row {
             // we have two sources and two targets and either pass through or swap  //const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
             // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
             // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
-            jop.iKeyValue.forEach((j, k) => {
+            jop.iKeyValues.forEach((j, k) => {
                 //console.log( j.ValueSpanStartInMatrix + " <= " + pos + " < " + j.ex[j.from] + " from: " + j.from + " <= " + j.ex.length + " filled " + j.filled)
             });
             //console.log("") // spacer
@@ -752,15 +783,15 @@ export class Row {
                 // don't jop and seams handle this: spans_new.push(t)
                 // [starts, delayedStarts] .. pos >= (length >> 1) => delayed Starts are the non-swapped starts. filled === i=0
                 spans_new_Stream.forEach((AS, i) => {
-                    const activeSource = (i === 0) === jop.iKeyValue[2].filled ? 0 : 1;
-                    const filled = jop.iKeyValue[activeSource].filled; // XOR^3
+                    const activeSource = (i === 0) === jop.iKeyValues[2].filled ? 0 : 1;
+                    const filled = jop.iKeyValues[activeSource].filled; // XOR^3
                     const interfaceIsSharedWithSub = new Array();
                     // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
                     if (filled) {
-                        let t = new KeyValueValue(0, jop.iKeyValue[activeSource].KeyValueInMatrix);
+                        let t = new KeyValueValue(0, jop.iKeyValues[activeSource].KeyValueInMatrix);
                         // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
-                        t.Value = this.Value[jop.iKeyValue[activeSource].KeyKeyValue >> 1 /* Maybe I should write an accessor */]; // 
-                        const i = jop.iKeyValue[activeSource].KeyKeyValue;
+                        t.Value = this.Value[jop.iKeyValues[activeSource].KeyKeyValue >> 1 /* Maybe I should write an accessor */]; // 
+                        const i = jop.iKeyValues[activeSource].KeyKeyValue;
                         if ((i >> 1) >= this.Value.length) {
                             //console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
                             //console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
@@ -907,9 +938,9 @@ export class Row {
         // //throw " from also needs a delay that gets too complicated. I need to use  code from swap or sub here"
         while ((pos = jop.next()) < jop.behindKeyValue) {
             //const interfaceIsSharedWithSub = new Array<Span<number>>()
-            const filled = !jop.iKeyValue.some(i => (i.KeyKeyValue & 1) === 0);
+            const filled = !jop.iKeyValues.some(i => (i.KeyKeyValue & 1) === 0);
             //console.log(pos+" "+jop.i[0].from+ " 01 "+jop.i[1].from+ " filled: "+filled)
-            const these = jop.iKeyValue.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            const these = jop.iKeyValues.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 // code from sub
                 //  const ii=jop.i[1][j]
                 if (typeof ii.KeyValueInMatrix === "undefined" || typeof ii.KeyValueInMatrix !== "number") {
@@ -935,7 +966,7 @@ export class Row {
                 return thi;
             });
             const mul = new ResultMul();
-            a.removeSeams(these, pos, jop.iKeyValue.every(v => v.filled /* differs from sub */), mul /*inject multiply */); //, factor /* sorry */, nukeCol);
+            a.removeSeams(these, pos, jop.iKeyValues.every(v => v.filled /* differs from sub */), mul /*inject multiply */); //, factor /* sorry */, nukeCol);
             // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
             //     if (p < 0) throw "something is wrong with filled"
             //     for (; p < pos; p++) {

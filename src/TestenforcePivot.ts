@@ -1,5 +1,5 @@
 //import import * as validator from "./ZipCodeValidator"; './enforcePivot'
-import { Tridiagonal, Row, JoinOperatorIterator, Seamless } from './enforcePivot.js'
+import { Tridiagonal, Row, JoinOperatorIterator, SeamlessValues } from './enforcePivot.js'
 import { main, SimpleImage } from './GL.js';
 //import 'assert'
 
