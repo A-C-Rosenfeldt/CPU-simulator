@@ -1,10 +1,10 @@
-import { Tridiagonal, Row, JoinOperatorIterator, Seamless, AllSeamless, Span, Result } from '../src/enforcePivot';
+import { Tridiagonal, Row, JoinOperatorIterator, SeamlessValues, AllSeamless, KeyValueValue, Result } from '../src/enforcePivot';
 import { expect } from 'chai';
 import 'mocha';
 
-class SeamlessMock implements Seamless{
+class SeamlessMock implements SeamlessValues{
   data_next: number[][] = []
-  start_next: number[] = []
+  KeyValue_next: number[] = []
   otherLog:number[][]=[]
   
   constructor() { //keepSeamAt?:number){
@@ -14,16 +14,16 @@ class SeamlessMock implements Seamless{
   flush() {
     // not needed in this mock:  throw new Error('Method not implemented.');
   }
-      removeSeams(fillValues: Span<number>[], pos: number, filled: boolean, operator?: Result, nukeCol?: number, whatIf?: boolean) {
-        this.start_next.push(pos) // pos should always pass the test at the end of  swapColumns()
+      removeSeams(fillValues: KeyValueValue<number>[], pos: number, filled: boolean, operator?: Result, nukeCol?: number, whatIf?: boolean) {
+        this.KeyValue_next.push(pos) // pos should always pass the test at the end of  swapColumns()
         //console.log("remove Seams at least has to note pos: "+pos+" and filled "+filled+" to check the chain of XORs")
         if (fillValues.length===1){
         const f=fillValues[0] // array functionality for sub only. Degenerated case is simpler than type union
-        if (this.start_next.length>0 && this.start_next[this.start_next.length-1]>f.start){
-          throw "values must be increasing monotonic "+ this.start_next +" > "+f.start  // back tracking from "shifting forth and back  does not match"
+        if (this.KeyValue_next.length>0 && this.KeyValue_next[this.KeyValue_next.length-1]>f.KeyValue){
+          throw "values must be increasing monotonic "+ this.KeyValue_next +" > "+f.KeyValue  // back tracking from "shifting forth and back  does not match"
         } 
         
-        this.otherLog.push([(filled?1:0),f.start,f.extends.length]) // todo: start next is public and this use crashes swapColums()
+        this.otherLog.push([(filled?1:0),f.KeyValue,f.Value.length]) // todo: start next is public and this use crashes swapColums()
         }else{
           this.otherLog.push([(filled?1:0)])
           if (fillValues.length>1){
@@ -43,9 +43,9 @@ describe('Swap', () => {
     // white box
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(1)
-      expect(jop.i[i++].from).to.equal(0) // shifted values start later
-      expect(jop.i[i++].from).to.equal(1)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1)
     }
 
     pos=jop.next()
@@ -53,9 +53,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(1)
-      expect(jop.i[i++].from).to.equal(0) // shifted values start later
-      expect(jop.i[i++].from).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
     }
     // todo: double zero length cutter for different fill state with nominal same small signature.  --  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
 
@@ -64,9 +64,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(2)
-      expect(jop.i[i++].from).to.equal(0) // shifted values start later
-      expect(jop.i[i++].from).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
     }
 
     // pos=jop.next()
@@ -74,9 +74,9 @@ describe('Swap', () => {
     // // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     // {
     //   let i=0
-    //   expect(jop.i[i++].from).to.equal(2)
-    //   expect(jop.i[i++].from).to.equal(0) // shifted values start later
-    //   expect(jop.i[i++].from).to.equal(2)
+    //   expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+    //   expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
+    //   expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
     // }
 
     pos=jop.next()
@@ -84,9 +84,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(2)
-      expect(jop.i[i++].from).to.equal(1) // shifted values start later
-      expect(jop.i[i++].from).to.equal(3)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(3)
     }
 
     pos=jop.next()
@@ -94,9 +94,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(2)
-      expect(jop.i[i++].from).to.equal(2) // shifted values start later
-      expect(jop.i[i++].from).to.equal(4)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(4)
     }
 
     pos=jop.next()
@@ -104,9 +104,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(2)
-      expect(jop.i[i++].from).to.equal(2) // shifted values start later
-      expect(jop.i[i++].from).to.equal(5)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(5)
     }
 
     pos=jop.next()
@@ -114,9 +114,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(2)
-      expect(jop.i[i++].from).to.equal(2) // shifted values start later
-      expect(jop.i[i++].from).to.equal(6)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(6)
     }    
 
     pos=jop.next()
@@ -124,9 +124,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.i[i++].from).to.equal(2)
-      expect(jop.i[i++].from).to.equal(2) // shifted values start later
-      expect(jop.i[i++].from).to.equal(6)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(6)
     }    
 
   });
@@ -151,22 +151,22 @@ describe('Swap', () => {
       // todo: this becomes a method of class Row
       row.shiftedOverlay(size, delayedSWP, spans_new_Stream)      
 
-      expect(spans_new_Stream[1].start_next.length).to.equal(2)
-      expect(spans_new_Stream[0].start_next.length).to.equal(2)
+      expect(spans_new_Stream[1].KeyValue_next.length).to.equal(2)
+      expect(spans_new_Stream[0].KeyValue_next.length).to.equal(2)
       let j=0
       {
         let i=0
-        expect(spans_new_Stream[j].start_next[i]).to.equal(3)
+        expect(spans_new_Stream[j].KeyValue_next[i]).to.equal(3)
         expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(0) // is 1 .. like no swap happend :-(
-        expect(spans_new_Stream[j].start_next[i]).to.equal(4)        
+        expect(spans_new_Stream[j].KeyValue_next[i]).to.equal(4)        
         expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(0)
       }
       j++
       {
         let i=0
-        expect(spans_new_Stream[j].start_next[i]).to.equal(3)
+        expect(spans_new_Stream[j].KeyValue_next[i]).to.equal(3)
         expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(1)
-        expect(spans_new_Stream[j].start_next[i]).to.equal(4)        
+        expect(spans_new_Stream[j].KeyValue_next[i]).to.equal(4)        
         expect(spans_new_Stream[j].otherLog[i++][0]).to.equal(0)
       }
 
@@ -198,12 +198,12 @@ it('jop + swap + seamless + tridiagonal', () => {
     expect(unit.getAt(0,0)).to.equal(5)
     expect(unit.getAt(0,3)).to.equal(0)
     unit.swapColumns([0,1])
-    expect(unit.row[0].starts.length).to.equal(2)
-    expect(unit.row[0].starts[0]).to.equal(3)
-    expect(unit.row[0].starts[1]).to.equal(4)
+    expect(unit.row[0].KeyValue.length).to.equal(2)
+    expect(unit.row[0].KeyValue[0]).to.equal(3)
+    expect(unit.row[0].KeyValue[1]).to.equal(4)
 
-    expect(unit.row[0].data.length).to.equal(1)
-    expect(unit.row[0].data[0][0]).to.equal(5)
+    expect(unit.row[0].Value.length).to.equal(1)
+    expect(unit.row[0].Value[0][0]).to.equal(5)
 
     // to left
     expect(unit.getAt(3,0)).to.equal(5)
