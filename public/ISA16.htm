@@ -123,6 +123,40 @@ Note that for most of these the order of R and S is arbitrary, so can encode two
     The high ALU can only do ++ and -- . It uses inverters on odd and even bits and has a flat carry with alternated inverted bits. Inputs are: S,X,Y,P
 
 </p>
+
+<p>
+    JRISC is MIPS ( 32x32 register file) where one source is also the target to have 16 bit encoding. This is similar to many onthers like Atmel8bit, SuperFx, SH2.
+I wonder if reduced instructions can be sorted in a different way than MIPS does it ( based on immemdiate). That is more 32bit encoding stuff like also for RISC_V.
+
+Due to pipeline, the source registers are encoded as address. One bit denotes a literal => 2*6 = 12 bit
+We could specify a target:
+writes to second Source?  1 bit
+	ALU
+		commute
+			4   2 bit
+        don't commute
+            sub
+                only instruction which allows a constant in both operands (xor)
+            shift. 3 bits ?? 
+                rotate?
+                left right  ( only for constant .. check which side is constant)
+                signed?     ( only for not rotate and right)           
+	LoadStore
+		Move  pointer          --  regs only 
+		Add   Adreessing mode  --  literal   .. implicit register like in 6502 (X,Y), 68k, z80 (SI, DI)
+flags?  Write to Flags? 1 bit
+	writes to
+		CMP
+		Test
+		Btest
+	reads
+		Jump  ( all jumps are conditinal .. all other instructions are not)
+	both
+		ADC
+		SBC
+implicit
+	Jump
+</p>
 <a href="pipeline.htm">Pipeline</a>
 <a href="Multiplication.htm">Pipeline</a>
     </body>

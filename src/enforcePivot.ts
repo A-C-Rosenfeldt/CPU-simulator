@@ -750,30 +750,35 @@ export class Row {
         this.KeyValue.push(pos + 1)
     }
 
-    static RLE(oldValue:number[][],oldKeyValues:number[]): [number[][],number[]] {
-        return [oldValue, oldKeyValues] // Todo!
+    static RLEs(oldValue:number[][],oldKeyValues:number[]): [number[][],number[]] {
+        //return [oldValue, oldKeyValues] // Todo!
 
         let newKeyValues:number[]=[]
         let newValues:number[][]=[]
-        oldValue.forEach( (value,i) => {
-            let oldKeyValue=oldKeyValues[i<<1]  // looks like I should provide two interfaces
-            let lastNewKeyValue=-1
+        oldValue.forEach( Row.RLE(oldKeyValues, newKeyValues, newValues))
+
+         return [newValues, newKeyValues]
+    }
+
+    // For the unit test .. not so much for the rest .. Uh, code smell
+    static RLE(oldKeyValues: number[], newKeyValues: number[], newValues: number[][]): (value: number[], index: number, array: number[][]) => void {
+        return (value, i) => {
+            let oldKeyValue = oldKeyValues[i << 1] // looks like I should provide two interfaces
+            let lastNewKeyValue = -1
             const valueChangesToKeyPlusOne = (v: number, newKeyValue: number): void => {
-                if ((lastNewKeyValue>0) != (v === 0.0)) {
-                    newKeyValues.push( oldKeyValue+newKeyValue ) // first event reproduces old KeyValue
-                    if (v === 0.0){  // similar to trim? any code in Join? Maybe an ugly version. todo!
-                        newValues.push(value.slice(lastNewKeyValue,newKeyValue))
-                        lastNewKeyValue=-1
-                    }else{
-                        lastNewKeyValue=newKeyValue
+                if ((lastNewKeyValue > 0) != (v === 0.0)) {
+                    newKeyValues.push(oldKeyValue + newKeyValue) // first event reproduces old KeyValue
+                    if (v === 0.0) { // similar to trim? any code in Join? Maybe an ugly version. todo!
+                        newValues.push(value.slice(lastNewKeyValue, newKeyValue))
+                        lastNewKeyValue = -1
+                    } else {
+                        lastNewKeyValue = newKeyValue
                     }
                 }
             }
-            value.forEach( valueChangesToKeyPlusOne)
-            valueChangesToKeyPlusOne(0.0,value.length)
-         })
-
-         return [newValues, newKeyValues]
+            value.forEach(valueChangesToKeyPlusOne)
+            valueChangesToKeyPlusOne(0.0, value.length)
+        }
     }
 
     // todo: remove in child class due to all the calls
@@ -802,7 +807,7 @@ export class Row {
         if (!jop.iKeyValues.every(v => v.filled === false)) throw "last boundary should be a closing one" ;
 
         // Remove nuked 0.0 and lucky 0.0 and flip buffers
-        [this.Value, this.KeyValue] = Row.RLE(drain.data_next, drain.KeyValue_next) ;
+        [this.Value, this.KeyValue] = Row.RLEs(drain.data_next, drain.KeyValue_next) ;
 
         //console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }

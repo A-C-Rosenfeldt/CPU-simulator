@@ -639,11 +639,16 @@ export class Row {
         this.KeyValue.push(pos);
         this.KeyValue.push(pos + 1);
     }
-    static RLE(oldValue, oldKeyValues) {
-        return [oldValue, oldKeyValues]; // Todo!
+    static RLEs(oldValue, oldKeyValues) {
+        //return [oldValue, oldKeyValues] // Todo!
         let newKeyValues = [];
         let newValues = [];
-        oldValue.forEach((value, i) => {
+        oldValue.forEach(Row.RLE(oldKeyValues, newKeyValues, newValues));
+        return [newValues, newKeyValues];
+    }
+    // For the unit test .. not so much for the rest .. Uh, code smell
+    static RLE(oldKeyValues, newKeyValues, newValues) {
+        return (value, i) => {
             let oldKeyValue = oldKeyValues[i << 1]; // looks like I should provide two interfaces
             let lastNewKeyValue = -1;
             const valueChangesToKeyPlusOne = (v, newKeyValue) => {
@@ -660,8 +665,7 @@ export class Row {
             };
             value.forEach(valueChangesToKeyPlusOne);
             valueChangesToKeyPlusOne(0.0, value.length);
-        });
-        return [newValues, newKeyValues];
+        };
     }
     // todo: remove in child class due to all the calls
     // the data blow up part -> log and print statistics! Also see stackoverlow: inverse of a sparse matrix
@@ -685,7 +689,7 @@ export class Row {
         if (!jop.iKeyValues.every(v => v.filled === false))
             throw "last boundary should be a closing one";
         // Remove nuked 0.0 and lucky 0.0 and flip buffers
-        [this.Value, this.KeyValue] = Row.RLE(drain.data_next, drain.KeyValue_next);
+        [this.Value, this.KeyValue] = Row.RLEs(drain.data_next, drain.KeyValue_next);
         //console.log("now in sub: "+this.starts.join('') + "->"+ this.data.join('') )
     }
     static StaticSub(jop, factor, nukeCol) {
