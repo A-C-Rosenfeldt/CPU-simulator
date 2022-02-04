@@ -652,7 +652,7 @@ export class Row {
             let oldKeyValue = oldKeyValues[i << 1]; // looks like I should provide two interfaces
             let lastNewKeyValue = -1;
             const valueChangesToKeyPlusOne = (v, newKeyValue) => {
-                if ((lastNewKeyValue > 0) != (v === 0.0)) {
+                if ((lastNewKeyValue < 0) != (v === 0.0)) {
                     newKeyValues.push(oldKeyValue + newKeyValue); // first event reproduces old KeyValue
                     if (v === 0.0) { // similar to trim? any code in Join? Maybe an ugly version. todo!
                         newValues.push(value.slice(lastNewKeyValue, newKeyValue));
@@ -1098,7 +1098,7 @@ export class Tridiagonal {
                 // greenscreen
                 pixel[i++] = 0;
                 pixel[i++] = 0;
-                pixel[i++] = bit ? 90 : 128;
+                pixel[i++] = bit ? 90 : 148;
                 pixel[i++] = 255;
             }
             pixels.push(pixel);
