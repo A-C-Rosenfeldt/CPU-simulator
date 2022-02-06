@@ -9,6 +9,132 @@
         </style>
     </head>
     <body>
+        <h1> Two register format is the only sane encoding in 8 bit </h1>
+        Encodings with more than 8 bit can include immediate values.
+        Immediate encourage self modifying code which I don't want because historically 8 bit code often ran from ROM.
+        Immediate memory addresses lead to akwarded memory management.
+        We have 4 general purpose registers to keep the canon of inner loops in them: DIV, MUL, shift, mirror, bitscan, block-Operations.
+        Wiht only 4 register, it makes sense to have CMP and TEST.
+        <h2> 7 bit. Two register (4), 8 instructions (3) </h2> 
+        Operations on consecutive lines have a lot in common.
+        <table>
+            <thead>
+                <tr><th>Operation</th><th>source=target</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>ADC</td><td>ROL (natural)</td></tr>
+                <tr><td>SBC</td><td>NEG</td></tr>
+                <tr><td>CMP</td><td>ROR ( close to ROL) </td></tr>
+                <tr><td>TEST</td><td>ASR ( close to ROR)</td></tr>
+                <tr><td>AND</td><td>DEC ( AND goes to 0)</td></tr>
+                <tr><td>OR</td><td>INC ( OR goes to 1)</td></tr>
+                <tr><td>XOR</td><td>NOT</td></tr>
+                <tr><td>CPY</td><td>swap bytes</td></tr>
+            </tbody>
+            <p> Although AND and OR may profit from 3 register format, it is not justified to have those and TEST.
+                I prefer TEST. 3 register encoding adds complexity.
+                3 register encoding needs to deduce an operation bit from the operands, which feel weird.
+            </p>
+        </table>
+        
+        <h2> 6 bits: Address </h2>
+        <p>
+            Two register and the load vs store bit and byte(sign extended)/word bit.
+            For store and both registers the same => makes no sense.
+            Those isntructions are redefined as: Load Immediate
+        </p>
+
+        <h2>5 bit: Program flow</h2>
+        <h3> 4 bit &gt; Branch and flags </h3>
+        2 bits for the flag: zero, negative, carry, overflow <br/>
+        1 bit for the value. <br/>
+        1 bit for read (branch) or write (set|clear).<br/>
+
+        <h3> 4 bit &gt; Jump and interrupts </h3>
+        <ul>
+            <li> interrupt flag set ?</li>
+            <li> interrupt flag cleared ?</li>
+            <li> jump (copy register 0 to ProgramPointer)?</li>
+            <li> programPointer move to register 1? </li>
+        </ul>
+
+        <h2> Mindless filling up the residual encodings. </h2>
+        <p>
+            Branch always. Load/Store Flags to register 2.
+        </p>    
+
+        <h1> OLD </h1> <p> Register encoding formate is King </p>
+        <h2> Instructions I got to know a new ISA which is more based on instructons than register</h2>
+        <h3> 6 bits: Address </h3>
+        <p>
+            Two register and the load vs store bit and byte/word bit.
+            For store and both registers the same => makes no sense.
+            Those isntructions are redefined as:
+            Load Immediate8 into low byte,
+            Load HiByte immediate8.
+        </p>
+
+        <h3> 6 bits Two register format </h3>
+        <p>
+            Source can be constant: 1bit. 4 bits for registers. One bit to choose between ADC and XOR.
+            AND with itself is SHL. XOR with itself is clear (but maybe redefined () I want to keep my decoding simple).
+        <p>
+            Constants: sign, exponent: +2 +1 -1 -2
+            XOR with -1 is NNOT.  The other three values are defined as these instructions:
+            SAR, ROR through carry, ROL through carry ( to keep them close to SHL).
+        <h3> 6 bits : Source[] => Target three register format: Logical AND and OR and COPY. </h3>
+        <p>       
+        if ( source0 &gt; source1 ) AND   -- just think of a matrix with main diagonal .. nothing cyclic <br/>
+        if ( source0 &lt; source1 ) OR  <br/>
+        else COPY <br/>
+        </p><p>COPY onto itself means "swap bytes". </p>
+
+        <h3> 5 bit &lt; : SBC use 2 source registers and then one of them is the target</h3>
+        <p> The target is either 111, or 110 meaning indriectly source0 or source1.
+            101 means: Discard result == CMP.
+            Other values mean: Branch</p>
+            <p>
+                If both source are the same, target says which one to replace with the immediate value.
+                I would rather have 3 bits for the source.
+                Jump and Sub combined already use 6 bits, but
+                we would still have to encode [const?,const?,target] into 2 bits.
+                I cannot go down to three register bacause MUL, DIV, block COPY, SCAN etc. need 4 registers.
+            </p>
+        <h3> 5 bit &gt; Jump and flags </h3>
+        3 bits for the flag: zero, negative, carry, overflow, const 1== interrupt <br/>
+        1 bit for the value. <br/>
+        1 bit for read (branch) or write.<br/>
+        <p> On read the interrupt flag is always 0 for branch always with value=0.
+        No jump instead means to store the ProgramPointer is swapped with register.0 (think RCA 1802).
+        STI and CLI are delayed by one cycle to allow RTI macro and BRK macro.
+        </p>
+            Missing atm: atomic RTI, jump absolute should use two registers.
+        </p>
+        <h1>ALU</h1>
+        The ALU receives two operands and prepares everything for the central carry propagation.
+        Only two operations on the carry make sense: Identity, inversion. Otherwise we could have already sent the signal.
+        So both of these gates read the input, but only one is powererd up by the preparation cirtuit.
+        Indentity is implemented as two inversions. When you try to optimize for example for equal lenght signal path,
+        you end up at a carry look ahead cirtuit ( bottom up ).
+        <h1>Old</h1>
+        <h3> Source ( may be a const) => Target two register format </h3>        
+        <h4> Some only affect the flags</h4>
+        Exclusive OR: XOR, Test (target is really just a source), the constant is sign extended: NOT (do not count, is in constant) <br/>
+        Subtract: SUB, SBC, CMP (target is really just a source), NEG ( SUB with commuted operands)
+
+        <h4> Add </h4>
+        Add, Adc ( similar to sbc above)
+        <p>So 8 variants + the const? flag => 4 bits . And then both registers. Uh. </p>
+        <h4> Jump </h4>
+        Relative const or absolute register. Condition (the 3 of 6502 and for 16 bit encoding all other combinations also)).
+        <p> 4 bit + register does not sound too bad. The 8 bit encoding better uses immediate values </p>
+        <h4> Address </h4>
+        Address Register and Value Register. Load vs Store. PostIncrement? ( maybe switchable in direction Flag?)
+        <p>One could think that RISC does not need too much memory acces, but still we seem to need a quarter of the endoding space.</p>
+        <h4> shift </h4>
+        Two registers for 16bit encoding, but only one for 8 bit encoding.
+
+        <h1> Register centric version </h1>
         <h2>registers</h2>
         <table>
             <thead>
