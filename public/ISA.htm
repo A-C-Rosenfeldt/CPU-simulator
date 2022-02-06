@@ -13,8 +13,10 @@
         Encodings with more than 8 bit can include immediate values.
         Immediate encourage self modifying code which I don't want because historically 8 bit code often ran from ROM.
         Immediate memory addresses lead to akwarded memory management.
-        We have 4 general purpose registers to keep the canon of inner loops in them: DIV, MUL, shift, mirror, bitscan, block-Operations.
-        Wiht only 4 register, it makes sense to have CMP and TEST.
+        We have 4 general purpose registers (0123 or ABXY or ABST) to keep the canon of inner loops in them: DIV, MUL, shift, mirror, bitscan, block-Operations, Fibonacci Sequence.
+        With only 4 register, it makes sense to have CMP and TEST.
+        Though we need a 5th register to keep our context "Stack Pointer".
+        We place it on the other half of the internal bus, together with PP, Data, Address (write), WriteBack (read), Flags.
         <h2> 7 bit. Two register (4), 8 instructions (3) </h2> 
         Operations on consecutive lines have a lot in common.
         <table>
@@ -26,10 +28,10 @@
                 <tr><td>SBC</td><td>NEG</td></tr>
                 <tr><td>CMP</td><td>ROR ( close to ROL) </td></tr>
                 <tr><td>TEST</td><td>ASR ( close to ROR)</td></tr>
-                <tr><td>AND</td><td>DEC ( AND goes to 0)</td></tr>
+                <tr><td>AND</td><td>sign extend</td></tr>
                 <tr><td>OR</td><td>INC ( OR goes to 1)</td></tr>
                 <tr><td>XOR</td><td>NOT</td></tr>
-                <tr><td>CPY</td><td>swap bytes</td></tr>
+                <tr><td>32 bit ROR by one byte</td><td>swap bytes</td></tr>
             </tbody>
             <p> Although AND and OR may profit from 3 register format, it is not justified to have those and TEST.
                 I prefer TEST. 3 register encoding adds complexity.
@@ -41,23 +43,40 @@
         <p>
             Two register and the load vs store bit and byte(sign extended)/word bit.
             For store and both registers the same => makes no sense.
-            Those isntructions are redefined as: Load Immediate
+            Those instructions are redefined as: Load Immediate
+        </p>
+
+        <h2> 6 bit: Copy</h2>
+        <p>
+        I need that scratchpad register to push context to. Thus I guess I need 5 register copy.
+        At least within copy all regs are the same. Counting tells me that I can have 6 registers! But I hate copy .. it does nothing.
+        </p>
+        <p>
+            If target register > 4 then this is "Jump and Interrupt instead"
+            If source register > 4 then this is "Branch and Flag" instead.
+            if source = target then DEC  (for counter in MUL, DIV, and memory block operations, or even an address in a stack).
+            Maybe sourc register = 5 could mean INC.
         </p>
 
         <h2>5 bit: Program flow</h2>
+        <h3> 4 bit &gt; Jump and interrupts </h3>
+        <ul>
+            <li> jump | Jump and set interrupt flag | set  (3 states left over from copy)</li>
+            <li> Enter or leave?</li>
+        </ul>
+        <p> Leave jump load register 1 to ProgramPointer while enter stores the programPointer in 1 and loads 0 in the program pointer. </p>        
+
         <h3> 4 bit &gt; Branch and flags </h3>
         2 bits for the flag: zero, negative, carry, overflow <br/>
         1 bit for the value. <br/>
         1 bit for read (branch) or write (set|clear).<br/>
 
-        <h3> 4 bit &gt; Jump and interrupts </h3>
+        <p>Maybe we use the triState to have:</p>
         <ul>
-            <li> interrupt flag set ?</li>
-            <li> interrupt flag cleared ?</li>
-            <li> jump (copy register 0 to ProgramPointer)?</li>
-            <li> programPointer move to register 1? </li>
+            <li> [ negative | zero | positive ] as cases and mark the case where we want to jump => 3 bits and includes branch always</li>
+            <li> We choose carry xor overflow and jump on value => 2 bits </li>
         </ul>
-
+        <p>Only 3 combinations of flags can be set. => 5 free encodings</p>
         <h2> Mindless filling up the residual encodings. </h2>
         <p>
             Branch always. Load/Store Flags to register 2.
