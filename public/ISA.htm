@@ -9,6 +9,86 @@
         </style>
     </head>
     <body>
+        <h1>sources need to be decoded easily</h1>
+        We have 2x3 bits for the sources. They are 5 general purpose registers, the programPointer, immediate value ( data register after the decoding phase ).
+        One of the sources is called source, the other target because we also write back to it.
+        We have one encoding slot free. It is fast to give the row slot to one of the general purpose registers two slots "accumulator" A on row so that we have 3 bits for the opcode.
+        The column slot ( source ) is given to another GPregister "stackPointer" S. When we access the StackPointer there, the instruction bits mean Load/Store and Byte/Word instead (with ++ and -- for the stack).
+        Two GPregisters are SourceIndex(X) and DestinationIndex(Y). They support COPY (TXA) and one supports Load and the other Store. On themselves, COPY becomes ++ and --.
+        In combination with A, in the second row, they do store and load in combination with ++ and -- ( recognize the byte/word flag).
+        On von Neumann architecture we have a slot to write back the new address, while the instruction fetch has to wait on data memory access.
+        With (I + X) addressing we can peek data into register B (I+S also).
+        ProgramPointer + immediate give us relative branches. We have 8 of those. So it seems that I need both, immediate and ProgramPointer on source and target.
+        ProgramPointer can be copied into some registers, but we do not need all. It makes no sense to have so many ProgrammPointer related instructions even with RTI and BRK,
+        but then again, all on the row are redefined as unary operation on the column operand.
+        <h1> If I need more than 4 registers, I cannot keep registers and operations orthogonal </h1>
+        <p>
+            After we counted all operations and removed all dupes, we now do fancy stuff.
+            Aparently, we could either do 16 bit RISC, or 8 bit and complicated encoding. Simple 8 bit don't cut it for the canon of algorithms.
+            I need 4 registers for those. One as a StackPointer, one as a ProgrammPointer, and I reserve one number for the explict access to the ALU flags ( but not that interrupt flag or BCD or stuff).
+            So 7 address. Registers can only see 4 other register. This is a bit hard on encoding because of carry ripple.
+            If the encoded target is too far away, the register-msb is inverted and also the opcode msb ( bit 2 ) to give us 8 opcodes :
+            OR=++, AND=--, COPY=load immediate, xor=clea, add=shl, asr, not, sub=neg.          
+        </p>
+        <p>
+            Load and Store need to access all registers. Copy operation shows that both ( or three ) address register should be used with all other registers ( itself for indirect ).
+            In column 7 is Store and in row 7 is Load. They don't get mapped to via xor ( so even more complicated decoding). One bit for the address register and one for byte vs word.
+        </p>
+        <p> Flags to ProgramPointer needs 8 conditions at least. ProgramPointer on itselft is branch always and two bits. Program Pointer to flags is ? Flag to flag is Set and Clear and needs 8 bits. </p>
+        <p> register to Program Pointer has two bits: clear interrupt? set interrupt? (why do I even care so much about interrupt)? It is like NOP. I would rather have a prefix for jump to deal with this.</p>
+        <p> Flags to register is only one COPY instruction. So I guess I have to place ADC, SBC, ROR and ROL here </p>
+        <p> register to flag can mean CMP and Test with one other value register ( similar to address register ) </p>
+        <p> Basically, only flag-> flag and flag -> ProgramPointer make sense. So there is a real register, which is accessed for most opcodes and all bits >3.
+            The flag register still infects its friend registers with ADC,SBC,ROR,ROL </p>
+        <p>
+            If we encode two register in 6 bits, how do I suppress interaction between different types of registers?
+            Similar to register4 copy, we cannot encode registers verbatim. Some decoding is needed.
+            Move corners towards the diagonal.
+            Sum of opcode and both registerIds is the operation.
+            X and Y address registers ( or SI, DI ) want access to all values, thus they have the matrix at full width.
+            Due to symmetry two registers can receive from everwhere.
+            Oh, nonsense. Due wrap around the locality leads to two para diagonals which are empty.            
+        </p>
+        <p> 4 neighbors of 8 -- Worst case are two COPY instructions or 4 to avoid trash.
+            Sure we don't have enough encoding space. It is the other way around. Each register sees itself and its neighbors.
+            So to reach the other side of the globe you have to go 4 steps to either side.
+            8 registers in total like in 8080 -- but this time with 16 bit -- sound too much.
+            We have 4 general purpose for our algorithms and snippets. ProgramPointer, flags, and StackPointer just add 3 more.
+            With 7 register we have the advantage that there is no register on the exact oposite side. We only need 3 copy to go over.
+        </p>
+        <pre style="white-space: pre-wrap;">
+            xxxoooxx
+            xxxxooox
+            xxxxxooo
+            oxxxxxoo
+            ooxxxxxo
+            oooxxxxx
+            xoooxxxx
+            xxoooxxx
+        </pre>
+        <p>
+        Some register have easy move to program counter. They need to be stored and loaded from memory. I want to park interrupt instructions here.
+        Some register hold address. They need add and count. 2 bit for operation are just right. All value registers should be available.
+        Some registers count.
+        Some function as streaming buffers for DIV and MUL: they ROR
+        The Accumulator is the real deal and does everything, but this would break the symmetry.        
+        Some hold values to compare or test to.
+        Some are flags, which can be exchanged with the real flags. And XOR. Flag to ProgramPointer means branch. We need more bits to describe all combinations.
+        *wrap around*
+        </p>
+        <p>
+            3 bits for source and target.
+            If source-target away more then 4, xor the target and make it a move because target address generation is delayed.
+            Swap the bytes, only move one of them => 4 combos. Load Store using one of the address registers.
+            We can have 4 binary operations.
+            That does not work. We need 3 bits for source, 2 for target, and 3 for operation ( see list below ).
+            Even flag to and from ProgramPointer needs 3 bits.
+            Register to ProgramPointer just needs two bits to say what to do with the interrupflag. (ProgramPointer can be copied onto itself)
+            Address register work with all other Targets. They only need two bits: read/write, load/store .
+        </p>
+        <p>
+            Use "low resolution" of 2 bit for source and target to calculate distance and to keep all combos for the address registers. If too far way: Xor target.
+        </p>
         <h1> Two register format is the only sane encoding in 8 bit </h1>
         Encodings with more than 8 bit can include immediate values.
         Immediate encourage self modifying code which I don't want because historically 8 bit code often ran from ROM.
@@ -55,7 +135,8 @@
             If target register > 4 then this is "Jump and Interrupt instead"
             If source register > 4 then this is "Branch and Flag" instead.
             if source = target then DEC  (for counter in MUL, DIV, and memory block operations, or even an address in a stack).
-            Maybe sourc register = 5 could mean INC.
+            Maybe source register = 5 could mean INC.
+            Or we could promote register 4 to an address register. Always word, but soure=5 means Store[4] and target=5 means Load[4]
         </p>
 
         <h2>5 bit: Program flow</h2>

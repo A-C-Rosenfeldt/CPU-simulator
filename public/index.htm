@@ -93,9 +93,22 @@
     <script src="TestFieldPlusMatrix.js" type="module" ></script>
 
     <h2>Roadmap</h2>
-    <p>
+    <ol>
+        <li>Cosine generators with 1,2,3 s periods 3 independant electrodes and to test out performance with animation.</li>
+        <li> verlet integration with white pixels as electrons. Or do cyan? Red==0 means metal. I don't simulate electrons in metal. Draw points using WebGl .. in full resolution. </li>
+    </ol>
+        
+        <p>
     Matrix inversion does not find lucky 0.0. I could try to meander and to define a cut-off value. Faraday cage test fields?
-    Cosine generator with 3 s period .. Even just hard code sine, too , to show 3 independant electrodes.
+    
+</p>
+<p>
+    To choose a way to meander of if even I need more eleborated fields. So I concentrate on a working prototype. Sorry for the time used for RLE, but that was on my list for many reasons.
+    I already wrote code for contacts. So I should apply phase shifted sine waves to many contacts. Window.SetTimeOut() should work well on canvas. I give it a play button with second degree time out:
+    " let it play for 30 s at 20 fps ". That should not run hot on any notebok
+</p>
+<p>
+    I alread wrote some code with regards to the electrons integration. I should now render a verlet animation of just a lot of points over the field ( color? ).
 </p>
     <!-- would need  MDN.createWebGLProgramFromIds() --><script id="vertex-shader" type="x-shader/x-vertex"></script>
 
