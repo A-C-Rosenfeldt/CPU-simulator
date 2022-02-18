@@ -45,6 +45,16 @@
             "label": "tsc for node and watch"
         },
         {
+            "type": "typescript",
+            "tsconfig": "test/tsconfig.json",
+            "option": "watch",
+            "problemMatcher": [
+                "$tsc-watch"
+            ],
+            "group": "build",
+            "label": "tsc for node and watch test"
+        },        
+        {
             "label": "[Mocha] Run Tests (relative to Workspace-Folder)",
             "type": "shell",
             "command": ".\\node_modules\\.bin\\mocha --recursive",

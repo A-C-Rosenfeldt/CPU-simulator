@@ -1331,9 +1331,9 @@ export class Tridiagonal implements Matrix {
     // todo: write tests
     AugmentMatrix_with_Unity() {
         const M = this
-        const rows = M.row.forEach((r, i) => {
+        const rows = M.row.forEach((r, i) => {            
             const s = M.row.length + i
-            if (r.last(r.KeyValue) < s) {
+            if ( r.KeyValue.length==0 || r.last(r.KeyValue) < s) {
                 r.KeyValue.push(s)  // uh, do I have to accept seams or do I fuse left and right?
                 r.KeyValue.push(s + 1)
                 r.Value.push([1])
