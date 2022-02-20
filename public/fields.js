@@ -159,7 +159,9 @@ export class MapForField {
     // EG exampleField
     constructor(touchTypedDescription) {
         this.maxStringLenght = Math.max.apply(null, touchTypedDescription.map(t => t.length));
+        console.log("cotr: touchTypedDescription: " + touchTypedDescription);
         this.flatLength = touchTypedDescription.map(t => t.length).reduce((a, c) => a + c, 0);
+        console.log("cotr: this.flatLength: " + this.flatLength);
         this.touchTypedDescription = touchTypedDescription;
         // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
         // Yes we should because I do not want to expose this to  Field2Matrix
@@ -248,11 +250,20 @@ export class FieldToDiagonal extends MapForField {
                 if (Number.isNaN(n)) {
                     if ('A' <= char && char <= 'Z') { // contact
                         tu = new Metal();
-                        tu.Contact = this.contacts[char.charCodeAt(0) - 'A'.charCodeAt(0)]; // Do I want an asciative array? Todo call virtual function. We do not have contacts yet
+                        const bucket = char.charCodeAt(0) - 'A'.charCodeAt(0);
+                        if (typeof this.contacts !== "undefined" && this.concats) {
+                            tu.Contact = this.contacts[bucket]; // Do I want an associative array? Todo call virtual function. We do not have contacts yet. Could be undefined
+                        }
+                        else {
+                            tu.Contact = bucket; // This would mean teleport electrodes inside a field. But I'd rather show the wires ( in 3d )
+                        }
                     }
                     else {
                         var tu = char == 'm' ? new Metal() : new Tupel(); // extended electrode
                         tu.BandGap = public_bandgap.get(char) * 4;
+                        if (char == 'm') {
+                            tu.Contact = -1;
+                        } // I need to clean this up later. Enums? Polymorphism
                     }
                     tu.Doping = char === '-' ? 8 : 0; // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
                 }
@@ -390,7 +401,17 @@ export class FieldToDiagonal extends MapForField {
                             //}
                         }
                         else {
-                            throw "contact needs to be an object or undefined";
+                            if (typeof str[k].Contact === 'number') { // neither semiconductor  nor  fixed potential have a contact . But fixed and contact are the same for the field solver .. so mix it!
+                                if (cell.BandGap === 0) {
+                                    str[k].RunningNumberOfJaggedArray = i_mat_pre++; // contacts where we want to multiply the voltage onto using a vector (low impedance, rail or clock) work different than fixed voltage in the map
+                                }
+                                else {
+                                    throw "only metal can have a contact";
+                                }
+                            }
+                            else {
+                                throw "contact needs to be an object or undefined";
+                            }
                         }
                     }
                 }
@@ -531,6 +552,7 @@ export class Field extends FieldToDiagonal {
     // So this is for my internal formats ( field and matrix ). Should be possible to edit all interface to assimilate all adapter-code
     // This code is (ToDo )used by the following 3 methods.
     IterateOverAllCells(f) {
+        console.log("this.flatLength: " + this.flatLength);
         const collector = new Array(this.flatLength);
         let i_mat = 0;
         for (let i = 0; i < this.fieldInVarFloats.length; i++) {
@@ -543,6 +565,7 @@ export class Field extends FieldToDiagonal {
                 //f(i_mat, i, k);
             }
         }
+        console.log("collector.length: " + collector.length);
         return collector;
     }
     // for testing. Pure function
@@ -590,20 +613,21 @@ export class Field extends FieldToDiagonal {
     // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
     GroupByKnowledge(M, dropColumn = false) {
         // todo: static function?  this.M = M;
-        M.row.forEach((r, i) => {
-            this.i = i;
-            const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);
-            // parameter in field is boolean, but for the algorithm I tried to adapt to starts[] to reduce the lines of critical code
-            const startsToSwap = new Array();
-            passedThrough.reduce((a, b, i) => {
-                if (a !== b) {
-                    startsToSwap.push(i); // should not be that many
-                }
-                return b; // lame, I know. Side-effects are just easier 
-            }, false);
-            // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
-            M.swapColumns(startsToSwap, dropColumn); // so this works on a single (rectangular) matrix to avoid the join (on row multiplication)? Starts to swap tells us which field cells just keep their value ( in case of dropColumn)
-        });
+        // M.row.forEach((r, i) => {
+        // this.i = i;
+        const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);
+        // parameter in field is boolean, but for the algorithm I tried to adapt to starts[] to reduce the lines of critical code
+        const startsToSwap = new Array();
+        passedThrough.reduce((a, b, i) => {
+            if (a !== b) {
+                startsToSwap.push(i); // should not be that many
+            }
+            return b; // lame, I know. Side-effects are just easier 
+        }, false);
+        startsToSwap.push(passedThrough.length);
+        // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
+        M.swapColumns(startsToSwap, dropColumn); // so this works on a single (rectangular) matrix to avoid the join (on row multiplication)? Starts to swap tells us which field cells just keep their value ( in case of dropColumn)
+        //   })
     }
     knownItemsOnly(m, i, k) {
         return 0;

@@ -248,6 +248,7 @@ describe('sort columns all on one side', () => {
 
 	it('2021-12-18 metal', () => {
 		const NoSwap = new Field(degneratedScalarContacted)
+		expect(NoSwap.flatLength).to.equal(1)
 		// 2020 Version checkContact.lowImpedanceContacts[0].voltage=1
 		// 2022, now I have CAPS for contacts and numerals for fixed potential.  Was: checkContact.fieldInVarFloats[0][0].Potential = 1; // 2021 Version
 		const m = NoSwap.ShapeToSparseMatrix();

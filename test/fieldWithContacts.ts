@@ -23,7 +23,10 @@ const contactsAverageV: string[] = ['B','i','A']; // check average in center
 describe('2i0metal', () => {
 	it('should all float to the average m',()=>{
 		const Swap = new Field(contactsAverage)
+		expect(Swap.flatLength).to.equal(3)
+
 		const [v,m] = Swap.ShapeToSparseMatrix();
+		expect(Swap.flatLength).to.equal(3)
 		const rn = Swap.fieldInVarFloats[0][1].RunningNumberOfJaggedArray;
 		expect(rn).to.equal(1)
 		expect(m.getAt(rn,rn)).to.equal(2)  //  two sides
@@ -37,10 +40,14 @@ describe('2i0metal', () => {
 		expect(Swap.fieldInVarFloats[0][2].RunningNumberOfJaggedArray).to.equal(2)
 
 		m.AugmentMatrix_with_Unity()
+		expect(Swap.flatLength).to.equal(3)
 		expect(m.getAt(0,3)).to.equal(1) // sort by column would put off-diagonal elements on the rhs. This cannot be already sorted. So after augmenting?
 		expect(m.getAt(1,3)).to.equal(0)
 		
+		expect(Swap.flatLength).to.equal(3)
+		console.log("Swap.flatLength "+Swap.flatLength)
 		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
+		expect(Swap.flatLength).to.equal(3)
 		expect(m.getAt(0,3)).to.equal(1)
 		expect(m.getAt(1,3)).to.equal(0)
 		expect(m.getAt(rn,0)).to.equal(-1)
@@ -67,7 +74,7 @@ describe('2i0metal', () => {
 
 		m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
 		expect(m.getAt(rn,rn+6)).to.equal(1)  //  the start of the other diagonal				
-		m.inverseRectangular() // inplace?
+		m.inverseRectangular() // inplace? // 20220218 "division by zero (matrix undefinite)"
 		expect(m.getAt(rn,rn)).to.approximately(1,0.001)
 		const potential = m.MatrixProduct(v)  // this is a good way to test the inverse. Later there are ofthen the fixed rails. So it may be nice to have them integrated into a sandwich column .. dunno
 		// If I stay with this MatrixProduct, I would need to concat(v & contacts) .. this test has no Contacts, though

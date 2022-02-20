@@ -113,7 +113,7 @@ class KeyValueValue_InMatrix extends FilledFrom {
 // Todo: swap uses this
 export class JoinOperatorIterator {
     KeyValue = new Array<number[]>()
-    iKeyValues = new Array<FilledFrom>() // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
+    KeyValuesSources = new Array<FilledFrom>() // I need to generalize for swap which needs 3 arrays and iteration 3 times over arrays is worse then iterating over 3 values inside the loop 
     filled = 0
     filled_last: number
     behindKeyValue = -1 // join operator, please leave me alone  :number
@@ -136,7 +136,7 @@ export class JoinOperatorIterator {
                 // }
                 this.KeyValue[++iKeyValue] = keyValue
                 if (t) {
-                    this.iKeyValues[iKeyValue] = new FilledFrom(keyValue)  // I do not know. Maybe for swap? I am in the middle of refactor right now
+                    this.KeyValuesSources[iKeyValue] = new FilledFrom(keyValue)  // I do not know. Maybe for swap? I am in the middle of refactor right now
                 }
             }
             //console.log(" this.s :  "+this.s)
@@ -169,14 +169,14 @@ export class JoinOperatorIterator {
         //      return neu; 
         //     } ) // this sets the order of indices. Feels okay
         //this.filled_last=this.filled_last
-        const minKeyValue = this.iKeyValues.reduce((pKeyValue, v) => {
+        const minKeyValue = this.KeyValuesSources.reduce((pKeyValue, v) => {
             return (v.KeyKeyValue < v.maxKeyKeyValue && v.mpKeyValue < pKeyValue) ? v.mpKeyValue : pKeyValue;  // could set a break point on some part of a line in  VSC
         }, this.behindKeyValue
         ) // uh. again a join
 
         //if (min<this.last) // this would lead to an endless loop
         {
-            this.iKeyValues.forEach((c) => {
+            this.KeyValuesSources.forEach((c) => {
                 if (minKeyValue === c.mpKeyValue) { // this would lead to an endless loop: && c.from < c.max-1){ // not while because Seamless removes zero length spans ( degenerated )
                     c.KeyKeyValue++;
                     // c.filled =  !c.filled  ; // ^= 1 << i
@@ -200,7 +200,7 @@ export class JoinOperatorIterator {
 
                 let min = this.behindKeyValue
                 cursor.forEach((c, i) => {
-                    const k = this.iKeyValues[0][i].from
+                    const k = this.KeyValuesSources[0][i].from
                     if (k < c[1]) {
                         c[0] = this.KeyValue[i][k]
                     }
@@ -244,14 +244,14 @@ export class JoinOperatorIterator {
 }
 
 export /* for transparent test*/ class JopWithRefToValue extends JoinOperatorIterator {
-    iKeyValues: KeyValueValue_InMatrix[]
+    KeyValuesSources: KeyValueValue_InMatrix[]
     // Todo: Look up how to do  constructor overloading correctly in typeScript. Compared to C#, Java, C++ this is a mess
     constructor(...r: Row[]) { //s: number[][])
         // constructor(initi:boolean, ...s:number[][]);
         // constructor()
         //{ //}...s:number[][]){
         super(false, ...r.map(r => r.KeyValue)) // base class is already complicated enough. Hide the values!  //  uh, messy. Maybe I just have bad luck with my flat parameters?
-        this.iKeyValues = r.map(r => new KeyValueValue_InMatrix(r))
+        this.KeyValuesSources = r.map(r => new KeyValueValue_InMatrix(r))
 
         // for (let k = arguments.length; --k >= 0;) {
         //     const u = arguments[k] as number[]
@@ -804,7 +804,7 @@ export class Row {
         // nothing comes after the end of the last span ..  and with end I mean position in matrix not in Starts
         // drain.flush // pretty sure I need this. I'll just try out to live with less LoC
 
-        if (!jop.iKeyValues.every(v => v.filled === false)) throw "last boundary should be a closing one" ;
+        if (!jop.KeyValuesSources.every(v => v.filled === false)) throw "last boundary should be a closing one" ;
 
         // Remove nuked 0.0 and lucky 0.0 and flip buffers
         [this.Value, this.KeyValue] = Row.RLEs(drain.data_next, drain.KeyValue_next) ;
@@ -834,12 +834,12 @@ export class Row {
             // } // todo test: pos is at 1, these[0].start is lagging at 0 .. length 1 .. That means: pos is behind the span .  Debug: 5 times "dive into"
             //let pointer = this.data//;throw "this hack does not scale and especially does not work with filter"
             // for(let j=1;j>=0;j--){ // only this explict code works with  "this" and "that" data
-            if (jop.iKeyValues.length != 2)
+            if (jop.KeyValuesSources.length != 2)
                 throw "This is a binary operator!"
             // jop.i.from starts at 0 and this is okay, as starts start at 0 .. Starts point into the start of the matrix and these >= 0
             // so at first pass, ii.from=0 is valid (though, we could be before), but is ii.filled?
-            jop.iKeyValues[1].factor = factor
-            const these = jop.iKeyValues.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            jop.KeyValuesSources[1].factor = factor
+            const these = jop.KeyValuesSources.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 //  const ii=jop.i[1][j]
                 if (typeof ii.KeyValueInMatrix === "undefined" || typeof ii.KeyValueInMatrix !== "number") {
                     throw "all indizes should just stop before the end ii.mp. From: " + ii.KeyValueInMatrix
@@ -862,7 +862,7 @@ export class Row {
             // first pass, just store pos for slice()
             const Sub = new ResultSub()
             // before filter Sub.factor=factor
-            drain.removeSeams(these, pos, !jop.iKeyValues.every(v => v.filled === false), Sub, nukeCol)
+            drain.removeSeams(these, pos, !jop.KeyValuesSources.every(v => v.filled === false), Sub, nukeCol)
             // if ( jop.i[1][j] ){
             //     const thi=new Span<number>(0, pointer.starts[jop.i[j]] )
             //     thi.extends=pointer.data[jop.i[j]>>1]
@@ -877,17 +877,17 @@ export class Row {
     }
 
     // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
-    public shiftedOverlay(length: number, delayedSWP: number[], spans_new_Stream: SeamlessValues[] /* out parameter */, dropColumn = false) {
+    public shiftedOverlay(heightKeyValue: number, swapBordersOriginalConcatDelayed: number[], spans_new_Stream: SeamlessValues[] /* out parameter used for a mock in a unit test, sorry */, dropColumn = false) {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2"
         var delayedRow = new Row([])
         // rename trick //const row=this
         delayedRow.Value = this.Value
-        delayedRow.KeyValue = this.KeyValue.map(s => s + (length >> 1)) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
+        delayedRow.KeyValue = this.KeyValue.map(s => s + (heightKeyValue )) // this is clearly simpler than some function injection indirection. Also: fast due to me using spans already. It is called "dynamic programming", I guess.
 
         //join starts and swap
-        const l = this.KeyValue.length >> 1
+        //const l = this.KeyValue.length >> 1
         //for(let half=0;half<l;half+=l>>1){
-        let jop = new JoinOperatorIterator(this.KeyValue, delayedRow.KeyValue, delayedSWP /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
+        let jop = new JoinOperatorIterator(this.KeyValue, delayedRow.KeyValue, swapBordersOriginalConcatDelayed /* uhg, ugly join */) //row.starts.slice(0,l),row.starts.slice(l,l<<1),swapHalf)
 
         // ^ so this is one indirection less then needed
         // gotta change  FillValues.ValueSpanStartInMatrix 
@@ -897,46 +897,42 @@ export class Row {
         //let last_gap=0 //jop.gap
         //const secondHalf=new Array<Span<number>>()
         // todo: test that swap  discards the single source outside of the overlapping range
-        while ((pos = jop.next()) < (length) /* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */) {
+        while ((pos = jop.next()) < heightKeyValue ) ;/* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */
+        while ((pos ) < heightKeyValue << 1){
             // sub uses job.gap&3 !==0
             // swap uses (not sure about all the brackets):
             // we have two sources and two targets and either pass through or swap  //const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
 
             // this is more or a test of jop? While i[] goes behind starts, pos stays within (behind==abort) and starts goes behind matrix and any of the inputs can already be behind (but not all)
             // todo: what does pos=-1 mean? Center seam! Todo: remove from code somehow. Maybe overwrite method in Seamless via inheritance or something? Test with Row.lenght and without.
-            jop.iKeyValues.forEach((j, k) => {
+            //jop.iKeyValues.forEach((j, k) => {
                 //console.log( j.ValueSpanStartInMatrix + " <= " + pos + " < " + j.ex[j.from] + " from: " + j.from + " <= " + j.ex.length + " filled " + j.filled)
-            })
+            //})
             //console.log("") // spacer
-
-
-
             // //console.log(" from  : " + jop.i[activeSource].from   + ' pos: ' + pos + ' >= ' + (this.row.length>>1))
             // //console.log(" filled: " + jop.i[activeSource].filled + " row data.length: " + row.data.length)
-            if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
+            //if (pos >= (length >> 1) /* find first span after center-seam (hopefully) */) // .filled >> (jop.filled >> 2 )) & 1 ) ===0)
             {
-
-
                 // what does this even eman? t.extends=row.data[i].slice(...relative.map(x=>x-row.starts[i]))
                 // don't jop and seams handle this: spans_new.push(t)
 
                 // [starts, delayedStarts] .. pos >= (length >> 1) => delayed Starts are the non-swapped starts. filled === i=0
                 spans_new_Stream.forEach((AS, i) => {
-                    const activeSource = (i === 0) === jop.iKeyValues[2].filled ? 0 : 1
-                    const filled = jop.iKeyValues[activeSource].filled  // XOR^3
+                    const activeSource = (i === 0) === jop.KeyValuesSources[2].filled ? 0 : 1
+                    const filled = jop.KeyValuesSources[activeSource].filled  // XOR^3
 
                     const interfaceIsSharedWithSub = new Array<KeyValueValue<number>>()
                     // Todo: This needs to be a loop because I only go over the starts at one half because shifting the copy only gives me that. So I need to fill t.extends within the for loop in 892
                     if (filled) {
-                        let t = new KeyValueValue<number>(0, jop.iKeyValues[activeSource].KeyValueInMatrix)
+                        let t = new KeyValueValue<number>(0, jop.KeyValuesSources[activeSource].KeyValueInMatrix)
                         // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
-                        t.Value = this.Value[jop.iKeyValues[activeSource].KeyKeyValue >> 1 /* Maybe I should write an accessor */] // 
+                        t.Value = this.Value[jop.KeyValuesSources[activeSource].KeyKeyValue >> 1 /* Maybe I should write an accessor */] // 
 
-                        const i = jop.iKeyValues[activeSource].KeyKeyValue
-                        if ((i >> 1) >= this.Value.length) {
-                            //console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
-                            //console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
-                        }
+                        // const i = jop.KeyValuesSources[activeSource].KeyKeyValue
+                        // if ((i >> 1) >= this.Value.length) {
+                        //     //console.log('place breakpoint here ' + (i >> 1) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
+                        //     //console.log('place breakpoint here ' + (i) + ' >= ' + length + "  filled? " + jop.i[activeSource].filled)
+                        // }
                         //console.log(" i: " + i + " data[i]: " + this.data[i >> 1]) // enforcePivot.ts:915  i: 1 data[i]: undefined
                         //console.log("should be [5] 0: "+t.extends)
                         interfaceIsSharedWithSub.push(t)
@@ -952,6 +948,7 @@ export class Row {
             //     last_gap=jop.gap
             //     last_Cut=pos           // todo: trim is responsible for this. Only leave here if it does not cost a lot of code
             // }
+            pos = jop.next()
         }
 
         // todo:  eat zero values   as  in place
@@ -959,7 +956,7 @@ export class Row {
         if (spans_new_Stream.length !== 2) throw "spans_new_Stream.length !== 2  1"
 
         spans_new_Stream.forEach(AS => AS.flush()) // access to start_next without flush should result in an error. Type conversion? Should not have no effect here due to central seam cutter .. ah no, has zero length. Aft seam cutter could get a length? After all length was not the reason for an error
-        this.KeyValue = spans_new_Stream[0].KeyValue_next.map(ns => ns - (length >> 1)).concat(spans_new_Stream[1].KeyValue_next) // todo: inheritance from common base due to same private data.
+        this.KeyValue = spans_new_Stream[0].KeyValue_next.map(ns => ns - (heightKeyValue )).concat(spans_new_Stream[1].KeyValue_next) // todo: inheritance from common base due to same private data.
         try {
             //console.log(this.starts.length+" = "+ spans_new_Stream[0].start_next.length + " + " + spans_new_Stream[1].start_next.length)
         } catch {
@@ -967,7 +964,7 @@ export class Row {
         }
         //console.log("row.starts: " + (this.starts))
         if (this.KeyValue.filter(r => r < 0).length > 0) {
-            throw "shifting forth and back  does not  match " + spans_new_Stream.map(s => "[" + s.KeyValue_next + "]") //this.starts // 0,-2,3,1
+            throw "shifting forth and back  does not  match " + spans_new_Stream.map(s => "[" + s.KeyValue_next + "]")+"height: "+heightKeyValue //this.starts // 0,-2,3,1
         }
         this.Value = Array.prototype.concat.apply([], spans_new_Stream.map(ns => ns.data_next))
 
@@ -976,7 +973,7 @@ export class Row {
         } catch {
             //console.log("data did not have two spans")
         }
-        if (this.Value.length > (this.KeyValue.length >> 1)) { throw "I could not belive it, but log claims 0: " + this.Value.length + " > " + this.KeyValue.length + " >>1  " }
+        if (this.Value.length > (this.KeyValue.length >> 1)) { throw "I could not believe it, but log claims 0: " + this.Value.length + " > " + this.KeyValue.length + " >>1  " }
     }
 
 
@@ -1106,10 +1103,10 @@ export class Row {
         while ((pos = jop.next()) < jop.behindKeyValue) {
             //const interfaceIsSharedWithSub = new Array<Span<number>>()
 
-            const filled = !jop.iKeyValues.some(i => (i.KeyKeyValue & 1) === 0)
+            const filled = !jop.KeyValuesSources.some(i => (i.KeyKeyValue & 1) === 0)
             //console.log(pos+" "+jop.i[0].from+ " 01 "+jop.i[1].from+ " filled: "+filled)
 
-            const these = jop.iKeyValues.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
+            const these = jop.KeyValuesSources.filter(ii => ii.KeyKeyValue <= ii.maxKeyKeyValue && (ii.filled /* looks back like ValueSpanStartInMatrix */)).map(ii => {
                 // code from sub
                 //  const ii=jop.i[1][j]
                 if (typeof ii.KeyValueInMatrix === "undefined" || typeof ii.KeyValueInMatrix !== "number") {
@@ -1138,7 +1135,7 @@ export class Row {
                 return thi
             })
             const mul = new ResultMul()
-            a.removeSeams(these, pos, jop.iKeyValues.every(v => v.filled /* differs from sub */), mul /*inject multiply */) //, factor /* sorry */, nukeCol);
+            a.removeSeams(these, pos, jop.KeyValuesSources.every(v => v.filled /* differs from sub */), mul /*inject multiply */) //, factor /* sorry */, nukeCol);
 
             // if (filled) { // it is just one bit => trial and error.   !i.filled)){  // inverse logic (AND instead of OR) to the sub enclave in Seamless. todo: compare
 
@@ -1221,31 +1218,13 @@ export class Tridiagonal implements Matrix {
     // Todo: make the same as [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
     public swapColumns(swapHalf: number[] /* I only explicitly use bitfields if I address fields literally */, dropColumn = false) {
         if (swapHalf.length > 0) { // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
-            let //adapter=[]
-                // always needed for merge  // if (swapHalf.length & 1 && swapHalf[0]>0){ // match boolean on both sides. It starts globally with swap=false
-                adapter = [swapHalf.length] // Maybe move this code to field? Where is "augment" ?
-            //}
-            //const swap=swapHalf.concat(adapter,swapHalf.map(pos=>pos+swapHalf.length)) // "mirror"
-            const delayedSWP = [0, 0].concat(swapHalf.map(pos => pos + (this.row.length >> 1)), [this.row.length, this.row.length]) // concat: cut spans which span the center. This method seems to be responsible for this feature
-            // 2021-01-06  This looks bogus in log of jop ( too short, so check)
-            //console.log(" swap " + swapHalf + " -> " + delayedSWP) 
-            // -1 does not work well with jop (it should though), where pos (into matrix) is initialized with 0 => input cursors advance before being put in lockstep. Todo: throw in jop? Calculate jop from inputs?
-            // I can stay positive when I add this to row.starts / and delayed starts  ...  and data :-(
-            // Or like this:
-            //const fillFliper = swapHalf[0]=0
-
-            // ToDo: three way join? Now I understand why other people use indirection instead of RLE
-            // I could cut out using the swapHalf-Mask and then swap ( which should just fit/match ) and then trim spans ( remove zero lengths ) by constructing new Rows
-            let last_Cut = 0
-            // Seamless already does the mapping part. Todo seamless is Row? but: shold I manually shorten the prototype chain to remove access to some methods?   . this.row=this.row.map
+            const swapBordersOriginalConcatDelayed = // nonsense, prototype I guess // [0, 0].concat(swapHalf.map(pos => pos + (this.row.length >> 1)), [this.row.length, this.row.length]) // concat: cut spans which span the center. This method seems to be responsible for this feature
+            swapHalf.concat(swapHalf.map(s=>s+this.row.length)) // after  augment with unity our matrix is twice as wide as high. Jagged and arbitrary width are only used for field
+            // We do not need to cut seams into the center between original and augmention. Swap works regardless
             this.row.forEach((row, i_row) => { // the block clearly separates singular and plural
                 const spans_new_Stream = [new AllSeamless(), new AllSeamless()] // todo: inject unit test debug moch    I copy row instead  l)
                 const length = this.row.length; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
-
-                // todo: this becomes a method of class Row
-                // What does "Overlay" mean?
-                row.shiftedOverlay(length, delayedSWP, spans_new_Stream, dropColumn)
-                //return spans_new_Stream
+                row.shiftedOverlay(length, swapBordersOriginalConcatDelayed, spans_new_Stream, dropColumn)
             })
         }
     }

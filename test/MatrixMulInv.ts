@@ -180,7 +180,7 @@ describe('Multiply', () => {
 		const a=Row.Single(0,1)
 		const b=Row.Single(0,2)
 		const jop=new JopWithRefToValue(a,b)
-		console.log("lenght of  i: "+jop.iKeyValues.length+" s "+jop.KeyValue.length + "  behind "+jop.behindKeyValue)
+		console.log("lenght of  i: "+jop.KeyValuesSources.length+" s "+jop.KeyValue.length + "  behind "+jop.behindKeyValue)
 		expect(jop.next()).lt( jop.behindKeyValue)
 
 

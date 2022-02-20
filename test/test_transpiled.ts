@@ -103,7 +103,7 @@ describe('Testing unequi-join', () => {
     let result = jop.next()    
     expect(result).to.equal(0);
 
-    const these = jop.iKeyValues.every(ii => {
+    const these = jop.KeyValuesSources.every(ii => {
       //  const ii=jop.i[1][j]
       return  typeof ii.mpKeyValue === "number"
               })
@@ -126,7 +126,7 @@ describe('Testing unequi-join', () => {
     expect(result).to.equal(9);
     result = jop.next()    
     expect(result).to.equal(jop.behindKeyValue);
-    expect(jop.iKeyValues.every(v => v.filled === false) ).to.true;
+    expect(jop.KeyValuesSources.every(v => v.filled === false) ).to.true;
   });
 });
 
@@ -239,15 +239,15 @@ then I changed: !this.filled[0] to this.filled[1]
 
         let result = jop.next()    
         expect(result).to.equal(0);
-        const these = jop.iKeyValues.every(ii => {
+        const these = jop.KeyValuesSources.every(ii => {
           //  const ii=jop.i[1][j]
           return  typeof ii.mpKeyValue === "number"
                   })
         expect(these).to.true
 
         // we simulate  "sub"  . Any not 0 => 0.   ( be sure to let Row.ctrs remove the (single)0 due to sub )
-        expect(jop.iKeyValues[0].filled).to.true
-        expect(jop.iKeyValues[1].filled).to.false
+        expect(jop.KeyValuesSources[0].filled).to.true
+        expect(jop.KeyValuesSources[1].filled).to.false
         sea.removeSeams([span1],result, true)
         expect(sea.keyValue_input).to.equal(0) // this is a little bit lame. Todo: better test data. Push this edge case towards the end.
 

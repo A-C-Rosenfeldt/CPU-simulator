@@ -43,9 +43,9 @@ describe('Swap', () => {
     // white box
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(1)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(0) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(1)
     }
 
     pos=jop.next()
@@ -53,9 +53,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(1)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(0) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
     }
     // todo: double zero length cutter for different fill state with nominal same small signature.  --  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
 
@@ -64,9 +64,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(0) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
     }
 
     // pos=jop.next()
@@ -74,9 +74,9 @@ describe('Swap', () => {
     // // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     // {
     //   let i=0
-    //   expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-    //   expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(0) // shifted values start later
-    //   expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
+    //   expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+    //   expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(0) // shifted values start later
+    //   expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
     // }
 
     pos=jop.next()
@@ -84,9 +84,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(1) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(3)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(1) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(3)
     }
 
     pos=jop.next()
@@ -94,9 +94,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(4)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(4)
     }
 
     pos=jop.next()
@@ -104,9 +104,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(5)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(5)
     }
 
     pos=jop.next()
@@ -114,9 +114,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(6)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(6)
     }    
 
     pos=jop.next()
@@ -124,9 +124,9 @@ describe('Swap', () => {
     // zero length cutter  needed because I do not want to check for each Row. Swap is one loop outside => easy debug
     {
       let i=0
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2)
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(2) // shifted values start later
-      expect(jop.iKeyValues[i++].KeyKeyValue).to.equal(6)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2)
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(2) // shifted values start later
+      expect(jop.KeyValuesSources[i++].KeyKeyValue).to.equal(6)
     }    
 
   });
