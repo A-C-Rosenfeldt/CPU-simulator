@@ -616,6 +616,7 @@ export class Field extends FieldToDiagonal {
         // M.row.forEach((r, i) => {
         // this.i = i;
         const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);
+        console.log("passedThrough: " + passedThrough); // alread unit tested (how? ) . Right now doing ['Ai']
         // parameter in field is boolean, but for the algorithm I tried to adapt to starts[] to reduce the lines of critical code
         const startsToSwap = new Array();
         passedThrough.reduce((a, b, i) => {
@@ -624,7 +625,9 @@ export class Field extends FieldToDiagonal {
             }
             return b; // lame, I know. Side-effects are just easier 
         }, false);
+        // shift does this for us or not. Hack a seam into left and right side of augmented matrix 
         startsToSwap.push(passedThrough.length);
+        console.log("startsToSwap: " + startsToSwap); // alread unit tested (how? ) . Right now doing ['Ai']
         // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
         M.swapColumns(startsToSwap, dropColumn); // so this works on a single (rectangular) matrix to avoid the join (on row multiplication)? Starts to swap tells us which field cells just keep their value ( in case of dropColumn)
         //   })

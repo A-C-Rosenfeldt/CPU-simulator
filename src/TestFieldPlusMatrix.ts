@@ -105,7 +105,7 @@ try
 		)
 	}
 
-}catch{}
+}catch(err){console.log(err)}
 
 main('FM__example',images)
 main('FM__example_processed',imagesProcessed)

@@ -750,7 +750,7 @@ export class Row {
         return drain;
     }
     // shift= copy at orher half. overlay of swap info over data? Does so it groups columns. Where are the two groups? I understand that we only need one Join because the span structure is due to the orginal field
-    shiftedOverlay(heightKeyValue, swapBordersOriginalConcatDelayed, spans_new_Stream /* out parameter used for a mock in a unit test, sorry */, dropColumn = false) {
+    shiftedOverlay(heightKeyValue, swapBordersOriginalConcatDelayed, spans_new_Stream /* out parameter used for a mock in a unit test, sorry */, dropColumn = false, print = false) {
         if (spans_new_Stream.length !== 2)
             throw "spans_new_Stream.length !== 2";
         var delayedRow = new Row([]);
@@ -769,9 +769,14 @@ export class Row {
         //let last_gap=0 //jop.gap
         //const secondHalf=new Array<Span<number>>()
         // todo: test that swap  discards the single source outside of the overlapping range
-        while ((pos = jop.next()) < heightKeyValue)
-            ; /* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */
-        while ((pos) < heightKeyValue << 1) {
+        while ((pos = jop.next()) < jop.behindKeyValue) {
+            if (pos >= heightKeyValue)
+                break;
+        } /* we only care for the overlap ..  = flush does this. Also in jop all source cursors advance in lock step */ /* jop.behind */ /* could be replaced by < Matrix.width */
+        while ((pos < jop.behindKeyValue) && (pos <= (heightKeyValue << 1))) {
+            if (print) {
+                console.log("pos: " + pos);
+            }
             // sub uses job.gap&3 !==0
             // swap uses (not sure about all the brackets):
             // we have two sources and two targets and either pass through or swap  //const activeSource = jop.i[2].filled /*swap active*/ ? 1 : 0
@@ -796,6 +801,9 @@ export class Row {
                     if (filled) {
                         let t = new KeyValueValue(0, jop.KeyValuesSources[activeSource].KeyValueInMatrix);
                         // does not matter because data is the same //const starts=jop.i[2].filled ? row.data: de
+                        if (print) {
+                            console.log("swap does not accept seams: " + jop.KeyValuesSources[activeSource].KeyKeyValue + " from: " + activeSource);
+                        }
                         t.Value = this.Value[jop.KeyValuesSources[activeSource].KeyKeyValue >> 1 /* Maybe I should write an accessor */]; // 
                         // const i = jop.KeyValuesSources[activeSource].KeyKeyValue
                         // if ((i >> 1) >= this.Value.length) {
@@ -1043,13 +1051,15 @@ export class Tridiagonal {
     // Todo: make the same as [this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
     swapColumns(swapHalf /* I only explicitly use bitfields if I address fields literally */, dropColumn = false) {
         if (swapHalf.length > 0) { // jop should better be able to deal with empty? Down in innerloop I look at delayedSWP.. ah no I do not!
-            const swapBordersOriginalConcatDelayed = // nonsense, prototype I guess // [0, 0].concat(swapHalf.map(pos => pos + (this.row.length >> 1)), [this.row.length, this.row.length]) // concat: cut spans which span the center. This method seems to be responsible for this feature
-             swapHalf.concat(swapHalf.map(s => s + this.row.length)); // after  augment with unity our matrix is twice as wide as high. Jagged and arbitrary width are only used for field
+            const swapBordersShiftedIntoOverlayRegion = // nonsense, prototype I guess // [0, 0].concat(swapHalf.map(pos => pos + (this.row.length >> 1)), [this.row.length, this.row.length]) // concat: cut spans which span the center. This method seems to be responsible for this feature
+             
+            /*swapHalf.concat*/ (swapHalf.map(s => s + this.row.length)); // after  augment with unity our matrix is twice as wide as high. Jagged and arbitrary width are only used for field
             // We do not need to cut seams into the center between original and augmention. Swap works regardless
+            console.log("swapBordersShiftedIntoOverlayRegion: " + swapBordersShiftedIntoOverlayRegion);
             this.row.forEach((row, i_row) => {
                 const spans_new_Stream = [new AllSeamless(), new AllSeamless()]; // todo: inject unit test debug moch    I copy row instead  l)
                 const length = this.row.length; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
-                row.shiftedOverlay(length, swapBordersOriginalConcatDelayed, spans_new_Stream, dropColumn);
+                row.shiftedOverlay(length, swapBordersShiftedIntoOverlayRegion, spans_new_Stream, dropColumn); // too much noise when not debugging here, i_row===0)
             });
         }
     }
