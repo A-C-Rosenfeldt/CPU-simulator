@@ -166,11 +166,14 @@ export class Contact extends LinkIntoMatrix {
 
 export class Tupel extends LinkIntoMatrix {
   // coulomb / m³  or whatever. Same unit for both
-  CarrierCount: number[]; // mobile. for 6502 nfets: all negative. But I need double buffer
+  CarrierCount = [0,0] ; // carriers are emitted from surface. Of course on turn-on there are none // mobile. for 6502 nfets: all negative. But I need double buffer
   // Linked List which may come handy, but needs a fully debugged base simulator  .  Carrier: Electron ; // nullable ref .. linked List?
   Current: number[]; // for both directions (x,y)
   Doping: number;
   static bufferId: number = 0  // todo:  static is problematic when add maps / staggered update
+  constructor(){
+    super()    
+  }
   ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping;
 
   // Potential = 0, Contact!=null ( after floodfill ) => Potential is stored in contact   .. or first scanned cell for float. Why again don't floats need a contact ah, I want easy map drawing.
@@ -210,8 +213,8 @@ export class Tupel extends LinkIntoMatrix {
 // Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
 export class Metal extends Tupel {
 
-  constructor() {
-    super();
+  constructor(){
+    super()
     this.BandGap = 0  // this is the physical definition of a metal, but this leads to some special solvers which we implement in this derived class
   }
 
@@ -412,11 +415,14 @@ export class FieldToDiagonal extends MapForField {
     this.fieldInVarFloats.forEach((fi, i) => {   // do I have a doube loop?
       fi.forEach((fk, k) => {
         const n = fk.RunningNumberOfJaggedArray
-        if (typeof n == 'number') {
-          if (fk.BandGap == 0)
-            throw "only set voltage in Semiconductor at the moment";
-          const v = voltage[n] // for debug
-          fk.Potential = v // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+        if (typeof n == 'number') { // nonsense todo : (floating) electrodes have RunningNumberOfJaggedArray, too. Floating needs to pull in, too
+          const v = voltage[n] // for debug .. makes no sense .. todo: remove
+          if (fk.BandGap == 0){
+            fk.SetCarrier( v )
+            //throw "only set voltage in Semiconductor at the moment";
+          }else{ // floating electrode seems to be the most difficult. Is there a way to keep it out of this code? For testing .. and I need to create additional lines in the matrix
+            fk.Potential = v // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+          }
         }
       })
     })

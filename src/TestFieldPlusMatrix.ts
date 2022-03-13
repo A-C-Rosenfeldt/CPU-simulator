@@ -17,10 +17,10 @@ const exampleField: string[] = [  // own version for this script. There is anoth
 	'4444444', // simple boundary condition
 	'ssssss4', // contact
 	'sssiii',  // we assume homognous electric field between plates (the side walls of the gates)
-	'sssi-im', // gate
+	'sssi-i3', // gate  ..   // floating adds lines to the matrix. It is as if it was easier to connect to a dead end wire. Maybe later I include wires into the solver .. so the first 10px until the travel effect is clearly visible?
 	'sssiii', // Since the "m" are connected via impedance to the wire, they are just inside the homogenous part
 	'sss0000', // self gate = Faraday
-	'sssi-im', // self gate
+	'sssi-i3', // self gate
 	'sssiiii',
 	'2222222']; // simple boundary condition
 

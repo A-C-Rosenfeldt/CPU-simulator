@@ -2,6 +2,7 @@ import { Cloneable, Row, Tridiagonal } from '../src/enforcePivot';
 import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, Contact } from '../src/fields'
 import { main } from '../src/GL';
 import { ContactedField } from '../src/fieldStatic'
+import {setContactVoltages} from '../src/field/setContactVoltage'
 // It seems like I want a LayoutAdapter to index the contacts
 //  That class has a Contacted  Field and has contact Index (bi directional) for the boring, but confusing mapping of letter
 //   Floodfill goes here
@@ -52,7 +53,7 @@ describe('2i0metal', () => {
 		for(var y=0;y<2;y++){
 			console.log( "s[ "+m.getAt(y,0)+" , "+m.getAt(y,1)+" , "+m.getAt(y,2)+" , "+m.getAt(y,3)+" ] ")
 		}
-		m.inverseRectangular()
+		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
 		for(var y=0;y<2;y++){
 			console.log( "i[ "+m.getAt(y,0)+" , "+m.getAt(y,1)+" , "+m.getAt(y,2)+" , "+m.getAt(y,3)+" ] ")
 		}
@@ -68,7 +69,13 @@ describe('2i0metal', () => {
 		expect(m.getAt(1,3)).to.equal( 1)
 
 		expect(v[0]).to.equal(0)  //  no fixed voltage
+		// So I've got contacts using capital letters. Each position right now has its own letter ( could be M ). Wire up in derived class?
+		// so an external class does this
+		// contact filler? Swap.fieldInVarFloats.forEach
 
+		setContactVoltages(Swap,v,[-5,-6,-7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
+		const potential = m.MatrixProduct(v) // I would expect that I need to fill in the contact voltages
+		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
 		//m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
 		//expect(m.getAt(rn,rn+6)).to.equal(1)  //  the start of the other diagonal				
 //		expect(m.inverseRectangular()).to.throw()
@@ -116,6 +123,8 @@ describe('2i0metal', () => {
 
 		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
 		m.inverseRectangular() // bias voltage is not set, so inverse Matrix cannot deduce the cell voltage from charge distribution
+		const potential = m.MatrixProduct(v)
+		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
 /*		expect(m.getAt(0,0)).to.equal(1)
 		expect(m.getAt(0,1)).to.equal(-1)		
 		expect(m.getAt(0,2)).to.equal(0)

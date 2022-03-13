@@ -106,7 +106,9 @@ export class Contact extends LinkIntoMatrix {
 }
 export class Tupel extends LinkIntoMatrix {
     constructor() {
-        super(...arguments);
+        super();
+        // coulomb / m³  or whatever. Same unit for both
+        this.CarrierCount = [0, 0]; // carriers are emitted from surface. Of course on turn-on there are none // mobile. for 6502 nfets: all negative. But I need double buffer
         this.ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping;
     }
     ToTexture(raw, p) {
@@ -303,11 +305,15 @@ export class FieldToDiagonal extends MapForField {
         this.fieldInVarFloats.forEach((fi, i) => {
             fi.forEach((fk, k) => {
                 const n = fk.RunningNumberOfJaggedArray;
-                if (typeof n == 'number') {
-                    if (fk.BandGap == 0)
-                        throw "only set voltage in Semiconductor at the moment";
-                    const v = voltage[n]; // for debug
-                    fk.Potential = v; // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+                if (typeof n == 'number') { // nonsense todo : (floating) electrodes have RunningNumberOfJaggedArray, too. Floating needs to pull in, too
+                    const v = voltage[n]; // for debug .. makes no sense .. todo: remove
+                    if (fk.BandGap == 0) {
+                        fk.SetCarrier(v);
+                        //throw "only set voltage in Semiconductor at the moment";
+                    }
+                    else { // floating electrode seems to be the most difficult. Is there a way to keep it out of this code? For testing .. and I need to create additional lines in the matrix
+                        fk.Potential = v; // as you can see 20 lines down: This is displayed on screen. No condition is derived from this ( unlike bandgap or runningNumber/sign )
+                    }
                 }
             });
         });

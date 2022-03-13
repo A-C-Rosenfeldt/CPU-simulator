@@ -14,10 +14,10 @@ const exampleField = [
     '4444444',
     'ssssss4',
     'sssiii',
-    'sssi-im',
+    'sssi-i3',
     'sssiii',
     'sss0000',
-    'sssi-im',
+    'sssi-i3',
     'sssiiii',
     '2222222'
 ]; // simple boundary condition
