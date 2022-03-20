@@ -5,6 +5,88 @@
         </title>
     </head>
     <body>
+        <h1>Video</h1>
+        <h2>Texture mapped triangles: Rasterizer for a memory with a databus 4 times as wide as a px and a technology node which allow a hardware multiplier on die.</h2>
+        <h3>Alignment and fast page mode</h3>
+        <p>Triangle rasterization works best line by line. A framebuffer most of the time is organized line by line for easy readout to the screen.
+            All external memory has byte granularity for write enable. So lets assume that we have at least byte sized pixel ( otherwise we would need a read, modify, write cycle for unaligned boundaries ).
+            So we write the px to an internal register. When it is full or we reached the end of the line, we write it out to the frame buffer.
+            Fast page mode sounds like some artifical constraint, but it is (was real) and gives 2 times speed boost.
+            For it we need to enlarge our register to hole multiple words. I assume that our shader is slow or needs the memory. A simple fill does not need this extra step.
+        </p>
+        <p>
+            Now for each pixel we load a texel. To give equal performance to a rotated texture it should be possible to align the pixel in a square. And I assume mipmapping or at least a matching texture resolution for the scene.
+            Thus consecutive px-reads will probably read from the same word. Thus we keep this word in the source register. In the corners we will probably read the same word even in the next scanline.
+            If a triangle is skewed, we render each line into the skew direction. For low amount of skew, we render zig zag and can reuse the source register at each U-turn.
+        </p>
+        <p> For longer lines the source register needs to become larger. Going with the spirit of the Jaguar, we don't want to lose performance in the worst case: Zoom out without mimaps .. probably anisotrophic.
+            There the cache does not work. Thus we don't read ahead. The cache simply stores address (20 bit)+dirty flag + value (64 bit). Each new read address is put on the bus .. a fan out to all 16 entry slots.
+            Each compares the address to each own and -- if it machtes -- answers on the data bus. There is a pointer for new entries. It just rans round robin for each write into cache ( each miss ).
+        </p>
+        <p>
+            Now on shared memory ( Jaguar, Atari ST, N64, C64, or multiple shaders ) with the complicated bus arbitration and also due to our beloved fast page mode, it would be better if the texture reads happen in a burst.
+            Technology in 1993 could have used an external SRAM chip to copy the texture to and then a z-buffer. But we now assume that we try to render out of a large texture atlas residing in DRAM.
+            So I would store the address in the cache, but don't read, but mark as dirty. Hits are also marked as protected. The write pointer jumps over protected cells and waits before a dirty cache cell and issues a burst read instead.
+            The rasterizer now performs a second pass over the pixels since the last read-burst and now replace the placeholders ( pointer into cache cell and designation of the px withing) with the real value.
+        </p>
+        <p>
+            Now with wide triangles we may lose our cache entries some time after the U-turn.
+            We could split large triangles in 3 dimensions, but espcially architecture has large flat surfaces and there is a cheaper way for splitting.
+            We take the overlap of two lines and trim to alignment borders.
+            If there is still overlap we can render the top 4 px and then the lower 4 px.
+            For this the inner loop needs to know how to navigate into another scanline, but with linear interpolation for both end points, this is not complex.
+            We still end up with a lots of gradients, but keep in mind that we already have a 16 entry cache and most processors have 16 registers.
+            So we need gradients for R,G,B ( Gouraud) one texture ( U,V ) and just to be sure another texture (S,V). (B)lend ? So 8 gradients for horizontal interpolation alone.
+            Now with vertical -- on both sides for compatibility with Doom ) we end up with 24 gradients. Thus our system is still blanced, technically.
+            Now the page size on the framebuffer is so that one has to tweak the adressing ( on most configurations)
+            to keep vertically neighboring pixels in the same page. But it has be done usually and is no big deal.
+            We can expand this pattern up to 8 lines.
+        </p>
+        <p>
+            For our vertical interpolation we need to store the coordinates of the last line .. so like all those 8 values.
+            Now we are in the outer loop and timing is not critical, but storage need chip area.
+            Let's say that we store 8 points.
+        </p>
+        <h3>Division and multiplication</h3>
+        <p> For small triangles which are not more wide than 16px or more heigh, the best bang for the buck is to linearly interpolate between the vertices like it was parallel projection (affine transformation).
+            The triangle can even be larger if it is pointing towards the camera</p>
+            <p>
+                All others apply the perspective correction. The correct math ends up -- after a long journey -- in a shape, where
+                we have to interpolate once, and then divide all our coordinates by Z.
+                So being too precise has never helped in computer graphics and we already use up a lot of memory and we can afford to
+                store W=1/Z with many fractional bits but still a small rounding error. We make up for this with extre precise vertex shaders.
+                Now at each px we need to multiply our coordinates with this.
+                So division costs 16 cycles max ( 32 bit int ), or you apply Newton Raphsody on a guess and only need 2 multiplications.
+                The guess is either the last evaluation ( use some heuristics for this choice),
+                or we scan the bits, convert to float, lookup the inverse for the top bits of the mantissa ( all 8 bit ), like PSX did.
+                Fortunately we need the inverse anyway without varying nominator. 
+            </p>
+            <p>
+                As already motivated for the small triangles, we don't need nor want to do this for every px.
+                For the span mode mentioned above, we partition the line into 16px chunks. The remainder is placed on the far end where more correction is needed.
+                We could even say that we often don't have all gradients or only a single texture and basically 8px should be enough for 8 MULs in the background.                
+            </p>
+            <p>
+                When we draw two lines at once, bilinear interpolation 4x2 px is possible. For two textures and colored light and blended mipmap we
+                may profit from 4x4 px . Notice however that the edges are still drawn as spans .. on both sides with a probability of 3/4.
+                And since we allow 8px spans and think that spans below 4px are a waste, 4x4 blocks are surly sandwiched between spans ( extreme Skew ? ).
+            </p>
+            <p> The perspective correction again needs 24 register plus 3 for Z (W) . The interpolation before the correction works just like the original interpolation. Get the vectors of the edges, invert matrix, and use fraction to translate to the center of the pixels.
+                Notice how we don't need to repeat the last step after correction because we never leave the centers of the px again.
+                It would be possible to interpolate along the edge. I mean I want to avoid extreme values for the correction because they pull in errors. Perspective correction on a point outside of the triangle is not allowed for me.
+                It should be possible to do this corrction right on the edge. That could happen with pixels anyway. Maybe include some saturation logic.
+                Thus it is possible to use affine texture mapping for the corners ( middle corner make sense when we copy the long edge by multiples of 16px towards it until it cuts out a small triange.).
+                Triangles can be used to fill the area on the sides of the 4x4 pattern. Since I probably don't have that much area and 4x4 speeds up the frame as a whole anyway .. I guess,
+                the shorter code wins. Triangulation is quite ugly ( breaks symmetry ) and the perspective correction does not happen on a px I actually use, but on the edge next to it.
+                So in the end Ids Quake span interpolation wins. Descent also used it. Only on systems with nerfed division, one would try alternatives, though .. 
+            </p>
+            <p>
+                ..I want to allow for cont-z rendering like in Doom. Maybe the framebuffer should be able to be configured as 2x2 ps squares.
+                And then like on the Jag triangles can be rendered horizontally, vertically, and diagonal. For 6DoF we check the normal of the plane and choose the closest of the 8 directions on screen.
+                This makes this compatible with Doom and further justyfies long linear spans of 16 px. It needs a lazy output cache ( target register ) though.
+                Still this cache is easy because we are sure that all output px are close to each other, not matter the zoom.
+                We do not really need this because we are already perspective correct and also the multiple line mode collides with the coverage buffer in Doom and the raycaster in Wolf3d -- but hey, I love const-z.
+            </p>
         <h2>Video</h2>
         <p> 320x240px.
             DAC: RGB 444 ( period correct for CGA sort of )

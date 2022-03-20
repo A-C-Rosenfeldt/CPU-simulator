@@ -9,6 +9,26 @@
         </style>
     </head>
     <body>
+        <h2>power efficient CMOS with less noise on screen</h2>
+        <p>So I think I should give up on byte opcodes. The second byte can be a literal or a target register. Also a segment+offset ( both register ) could be possible.
+            Fixed instruction length simplifies the bus and the jumps, but immediates already introduce variable length instructions.
+            It would even make more sense to do fixed 16 bit including the literals, then to do 8 bit without occasional extensions like in x86. x86 was great for its time. Just some minor problems like the order of the opcode bytes.
+            If people hat to waste 16 bit on counters, we can (with 16 bit) hide them in addressing modes. Also Add nibble would make sense with 8 bit granularity and 16 bit pointers.
+            Now I wonder how SH2 loads memory addresses.
+        </p>
+        <p>I increase the total register count from 7 to 8 and trade that with counter registers.
+            Those have 4 normal bits, but the high 12 bits can only be counted up, down, or cleared. All 16 bits can be connected to the address pins ( no latch in between => less state).
+            For offset the write back register can be connected to the address bus. Thus these two need to be 16 bit wide :-( .
+            The address decoder for the register file should work a like routers in a tree so that they can act as a guide to the eye.
+            Generally, clock lines are to be avoided. Here the clock runs with the route in form of WE and OE .
+            The writeback register depends on the clock. Maybe we could just skip it for instructions which don't need it?
+            This may justify AL AH addressing in both sources. So the coder gets more ways to avoid accumulation?
+            When the register file already has byte granularity, 4 bits are enough to specify signed shift if I later want to add it.
+        </p>
+        <p>
+            Generally it would be nice to push values out of reduntant area. For relative jumps 0 halts ,1 is illegal in 8 instruction addressing or long jumps in 16 bit instructions , and 2 is NOP.
+            If I allow for 4 bit for register ( hi low + 3 names), byte immediates ( sign extended to align with jump interpretation) are pushed away from the nibble range.
+        </p>
         <h2>registers</h2>
         <table>
             <thead>

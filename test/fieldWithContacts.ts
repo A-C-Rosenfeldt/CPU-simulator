@@ -74,8 +74,15 @@ describe('2i0metal', () => {
 		// contact filler? Swap.fieldInVarFloats.forEach
 
 		setContactVoltages(Swap,v,[-5,-6,-7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
-		const potential = m.MatrixProduct(v) // I would expect that I need to fill in the contact voltages
+		expect(v[0]).to.equal(-7)
+		const potential = m.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
 		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
+		expect(v[0]).to.equal(-7)
+		const metal = Swap.fieldInVarFloats[0][0];
+		expect(metal.Potential).to.equal(-7)
+		expect(metal.CarrierCount).to.equal(0)  // global charge neutrality
+
+
 		//m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
 		//expect(m.getAt(rn,rn+6)).to.equal(1)  //  the start of the other diagonal				
 //		expect(m.inverseRectangular()).to.throw()
