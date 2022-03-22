@@ -75,12 +75,19 @@ describe('2i0metal', () => {
 
 		setContactVoltages(Swap,v,[-5,-6,-7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
 		expect(v[0]).to.equal(-7)
-		const potential = m.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
-		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
-		expect(v[0]).to.equal(-7)
+		{ // we need the voltag both in the tuple for later read out, and now in v (like vector, not voltage) to get the charge density.
 		const metal = Swap.fieldInVarFloats[0][0];
 		expect(metal.Potential).to.equal(-7)
-		expect(metal.CarrierCount).to.equal(0)  // global charge neutrality
+		}
+		const M2 = new Tridiagonal(0) // split does not work in place because it may need space at the seam
+        M2.row = m.row.map(r => r.split(1, m.row.length)) // this is ugly internal stuff. I guess I need in place before I can get new features.
+		const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
+		expect(potential[0]).to.equal(0) // 0 is for a cell which is metal and thus we look for the charge and not the potential!
+
+		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
+		const metal = Swap.fieldInVarFloats[0][0];
+		expect(metal.Potential).to.equal(-7)
+		expect(metal.GetCarrier()).to.equal(0)  // global charge neutrality
 
 
 		//m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?

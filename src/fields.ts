@@ -199,13 +199,15 @@ export class Tupel extends LinkIntoMatrix {
   }
 
   AddCarrier(val: number, carrier: Electron = null) {
+    // postpone double buffer into a different class 1^
     this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
     // carrier.next=this.Electron
     // this.Electron=carrier
   }
 
   SetCarrier(val: number) {
-    this.CarrierCount[1 ^ Tupel.bufferId] = val; // for surface charge on metal electrodes
+    // postpone double buffer into a different class 1^
+    this.CarrierCount[ Tupel.bufferId] = val; // for surface charge on metal electrodes
     // maybe free space optimzation, where close electrons interact via 1/r law. So I need infinitesimal math?   this.Carrier=null
   }
 }

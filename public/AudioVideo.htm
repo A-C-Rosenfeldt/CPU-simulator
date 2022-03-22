@@ -81,11 +81,58 @@
                 So in the end Ids Quake span interpolation wins. Descent also used it. Only on systems with nerfed division, one would try alternatives, though .. 
             </p>
             <p>
+                Now I think I like perspective correction on the edge. Linear interpolation on the line to a px for example of a 4x4 block needs a division, but it still only needs one division ( precision may need on Newton Raphsody),
+                to interpolate from a pixel of the 4x4 towards the edge.
+                Not that this does not work in the corners. 
+                It does work on the middle corner though. And top an bottom also when you slice vertically. The sub triangles have one edge on the original triangle, but one of the co-ordinates has no fraction.
+                Thus the original triangle is not coverd in a sub-pixel sense. The rasterizer first looks for the coverd pixels and then splits.
+                In one direction the first triange will have an edge with a length shorter than pixel width just to reach the edge. Ah, not really.
+                For a more vertical slope, we should start with horizontal splits. Then we stack the vertical splitting triangles on top. Due the slope we don't throw so much of the edge of the first triangle away.
+                Triangles can have T-joints on the pixels because there are not problems with rounding. So there is one pixel which touches an outside pixel on its corner. From this pixel two triangles, vertically and horizontally, originate.
+            </p>
+            <p>
                 ..I want to allow for cont-z rendering like in Doom. Maybe the framebuffer should be able to be configured as 2x2 ps squares.
                 And then like on the Jag triangles can be rendered horizontally, vertically, and diagonal. For 6DoF we check the normal of the plane and choose the closest of the 8 directions on screen.
                 This makes this compatible with Doom and further justyfies long linear spans of 16 px. It needs a lazy output cache ( target register ) though.
                 Still this cache is easy because we are sure that all output px are close to each other, not matter the zoom.
                 We do not really need this because we are already perspective correct and also the multiple line mode collides with the coverage buffer in Doom and the raycaster in Wolf3d -- but hey, I love const-z.
+                I has some synergy with zig zag triangulation.
+            </p>
+            <p>
+                So the big question is: Is there a way to blend over the affine texture mapping,
+                which is just so great for small triangles, to a large triangle with a tile filled interior?
+                Span based rendering is the contender.
+                Here you turn on perspective correction on the edges like in Doom. This mode really profits from 8 direction const-z.
+                You need two division for the correction on the extreme pixel ( usually inside the edge) and one division for the interpolation.
+                When then span gets longer, you insert 8px subspans. Here interpolation only needs a shift and thus this only adds one division.
+                So here is a logical path.
+                Only thing that hurts are the short spans near the top and bottom vertex ( corners ).
+                Thus sub span rendering will grow into the triangle from the middle vertex.
+                It will start with a split where we calculate the perspective correction on the edge oposing the vertex.
+                Then this splits into two edge cacluations to give scanlines to the sub span renderer.
+                One of the splits stays a bit to utilize the middle vertex a little more.
+                As above the subspans are 8px, but the remainer is something between 6px and 14px. So it is not such a slow down.
+                With slanted edges it could be possible to have 4x4 tiles internally, and then reduce to 4x1 and 8x1 tiles close to the edge.
+                Then add some more leeway for the variable spans: 5..16px.
+                Do some benchmarks to simplify the code.
+            </p>
+            <p>
+                Now how do affine triangles on the side look compared to this?
+                We have const z and can split the quads on the sides with the diagonal with less z variance and thus have an excuse for the split.
+                Triangles only offer a speed up in conjunction with interior tiles. Thus all fully 4x4 covered squares become tiles.
+                We already use triangles for top and bottom corner.
+                Depending on the const-z direcation and the slope of and edges we may have to employ differnt splits on those edges.
+                Thus it makes sense to just fill the 4x4 tiles without any regard to const z.
+                Then on each edge the split direction ( one of the 8 or more like 4) and the triangluation split is chosen.
+                In the corner we set the next edge onto the old triangluation because T joints on pixels are allowed.
+                The original vertex attracts triangluatio in a fan like manner.
+                Some heuristics is need to determine the reach.
+            </p>
+            <p>
+                I feel like I could make the triangle split the winner with 8x8 tiles and (1,2) direction vectors for the splits.
+                And the make a heuristic to have wider borders where the triangles make sense, like even have zig-zag (lowest lowest z variance, second lowest z variance) triangles in the corners above the tile core.
+                Per triangle there is one division ( the determinant ) (we have some cheap multiplications due to the 16 directions), but for a zig or zag we need to calculate the intersection .. again, one division.
+                So two division per triangle is not worse than the remainder span. Though, ah we need perspective correction at the cutting point.
             </p>
         <h2>Video</h2>
         <p> 320x240px.

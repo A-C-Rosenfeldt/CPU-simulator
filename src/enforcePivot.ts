@@ -661,6 +661,7 @@ export class Row {
     // Oh, it just got more complicated
     // Only one seam, so less loops ( for the other method I would need to place the code in a different project and don't let the debugger go in there, but instead show CI test results )
     // Todo: Make this a test/case wrapper for orderByKnowledge(back)
+    // Todo: Replace inversion / augment with unity  with an in-place inversion as if this Matrix wasn't sparse
     //  ButThen: It is so short, humble and easy to debug and can probably create good error messages
     // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
     // sub() may have removed seams
