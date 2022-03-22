@@ -4,8 +4,8 @@ export function setContactVoltages(field, allElements, values) {
     field.fieldInVarFloats.forEach(r => {
         r.forEach(cell => {
             if (cell.Contact != null) {
-                assert(allElements[cell.RunningNumberOfJaggedArray] === 0); // uh 0 I hat this, but this is all that fits into the map : String
-                allElements[cell.RunningNumberOfJaggedArray] = values.pop();
+                assert(allElements[cell.RunningNumberOfJaggedArray] === 0); // uh 0 I hate this, but this is all that fits into the map : String
+                cell.Potential = allElements[cell.RunningNumberOfJaggedArray] = values.pop();
             }
         });
     });
