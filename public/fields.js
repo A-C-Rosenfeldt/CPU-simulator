@@ -124,12 +124,14 @@ export class Tupel extends LinkIntoMatrix {
         return this.CarrierCount[Tupel.bufferId];
     }
     AddCarrier(val, carrier = null) {
+        // postpone double buffer into a different class 1^
         this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
         // carrier.next=this.Electron
         // this.Electron=carrier
     }
     SetCarrier(val) {
-        this.CarrierCount[1 ^ Tupel.bufferId] = val; // for surface charge on metal electrodes
+        // postpone double buffer into a different class 1^
+        this.CarrierCount[Tupel.bufferId] = val; // for surface charge on metal electrodes
         // maybe free space optimzation, where close electrons interact via 1/r law. So I need infinitesimal math?   this.Carrier=null
     }
 }
@@ -619,6 +621,19 @@ export class Field extends FieldToDiagonal {
     // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
     GroupByKnowledge(M, dropColumn = false) {
         // todo: static function?  this.M = M;
+        /**
+        m.negate()
+            
+            A*B = 1 = B*A
+            A*v =     u    forAll v
+            A*v = 1 * u    forAll v   |  B*
+            1*v = B * u    forAll v
+            
+            A*v = 1 * u    forAll v    | - A*v
+            0   = 1 * u - A*v  forAll v		but augment is on the other side. Before augment
+            now we can swap columns, then move back ( m.negate() again ? ) and invert
+        After split .. I expect all values to have the wrong sign ( both charge and potential )
+         */
         // M.row.forEach((r, i) => {
         // this.i = i;
         const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);

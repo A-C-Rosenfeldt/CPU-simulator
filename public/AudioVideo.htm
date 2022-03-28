@@ -91,7 +91,8 @@
                 Triangles can have T-joints on the pixels because there are not problems with rounding. So there is one pixel which touches an outside pixel on its corner. From this pixel two triangles, vertically and horizontally, originate.
             </p>
             <p>
-                ..I want to allow for cont-z rendering like in Doom. Maybe the framebuffer should be able to be configured as 2x2 ps squares.
+                ..I want to allow for cont-z rendering like in Doom. Maybe the framebuffer should be able to be configured as 2x2 ps squares. This also helps with small triangles
+                like we would use on main characters and bosses.
                 And then like on the Jag triangles can be rendered horizontally, vertically, and diagonal. For 6DoF we check the normal of the plane and choose the closest of the 8 directions on screen.
                 This makes this compatible with Doom and further justyfies long linear spans of 16 px. It needs a lazy output cache ( target register ) though.
                 Still this cache is easy because we are sure that all output px are close to each other, not matter the zoom.

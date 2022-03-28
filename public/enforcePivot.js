@@ -558,12 +558,15 @@ export class Row {
         if (factor !== 1) { // factor 1 should be default. Lets plot how it detoriates over the process
             this.Value.forEach(segment => segment.forEach((value, i) => segment[i] *= factor));
         }
+        // so scale is also used after a split. Split has to clone values. So we can pretend that we are part of a chain with value semantics. Do I need to inherit some reference counting here? To find errors?
+        return this;
     }
     // similar to   shiftedOverlay()  .. only returns one half and does not swap anything within
     // Oh, what do we do? Have a seam between left and right .. but at least not have a zero length span. Augment is buggy
     // Oh, it just got more complicated
     // Only one seam, so less loops ( for the other method I would need to place the code in a different project and don't let the debugger go in there, but instead show CI test results )
     // Todo: Make this a test/case wrapper for orderByKnowledge(back)
+    // Todo: Replace inversion / augment with unity  with an in-place inversion as if this Matrix wasn't sparse
     //  ButThen: It is so short, humble and easy to debug and can probably create good error messages
     // After orderByKnowledge(back) and for UnitTest.Mul we want to get the inverse as defined in math
     // sub() may have removed seams
@@ -1131,21 +1134,21 @@ export class Tridiagonal {
     }
     // opposite of split()
     // todo: write tests
-    AugmentMatrix_with_Unity() {
+    AugmentMatrix_with_Unity(sign = 1) {
         const M = this;
         const rows = M.row.forEach((r, i) => {
             const s = M.row.length + i;
             if (r.KeyValue.length == 0 || r.last(r.KeyValue) < s) {
                 r.KeyValue.push(s); // uh, do I have to accept seams or do I fuse left and right?
                 r.KeyValue.push(s + 1);
-                r.Value.push([1]);
+                r.Value.push([sign]); // Swap Columns is more generic if it does not change the sign. Thus we have to put both halves of the matrix on the same side of a =0 equation. The equation looks ugly, but the code better.
             }
             else {
                 if ((r.KeyValue.length & 1) != 0) {
                     throw "no fill up zeros span allowed because zero is default";
                 }
                 else {
-                    r.last(r.Value).push(1);
+                    r.last(r.Value).push(sign);
                     r.lastSet(r.KeyValue, s + 1);
                 }
             }
@@ -1179,7 +1182,7 @@ export class Tridiagonal {
                     if (f !== 0) {
                         //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                         // duplicated code leads to bugs! 2020-01-20
-                        rr.sub(rl, f, i); // ToDo: nuke column
+                        rr.sub(rl, f, i); // i = nuke column .. If we don't swap columns ( pivot ) .. ah anyway for inPlace we need to remove a columns from address Space. Similar to nuke? Nuke needs to pull in a new (the next)  one-encoding columns
                         // inve.row[k].sub(this.row[i],f)
                     }
                 }
@@ -1196,6 +1199,7 @@ export class Tridiagonal {
                 snapshot[shotCounter++].image = this.PrintGl(true);
             }
         });
+        // Todo: Assert, remove from production code
         //console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
         for (let keyValue = 0; keyValue < this.row.length >> 1; keyValue++) {
             for (let k = 0; k < this.row.length; k++) { //if (k!==i){

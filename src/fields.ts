@@ -754,6 +754,20 @@ export class Field extends FieldToDiagonal {
   public GroupByKnowledge(M: Tridiagonal, dropColumn = false) {
     // todo: static function?  this.M = M;
 
+    /**
+    m.negate()
+		
+		A*B = 1 = B*A
+		A*v =     u    forAll v
+		A*v = 1 * u    forAll v   |  B*
+		1*v = B * u    forAll v
+		
+		A*v = 1 * u    forAll v    | - A*v
+		0   = 1 * u - A*v  forAll v		but augment is on the other side. Before augment
+		now we can swap columns, then move back ( m.negate() again ? ) and invert
+    After split .. I expect all values to have the wrong sign ( both charge and potential )
+     */
+
    // M.row.forEach((r, i) => {
      // this.i = i;
       const passedThrough: Array<boolean> = this.IterateOverAllCells<boolean>(this.groupByKnowledge)

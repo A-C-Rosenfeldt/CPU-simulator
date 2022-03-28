@@ -73,7 +73,7 @@ try {
         // })
         var imageGl = NoSwap.PrintGl();
         imagesProcessed.push(imageGl); //main('FM__example_processed', imageGl);
-            main('inverse', [o.PrintGl()]
+        main('inverse', [o.PrintGl()]
             .concat(shots.map(s => s.image).reverse())
             .concat([matrixGl])
             .concat(shots.map(s => {
