@@ -46,19 +46,10 @@ describe('2i0metal', () => {
 
 		var [v, m] = Swap.ShapeToSparseMatrix();
 		m.AugmentMatrix_with_Unity()
-		for (var y = 0; y < 2; y++) {
-			console.log("m[ " + m.getAt(y, 0) + " , " + m.getAt(y, 1) + " , " + m.getAt(y, 2) + " , " + m.getAt(y, 3) + " ] ")
-		}
 		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
-		for (var y = 0; y < 2; y++) {
-			console.log("s[ " + m.getAt(y, 0) + " , " + m.getAt(y, 1) + " , " + m.getAt(y, 2) + " , " + m.getAt(y, 3) + " ] ")
-		}
 		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
-		for (var y = 0; y < 2; y++) {
-			console.log("i[ " + m.getAt(y, 0) + " , " + m.getAt(y, 1) + " , " + m.getAt(y, 2) + " , " + m.getAt(y, 3) + " ] ")
-		}
 
-		// taken from log on 2022-02-22
+		// taken from log on 2022-02-22 => regressionsTest
 		expect(m.getAt(0, 0)).to.equal(1)
 		expect(m.getAt(0, 1)).to.equal(0)
 		expect(m.getAt(0, 2)).to.equal(0)
@@ -232,14 +223,48 @@ describe('2i0metal', () => {
 		expect(v[i++]).to.equal(0) //  other pole horizontally
 
 		m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
-		//		expect(m.getAt(rn,rn+6)).to.equal(1)  //  the start of the other diagonal
-		//Swap.GroupByKnowledge(m)
-		//m.inverseRectangular() // inplace? // 20220218 "division by zero (matrix undefinite)"
-		//	expect(m.getAt(rn,rn)).to.approximately(1,0.001)
-		const potential = m.MatrixProduct(v)  // this is a good way to test the inverse. Later there are ofthen the fixed rails. So it may be nice to have them integrated into a sandwich column .. dunno
-		// If I stay with this MatrixProduct, I would need to concat(v & contacts) .. this test has no Contacts, though
-		// a good way to remember how v matches the columns of the Matrix is to imagine that you adjust those fixed potentials and then see how the potential goes up and down like a blanket in your bed.
-		// ToDo store potential in Field to utilize the  print2canvas routine
-		//	Swap.pullInSemiconductorVoltage(potential) // on bugs this hopefully throws
+		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
+		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
+
+		setContactVoltages(Swap, v, [-3, -5, -7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
+		expect(v[0]).to.equal(-7)
+		expect(v[1]).to.equal(0)
+		expect(v[5]).to.equal(-5)
+		{ // we need the voltag both in the tuple for later read out, and now in v (like vector, not voltage) to get the charge density.
+			const metal = Swap.fieldInVarFloats[0][0];
+			expect(metal.Potential).to.equal(-7)
+		}
+		{ // we need the voltag both in the tuple for later read out, and now in v (like vector, not voltage) to get the charge density.
+			const metal = Swap.fieldInVarFloats[1][2];
+			expect(metal.Potential).to.equal(-5)
+		}
+		const M2 = new Tridiagonal(0) // split does not work in place because it may need space at the seam
+		M2.row = m.row.map(r => r.split(1, m.row.length).scale(-1))
+		const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
+				
+		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
+
+		// I cannot MAP letters here. That would be part of the wire layout.
+		{
+			const metal = Swap.fieldInVarFloats[0][0];
+			expect(metal.Potential).to.equal(-7)
+			expect(metal.GetCarrier()).to.above(-1)
+		}
+		{
+			const metal = Swap.fieldInVarFloats[0][1];
+			expect(metal.Potential).to.below(-6)
+			expect(metal.GetCarrier()).to.equal(0)
+		}
+		{
+			const metal = Swap.fieldInVarFloats[1][1];
+			expect(metal.Potential).to.above(-6)
+			expect(metal.GetCarrier()).to.equal(0)
+		}
+		{
+			const metal = Swap.fieldInVarFloats[1][2];
+			expect(metal.Potential).to.equal(-5)
+			expect(metal.GetCarrier()).to.below(+1)
+		}
+
 	})
 })
