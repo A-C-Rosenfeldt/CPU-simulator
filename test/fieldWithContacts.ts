@@ -119,6 +119,12 @@ describe('2i0metal', () => {
 	// With swap columns this is also clear, but leads to ugly code.
 	// With pull .. thaaat code runs after inverse . No idea what the switched signs of the known values lead to
 
+
+	// So we either have to scale the known vectors matrix each time we pull it over = , or we can do it with the unkonws.
+	// In the second case .. inverse rectangular always solves for unity for the unknown. So we need to pull the known over = anyway. We just have twice the data access
+	// Or we give inverse a paramter to solve for -1? But then the swap code has infiltrated the inverse calculation. 
+
+
 		m.AugmentMatrix_with_Unity(-1) // without column swap: Adding of rows is independent of signs of whole columns. But with swap: A swap on one side of the equation is commutation, but accross the sides is equivalent transformation and changes the sign.
 		// so it is a bit weird that  inverse  still creates a +1 unit matrix and thus further down we will have to correct that
 		// Without column swaps -1 * -1 = +1  as if both matrices would have stayed on their side
@@ -136,6 +142,8 @@ describe('2i0metal', () => {
 
 		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
 		m.inverseRectangular() // bias voltage is not set, so inverse Matrix cannot deduce the cell voltage from charge distribution
+		const M2=m.split() // uses Matrix.sign  // .row = m.row.map(r => r.split(1, m.row.length).scale(m.sign)) // -1 from unity?  this is ugly internal stuff. I guess I need in place before I can get new features.
+
 
 		setContactVoltages(Swap, v, [-3, -5, -7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
 		expect(v[0]).to.equal(-7)
@@ -149,8 +157,6 @@ describe('2i0metal', () => {
 			const metal = Swap.fieldInVarFloats[0][2];
 			expect(metal.Potential).to.equal(-5)
 		}
-		const M2 = new Tridiagonal(0) // split does not work in place because it may need space at the seam
-		M2.row = m.row.map(r => r.split(1, m.row.length).scale(-1)) // this is ugly internal stuff. I guess I need in place before I can get new features.
 		const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
 /*
 [
@@ -225,6 +231,8 @@ describe('2i0metal', () => {
 		m.AugmentMatrix_with_Unity()  // Now I wonder how this works with jaggies? Row.length ? And does it straigten out the jaggies?
 		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
 		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
+		const M2 = new Tridiagonal(0) // split does not work in place because it may need space at the seam
+		M2.row = m.row.map(r => r.split(1, m.row.length).scale(-1))
 
 		setContactVoltages(Swap, v, [-3, -5, -7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
 		expect(v[0]).to.equal(-7)
@@ -238,8 +246,7 @@ describe('2i0metal', () => {
 			const metal = Swap.fieldInVarFloats[1][2];
 			expect(metal.Potential).to.equal(-5)
 		}
-		const M2 = new Tridiagonal(0) // split does not work in place because it may need space at the seam
-		M2.row = m.row.map(r => r.split(1, m.row.length).scale(-1))
+
 		const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
 				
 		Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
