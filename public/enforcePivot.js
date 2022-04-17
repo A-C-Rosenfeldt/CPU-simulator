@@ -1021,6 +1021,7 @@ export class Ranges {
 }
 export class Tridiagonal {
     constructor(length) {
+        this.sign = 1;
         if (typeof length === "number") {
             this.row = new Array(length);
         }
@@ -1133,8 +1134,8 @@ export class Tridiagonal {
         return iD;
     }
     // opposite of split()
-    // todo: write tests
     AugmentMatrix_with_Unity(sign = 1) {
+        this.sign = sign;
         const M = this;
         const rows = M.row.forEach((r, i) => {
             const s = M.row.length + i;
@@ -1211,6 +1212,15 @@ export class Tridiagonal {
             }
         }
         //  return inve
+    }
+    split() {
+        const M2 = new Tridiagonal(0); // split does not work in place because it may need space at the seam
+        M2.row = this.row.map(r => r.split(1, this.row.length).scale(this.sign)); // sign will be -1 in almost all cases
+        return M2;
+    }
+    inverseAndSplit() {
+        this.inverseRectangular();
+        return this.split();
     }
     // for unit test
     inverse(snapshot) {

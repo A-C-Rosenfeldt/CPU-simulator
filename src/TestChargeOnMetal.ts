@@ -1,9 +1,10 @@
 import { main, SimpleImage } from './GL.js';
-import { Tridiagonal } from '../src/enforcePivot';
-import { setContactVoltages } from '../src/field/setContactVoltage'
+import { Tridiagonal } from './enforcePivot.js';
+import { setContactVoltages } from './field/setContactVoltage.js'
 import { Field } from './fields.js';
 
 const images :SimpleImage[] =[]
+const imageM :SimpleImage[] =[]
 
 // taken from test/fields.ts .. Replaced literal voltage digits by capital letters
 const contactsAverage: string[] = ['BiA']; // check average in center
@@ -13,6 +14,11 @@ const contacts2d: string[] = ['Bii',
 
 	const Swap = new Field(contacts2d)
 		const [v, m] = Swap.ShapeToSparseMatrix();
+
+		var imageGlM=m.PrintGl()
+		imageM.push( imageGlM) //main('FieldGl0_field',imageGl) 
+		
+		
 		m.AugmentMatrix_with_Unity()
 		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
 		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
@@ -26,4 +32,5 @@ const contacts2d: string[] = ['Bii',
 var imageGl=Swap.PrintGl()
 images.push( imageGl) //main('FieldGl0_field',imageGl) 
 
+main('metal_charge_matrix',imageM)
 main('metal_charge',images)
