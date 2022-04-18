@@ -337,8 +337,8 @@ export class FieldToDiagonal extends MapForField {
             for (let k = 0; k < str.length; k++) {
                 const c = str[k];
                 let p = ((i * this.maxStringLenght) + k) << 2;
-                [c.BandGap, c.Potential, c.Doping, 8].forEach(component => {
-                    pixel[p++] = Math.max(0, Math.min(255, component * 32 - 0.5));
+                [c.BandGap, c.Potential, c.ChargeDensity(), 8].forEach(component => {
+                    pixel[p++] = Math.max(0, Math.min(255, Math.floor( component * 32 )));
                     //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
                     // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
                     // pixel[p++] = c.Potential * 32  // g octal (easy to type) to byte. The calculation uses floats anyway .. so neither precision nor range of the output device have a meaning for it

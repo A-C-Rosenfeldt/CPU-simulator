@@ -1266,7 +1266,7 @@ export class Tridiagonal implements Matrix {
 
         }, b) as Ranges
 
-        console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data)
+        //console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data)
         //ranges.lastStart++ // the last closing border is at length
 
         const s = this.row.length;

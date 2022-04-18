@@ -1087,7 +1087,7 @@ export class Tridiagonal {
             }
             return a; // .concat(span); // todo: new type
         }, b);
-        console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data);
+        //console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data)
         //ranges.lastStart++ // the last closing border is at length
         const s = this.row.length;
         const pixels = [];
