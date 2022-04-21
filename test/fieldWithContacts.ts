@@ -26,11 +26,11 @@ const contactsAverageV: string[] = ['B', 'i', 'A']; // check average in center
 describe('2i0metal', () => {
 	it('electrode covering more than one cell', () => {
 		const Swap = new Field( 
-		['BBsss',  // this could later be the result of a paint algorithm which follows 'm' .
-		'BBsss',
+		['AAsss',  // this could later be the result of a paint algorithm which follows 'm' .
+		'AAsss',
 		'sssss',
-		'sssAA',
-			'sssAA']);
+		'sssBB',
+			'sssBB']);
 		const [v, m] = Swap.ShapeToSparseMatrix();
 	
 		var imageGlM = m.PrintGl()
@@ -40,15 +40,15 @@ describe('2i0metal', () => {
 		// too big imageM.push(m.PrintGl());
 		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
 		//		imageM.push(m.PrintGl());
-		setContactVoltages(Swap, v, [-5, -6, -7 ])
+		setContactVoltages(Swap, v, [-7, -5 ])
 
 		var a=0
-		for( var i=-7;i<-5;i++){
+		for( var i=-7;i<=-5;i+=2){
 			expect(v[0+a]).to.equal(i)
 			expect(v[1+a]).to.equal(i)
 			expect(v[5+a]).to.equal(i)
 			expect(v[6+a]).to.equal(i)
-			a+=5+3
+			a+=3*5+3
 		}
 
 		{ // we need the voltag both in the tuple for later read out, and now in v (like vector, not voltage) to get the charge density.
@@ -57,7 +57,7 @@ describe('2i0metal', () => {
 			metal = Swap.fieldInVarFloats[0][1];
 			expect(metal.Potential).to.equal(-7)
 			metal = Swap.fieldInVarFloats[4][4];
-			expect(metal.Potential).to.equal(-6)			
+			expect(metal.Potential).to.equal(-5)			
 		}
 
 		const M2 = m.split() // uses the -1 from above.  //new Tridiagonal(0) // split does not work in place because it may need space at the seam
@@ -106,7 +106,7 @@ describe('2i0metal', () => {
 		// so an external class does this
 		// contact filler? Swap.fieldInVarFloats.forEach
 
-		setContactVoltages(Swap, v, [-5, -6, -7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
+		setContactVoltages(Swap, v, [-7, -6, -5 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
 		expect(v[0]).to.equal(-7)
 		{ // we need the voltag both in the tuple for later read out, and now in v (like vector, not voltage) to get the charge density.
 			const metal = Swap.fieldInVarFloats[0][0];
@@ -187,7 +187,7 @@ describe('2i0metal', () => {
 		const M2=m.split() // uses Matrix.sign  // .row = m.row.map(r => r.split(1, m.row.length).scale(m.sign)) // -1 from unity?  this is ugly internal stuff. I guess I need in place before I can get new features.
 
 
-		setContactVoltages(Swap, v, [-3, -5, -7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
+		setContactVoltages(Swap, v, [-5, -7, -3 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
 		expect(v[0]).to.equal(-7)
 		expect(v[1]).to.equal(0)
 		expect(v[2]).to.equal(-5)
@@ -276,7 +276,7 @@ describe('2i0metal', () => {
 		const M2 = new Tridiagonal(0) // split does not work in place because it may need space at the seam
 		M2.row = m.row.map(r => r.split(1, m.row.length).scale(-1))
 
-		setContactVoltages(Swap, v, [-3, -5, -7 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
+		setContactVoltages(Swap, v, [-5, -7, -3 /* something different for the test. Negative because then there is no conflict with the hardwired values */])  // 
 		expect(v[0]).to.equal(-7)
 		expect(v[1]).to.equal(0)
 		expect(v[5]).to.equal(-5)
