@@ -24,6 +24,48 @@ const contactsAverageV: string[] = ['B', 'i', 'A']; // check average in center
 
 
 describe('2i0metal', () => {
+	it('electrode covering more than one cell', () => {
+		const Swap = new Field( 
+		['BBsss',  // this could later be the result of a paint algorithm which follows 'm' .
+		'BBsss',
+		'sssss',
+		'sssAA',
+			'sssAA']);
+		const [v, m] = Swap.ShapeToSparseMatrix();
+	
+		var imageGlM = m.PrintGl()
+		//imageM.push( imageGlM) //main('FieldGl0_field',imageGl) 
+		m.AugmentMatrix_with_Unity(-1)
+		Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
+		// too big imageM.push(m.PrintGl());
+		m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
+		//		imageM.push(m.PrintGl());
+		setContactVoltages(Swap, v, [-5, -6, -7 ])
+
+		var a=0
+		for( var i=-7;i<-5;i++){
+			expect(v[0+a]).to.equal(i)
+			expect(v[1+a]).to.equal(i)
+			expect(v[5+a]).to.equal(i)
+			expect(v[6+a]).to.equal(i)
+			a+=5+3
+		}
+
+		{ // we need the voltag both in the tuple for later read out, and now in v (like vector, not voltage) to get the charge density.
+			var metal = Swap.fieldInVarFloats[0][0];
+			expect(metal.Potential).to.equal(-7)
+			metal = Swap.fieldInVarFloats[0][1];
+			expect(metal.Potential).to.equal(-7)
+			metal = Swap.fieldInVarFloats[4][4];
+			expect(metal.Potential).to.equal(-6)			
+		}
+
+		const M2 = m.split() // uses the -1 from above.  //new Tridiagonal(0) // split does not work in place because it may need space at the seam
+		// Maybe hide/encapsulate the rows? M2.row = m.row.map(r => r.split(1, m.row.length)) // this is ugly internal stuff. I guess I need in place before I can get new features.
+		const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
+		Swap.pullInSemiconductorVoltage(potential) 		
+	});
+	
 	it('should float to bias', () => {
 		const Swap = new Field(['Ai'])
 		expect(Swap.flatLength).to.equal(2)

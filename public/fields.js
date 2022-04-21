@@ -109,7 +109,7 @@ export class Tupel extends LinkIntoMatrix {
         super();
         // coulomb / m³  or whatever. Same unit for both
         this.CarrierCount = [0, 0]; // carriers are emitted from surface. Of course on turn-on there are none // mobile. for 6502 nfets: all negative. But I need double buffer
-        this.ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping;
+        this.ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping + 2;
     }
     ToTexture(raw, p) {
         raw[p + 3] = 255;
@@ -338,7 +338,7 @@ export class FieldToDiagonal extends MapForField {
                 const c = str[k];
                 let p = ((i * this.maxStringLenght) + k) << 2;
                 [c.BandGap, c.Potential, c.ChargeDensity(), 8].forEach(component => {
-                    pixel[p++] = Math.max(0, Math.min(255, Math.floor( component * 32 )));
+                    pixel[p++] = Math.max(0, Math.min(255, Math.floor(component * 32)));
                     //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
                     // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
                     // pixel[p++] = c.Potential * 32  // g octal (easy to type) to byte. The calculation uses floats anyway .. so neither precision nor range of the output device have a meaning for it
