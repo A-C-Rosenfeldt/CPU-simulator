@@ -1,9 +1,9 @@
 import { main } from './GL.js';
 import { setContactVoltages } from './field/setContactVoltage.js';
 import { Field } from './fields.js';
+const imageM = [];
 {
     const images = [];
-    const imageM = [];
     // taken from test/fields.ts .. Replaced literal voltage digits by capital letters
     const contactsAverage = ['BiA']; // check average in center
     const contacts2d = ['Bss',
@@ -12,11 +12,11 @@ import { Field } from './fields.js';
     var imageGl = Swap.PrintGl();
     images.push(imageGl);
     const [v, m] = Swap.ShapeToSparseMatrix();
-    imageM.push(m.PrintGl());
+    //imageM.push( m.PrintGl())
     //imageM.push( imageGlM) //main('FieldGl0_field',imageGl) 
     m.AugmentMatrix_with_Unity(-1);
     Swap.GroupByKnowledge(m); // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
-    imageM.push(m.PrintGl());
+    //imageM.push(m.PrintGl());
     m.inverseRectangular(); // in place. Still wonder if I should provide a immutable version
     //		imageM.push(m.PrintGl());
     setContactVoltages(Swap, v, [2, 4]);
@@ -26,7 +26,6 @@ import { Field } from './fields.js';
     Swap.pullInSemiconductorVoltage(potential); // opposite of groupByKnowledge
     var imageGl = Swap.PrintGl();
     images.push(imageGl); //main('FieldGl0_field',imageGl) 
-    main('metal_charge_matrix', imageM);
     main('metal_charge', images);
 }
 {
@@ -73,12 +72,13 @@ import { Field } from './fields.js';
         //imageM.push( imageGlM) //main('FieldGl0_field',imageGl) 
         m.AugmentMatrix_with_Unity(-1);
         Swap.GroupByKnowledge(m); // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
-        // too big imageM.push(m.PrintGl());
+        imageM.push(m.PrintGl()); // too big
         m.inverseRectangular(); // in place. Still wonder if I should provide a immutable version
-        //		imageM.push(m.PrintGl());
+        imageM.push(m.PrintGl());
         setContactVoltages(Swap, v, [2, 4]);
         const M2 = m.split(); // uses the -1 from above.  //new Tridiagonal(0) // split does not work in place because it may need space at the seam
         // Maybe hide/encapsulate the rows? M2.row = m.row.map(r => r.split(1, m.row.length)) // this is ugly internal stuff. I guess I need in place before I can get new features.
+        imageM.push(M2.PrintGl());
         const potential = M2.MatrixProduct(v); // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
         Swap.pullInSemiconductorVoltage(potential); // opposite of groupByKnowledge
         var imageGl = Swap.PrintGl();
@@ -86,4 +86,5 @@ import { Field } from './fields.js';
         // too big  main('metal_charge_matrix', imageM)
         main('surfac_bulk', images);
     }
+    main('metal_charge_matrix', imageM);
 }
