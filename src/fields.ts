@@ -174,7 +174,10 @@ export class Tupel extends LinkIntoMatrix {
   constructor(){
     super()    
   }
-  ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping+2;
+
+  static ChargeDensityOffset=1.27
+
+  ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping+ Tupel.ChargeDensityOffset;
 
   // Potential = 0, Contact!=null ( after floodfill ) => Potential is stored in contact   .. or first scanned cell for float. Why again don't floats need a contact ah, I want easy map drawing.
   Potential: number;  // Voltage relative to ground .  
@@ -346,6 +349,8 @@ export class FieldToDiagonal extends MapForField {
     self[char.charCodeAt(0) - 'A'.charCodeAt(0)] = c
   }
 
+  static literalVoltageBoost=2;//3;
+
   // Bandgap may stay in text? But this strange replacement function?
   ConstTextToVarFloats(): void { //ToPicture   print=text vs picture?
     // May be later: const pixel=new Float64Array(4*this.maxStringLenght * this.touchTypedDescription.length)
@@ -369,10 +374,10 @@ export class FieldToDiagonal extends MapForField {
             }
           } else {
             var tu = char == 'm' ? new Metal() : new Tupel()  // extended electrode
-            tu.BandGap = public_bandgap.get(char) * 4
+            tu.BandGap = public_bandgap.get(char) *FieldToDiagonal.literalVoltageBoost //*1 // * 4
             if (char == 'm' ) { tu.Contact=-1 }  // I need to clean this up later. Enums? Polymorphism
           }
-          tu.Doping = char === '-' ? 8 : 0 // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
+          tu.Doping = char === '-' ? 2:0 // 8 : 0 // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
         } else {
           tu = new Metal();
           tu.Potential = n
@@ -431,26 +436,56 @@ export class FieldToDiagonal extends MapForField {
   }
 
   PrintGl(): SimpleImage { //ToPicture   print=text vs picture?
-    const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length)
+    const borderWidthIntexel=1
+    const pixel = new Uint8Array(4 * (this.maxStringLenght+2*borderWidthIntexel) * (this.touchTypedDescription.length+2*borderWidthIntexel))
     // RGBA. This flat data structure resists all functional code
-    // ~screen
-    for (let i = 0; i < pixel.length;) {
-      // bluescreen
+    // ~screen .. RGBA ?
+    for (let i = (this.maxStringLenght+1)*borderWidthIntexel; i < (pixel.length-this.maxStringLenght-1)*borderWidthIntexel;) {      
       pixel[i++] = 0
       pixel[i++] = 0
       pixel[i++] = 0
-      pixel[i++] = 32 // partly transparent like on modern windows managers
+      pixel[i++] = 255 // This is never needed on the page. Cannot even think that it makes sense for the whole layout. 32 // partly transparent like on modern windows managers
     }
+
+    const scale=64 //  /*64 32*/
+    const green= Math.min(255,1.2*FieldToDiagonal.literalVoltageBoost*scale) // somehow I like black and styed below  the middle of literal potential  == ground. As opposed to DD and SS rails?
+    console.log("Tupel.ChargeDensityOffset "+ Tupel.ChargeDensityOffset );//+ " first" +this.fieldInVarFloats[0][0].ChargeDensityOffset)
+
+    // borders -- kinda ugly, but only sime lines. Why border vs background? For debug? For speed later? Tiles? show jaggies?
+    for(var side=0;side<2;side++){
+
+      var len=4*(this.maxStringLenght+3*borderWidthIntexel)
+      var len2=side*(pixel.length-len)
+      for (let i = len2;i< len2 + len; ) {
+        // bluescreen
+        pixel[i++] = 1*scale // semiconductor is in the middle
+        pixel[i++] =green
+        pixel[i++] = Tupel.ChargeDensityOffset*scale
+        pixel[i++] = 255
+      }
+    }
+
+    var len=4*(2*this.maxStringLenght+3*borderWidthIntexel)
+    var len2=pixel.length-len
+    for (let i = len;i< len2 ; i+=4 * this.maxStringLenght) {
+      for(var side=0;side<2;side++){
+        // bluescreen
+        pixel[i++] = 1*scale
+        pixel[i++] = green
+        pixel[i++] = Tupel.ChargeDensityOffset*scale
+        pixel[i++] = 255
+      }      
+    }    
 
     // flatten
     this.fieldInVarFloats.forEach((str, i) => {
       // JS is strange still. I need index:      for (let c of str) 
       for (let k = 0; k < str.length; k++) {
         const c = str[k]
-        let p = ((i * this.maxStringLenght) + k) << 2;
+        let p = (((borderWidthIntexel+i) * (this.maxStringLenght+2*borderWidthIntexel) ) + k+borderWidthIntexel) << 2;
 
-        [c.BandGap, c.Potential, c.ChargeDensity(), 8].forEach(component => {
-          pixel[p++] = Math.max(0, Math.min(255, Math.floor(component * 32 )))
+        [c.BandGap, c.Potential*0.7, c.ChargeDensity()*1.5, 255].forEach(component => {
+          pixel[p++] = Math.max(0, Math.min(255, Math.floor(component * scale )))
           //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
           // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
           // pixel[p++] = c.Potential * 32  // g octal (easy to type) to byte. The calculation uses floats anyway .. so neither precision nor range of the output device have a meaning for it
@@ -461,7 +496,7 @@ export class FieldToDiagonal extends MapForField {
         });
       }
     })
-    return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
+    return { pixel: pixel, width: this.maxStringLenght+2*borderWidthIntexel, height: this.touchTypedDescription.length+2*borderWidthIntexel };
   }
 
   // Code for testing! Only diagonal. ToDo: Find special cases code!
