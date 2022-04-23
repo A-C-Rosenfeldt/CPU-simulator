@@ -674,13 +674,13 @@ export class Row {
 
         var i = 0
         while (i < this.KeyValue.length && this.KeyValue[i] < pos) { i++ }  // orderByKnowledge has halves for this
-
+        i=(i+1)&1 // I think JS (and Java) have defined this (unlike C). We need to start with an opening Key . see test below
         var r = new Row([])
         if (side == 0) {
             r.KeyValue = this.KeyValue.slice(0, i)
             r.Value = this.Value.slice(0, i >> 1) // like in orderByKnowledge. No spurious +1 or anything
             var ultra = r.KeyValue.length - 1
-        } else {
+        } else { // test fails 2022-04-23 for count(KeyValue<pos) & 1 == 1
             r.KeyValue = this.KeyValue.slice(i)
             r.Value = this.Value.slice((i + 1) >> 1)  // ceil()
             ultra = 0

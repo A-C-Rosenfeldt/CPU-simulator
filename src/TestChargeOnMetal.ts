@@ -101,11 +101,12 @@ const imageM: SimpleImage[] = []
 	Swap.GroupByKnowledge(m) // Optional laast parameter: I don't think I drop columns here. Was all in vector and ShapeToSparse Matrix
 	imageM.push(m.PrintGl()); // too big
 	m.inverseRectangular() // in place. Still wonder if I should provide a immutable version
-	imageM.push(m.PrintGl());
+
 	setContactVoltages(Swap, v, [ 2, 4])
+	imageM.push(m.PrintGl());
 	const M2 = m.split() // uses the -1 from above.  //new Tridiagonal(0) // split does not work in place because it may need space at the seam
-	// Maybe hide/encapsulate the rows? M2.row = m.row.map(r => r.split(1, m.row.length)) // this is ugly internal stuff. I guess I need in place before I can get new features.
-	imageM.push(M2.PrintGl());	
+	imageM.push(M2.PrintGl());
+	
 	const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
 	Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
 
