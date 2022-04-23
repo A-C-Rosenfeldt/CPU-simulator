@@ -435,8 +435,8 @@ export class FieldToDiagonal extends MapForField {
     })
   }
 
-  PrintGl(): SimpleImage { //ToPicture   print=text vs picture?
-    const borderWidthIntexel=1
+  PrintGl(borderWidthIntexel=1): SimpleImage { //ToPicture   print=text vs picture?
+    
     const pixel = new Uint8Array(4 * (this.maxStringLenght+2*borderWidthIntexel) * (this.touchTypedDescription.length+2*borderWidthIntexel))
     // RGBA. This flat data structure resists all functional code
     // ~screen .. RGBA ?
