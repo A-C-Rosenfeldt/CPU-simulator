@@ -558,6 +558,8 @@ export class Row {
         if (factor !== 1) { // factor 1 should be default. Lets plot how it detoriates over the process
             this.Value.forEach(segment => segment.forEach((value, i) => segment[i] *= factor));
         }
+        // so scale is also used after a split. Split has to clone values. So we can pretend that we are part of a chain with value semantics. Do I need to inherit some reference counting here? To find errors?
+        return this;
     }
     // similar to   shiftedOverlay()  .. only returns one half and does not swap anything within
     // Oh, what do we do? Have a seam between left and right .. but at least not have a zero length span. Augment is buggy
@@ -571,34 +573,41 @@ export class Row {
     //. So noswap, filter version . How to combine? RemoveSeams is called in there
     split(side, pos /* Row does not know about matrix and does not know the length (width) of the underlying Matrix */) {
         const rr = new Array(); //.fill( new Row([]) ) //cloneable.deepCopy(this))
-        var i = 0;
-        while (i < this.KeyValue.length && this.KeyValue[i] < pos) {
-            i++;
+        var KeyKeyValue = 0;
+        while (KeyKeyValue < this.KeyValue.length && this.KeyValue[KeyKeyValue] < pos) {
+            KeyKeyValue++;
         } // orderByKnowledge has halves for this
+        if (side == 1 && KeyKeyValue > 0 && !(this.KeyValue[KeyKeyValue] < pos)) {
+            KeyKeyValue--;
+        } // otherwise there would be nothing to slice
+        // we only want opening : >> 1
+        // in case: we need to advance => +1
+        KeyKeyValue = (KeyKeyValue + side) >> 1; // We want to hit on Values . // I think JS (and Java) have defined this (unlike C). We need to start with an opening Key . see test below
         var r = new Row([]);
         if (side == 0) {
-            r.KeyValue = this.KeyValue.slice(0, i);
-            r.Value = this.Value.slice(0, i >> 1); // like in orderByKnowledge. No spurious +1 or anything
+            r.KeyValue = this.KeyValue.slice(0, KeyKeyValue << 1);
+            r.Value = this.Value.slice(0, KeyKeyValue); // like in orderByKnowledge. No spurious +1 or anything
             var ultra = r.KeyValue.length - 1;
         }
-        else {
-            r.KeyValue = this.KeyValue.slice(i);
-            r.Value = this.Value.slice((i + 1) >> 1); // ceil()
+        else { // test fails 2022-04-23 for count(KeyValue<pos) & 1 == 1
+            r.KeyValue = this.KeyValue.slice(KeyKeyValue << 1);
+            r.Value = this.Value.slice(KeyKeyValue); // that would mean that i is lying: // ceil()
             ultra = 0;
         }
         //for(var side=0;side++;side<2){
-        if (i & 1) {
-            var l = pos - r.KeyValue[ultra]; // todo: search for last()
-            if (l != 0) {
-                if (side == 0) {
-                    r.KeyValue.push(pos);
-                    r.Value.push(this.Value[i >> 1].slice(0, l));
-                }
-                else {
-                    r.KeyValue.unshift(pos);
-                    r.Value.unshift(this.Value[i >> 1].slice(l));
-                }
+        //if (KeyKeyValue & 1) 
+        {
+            var l = pos - r.KeyValue[ultra]; // KeyValue can reach to the other side. And we also have grabbed Values from there. We need to replace this. If I store a breach in a different variable, code becomes unreadable
+            //if (l != 0) {
+            if (side == 0 && l < 0) {
+                r.KeyValue[ultra] = pos; // arrays are muteable :-)  //.push(pos)
+                r.Value[ultra] = (this.Value[KeyKeyValue].slice(0, -l));
             }
+            if (side == 1 && l > 0) {
+                r.KeyValue[ultra] = pos;
+                r.Value[ultra >> 1] = (this.Value[KeyKeyValue].slice(l));
+            }
+            //}
         }
         // I thinks this is also different in join. The swap array is mirrored, but the result is not pulled back to origin 
         if (side == 1) {
@@ -607,7 +616,7 @@ export class Row {
         return r;
         //remove zero length
         rr[0].KeyValue.push(pos); // this is all checked in JoinOperatorITerator. I hate to do it here
-        rr[1].KeyValue.slice(i);
+        rr[1].KeyValue.slice(KeyKeyValue);
         rr[1].KeyValue.unshift(pos); // this is all checked in JoinOperatorITerator. I hate to do it here
         // rr[0].starts.forEach((s,i))
         // this also does not distinguish between start filled  vd  start empty
@@ -1019,6 +1028,7 @@ export class Ranges {
 }
 export class Tridiagonal {
     constructor(length) {
+        this.sign = 1;
         if (typeof length === "number") {
             this.row = new Array(length);
         }
@@ -1084,7 +1094,7 @@ export class Tridiagonal {
             }
             return a; // .concat(span); // todo: new type
         }, b);
-        console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data);
+        //console.log("Ranges: " + ranges.lastStart + " data: " + ranges.data)
         //ranges.lastStart++ // the last closing border is at length
         const s = this.row.length;
         const pixels = [];
@@ -1131,22 +1141,22 @@ export class Tridiagonal {
         return iD;
     }
     // opposite of split()
-    // todo: write tests
-    AugmentMatrix_with_Unity() {
+    AugmentMatrix_with_Unity(sign = 1) {
+        this.sign = sign;
         const M = this;
         const rows = M.row.forEach((r, i) => {
             const s = M.row.length + i;
             if (r.KeyValue.length == 0 || r.last(r.KeyValue) < s) {
                 r.KeyValue.push(s); // uh, do I have to accept seams or do I fuse left and right?
                 r.KeyValue.push(s + 1);
-                r.Value.push([1]);
+                r.Value.push([sign]); // Swap Columns is more generic if it does not change the sign. Thus we have to put both halves of the matrix on the same side of a =0 equation. The equation looks ugly, but the code better.
             }
             else {
                 if ((r.KeyValue.length & 1) != 0) {
                     throw "no fill up zeros span allowed because zero is default";
                 }
                 else {
-                    r.last(r.Value).push(1);
+                    r.last(r.Value).push(sign);
                     r.lastSet(r.KeyValue, s + 1);
                 }
             }
@@ -1180,7 +1190,7 @@ export class Tridiagonal {
                     if (f !== 0) {
                         //[this.row,inve.row].forEach(side=>side[k].sub(side[i],f))
                         // duplicated code leads to bugs! 2020-01-20
-                        rr.sub(rl, f, i); // ToDo: nuke column
+                        rr.sub(rl, f, i); // i = nuke column .. If we don't swap columns ( pivot ) .. ah anyway for inPlace we need to remove a columns from address Space. Similar to nuke? Nuke needs to pull in a new (the next)  one-encoding columns
                         // inve.row[k].sub(this.row[i],f)
                     }
                 }
@@ -1197,6 +1207,7 @@ export class Tridiagonal {
                 snapshot[shotCounter++].image = this.PrintGl(true);
             }
         });
+        // Todo: Assert, remove from production code
         //console.log("inside Tridiagonal.inverse "+this.row[0].data[0][0])
         for (let keyValue = 0; keyValue < this.row.length >> 1; keyValue++) {
             for (let k = 0; k < this.row.length; k++) { //if (k!==i){
@@ -1208,6 +1219,15 @@ export class Tridiagonal {
             }
         }
         //  return inve
+    }
+    split() {
+        const M2 = new Tridiagonal(0); // split does not work in place because it may need space at the seam
+        M2.row = this.row.map(r => r.split(1, this.row.length).scale(this.sign)); // sign will be -1 in almost all cases
+        return M2;
+    }
+    inverseAndSplit() {
+        this.inverseRectangular();
+        return this.split();
     }
     // for unit test
     inverse(snapshot) {

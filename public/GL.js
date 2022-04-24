@@ -93,6 +93,7 @@ export function main(canvasId, data) {
             for (var i = 15; i > 0; i -= 5)
                 squeeze[i] = 1;
             squeeze[0] = 1 / (data.length * (itemWidth + 1) - 1); // gaps are 10%
+            squeeze[5] = -squeeze[5]; // to make source code and graphics match:  top to bottom .  Maybe I need a production version which loads from file .. I mean if nobody debugs the code then there is no problem
             // linking needs to happen before? strange language
             // use program also needs to be before
             gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, 'SqueezeMatrix'), // we loaded the shader script. Does gl instert a pointer from there to our matrix?

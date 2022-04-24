@@ -109,7 +109,7 @@ export class Tupel extends LinkIntoMatrix {
         super();
         // coulomb / m³  or whatever. Same unit for both
         this.CarrierCount = [0, 0]; // carriers are emitted from surface. Of course on turn-on there are none // mobile. for 6502 nfets: all negative. But I need double buffer
-        this.ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping;
+        this.ChargeDensity = () => this.CarrierCount[Tupel.bufferId] + this.Doping + Tupel.ChargeDensityOffset;
     }
     ToTexture(raw, p) {
         raw[p + 3] = 255;
@@ -124,18 +124,25 @@ export class Tupel extends LinkIntoMatrix {
         return this.CarrierCount[Tupel.bufferId];
     }
     AddCarrier(val, carrier = null) {
+        if (Number.isNaN(val)) { // this should not happen with poisson like matrix. Maybe electrodes are more complicated? I suspect bugs.
+            throw "carrier count must stay a number ( some would even say: integer) ";
+        }
         // postpone double buffer into a different class 1^
         this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
         // carrier.next=this.Electron
         // this.Electron=carrier
     }
     SetCarrier(val) {
+        if (Number.isNaN(val)) { // this should not happen with poisson like matrix. Maybe electrodes are more complicated? I suspect bugs.
+            throw "carrier count must be a number ( some would even say: integer) ";
+        }
         // postpone double buffer into a different class 1^
         this.CarrierCount[Tupel.bufferId] = val; // for surface charge on metal electrodes
         // maybe free space optimzation, where close electrons interact via 1/r law. So I need infinitesimal math?   this.Carrier=null
     }
 }
 Tupel.bufferId = 0; // todo:  static is problematic when add maps / staggered update
+Tupel.ChargeDensityOffset = 1.27;
 // Bandgap = 0 . Conflict with  ToTexture() above. View model vs real model?
 export class Metal extends Tupel {
     constructor() {
@@ -264,12 +271,12 @@ export class FieldToDiagonal extends MapForField {
                     }
                     else {
                         var tu = char == 'm' ? new Metal() : new Tupel(); // extended electrode
-                        tu.BandGap = public_bandgap.get(char) * 4;
+                        tu.BandGap = public_bandgap.get(char) * FieldToDiagonal.literalVoltageBoost; //*1 // * 4
                         if (char == 'm') {
                             tu.Contact = -1;
                         } // I need to clean this up later. Enums? Polymorphism
                     }
-                    tu.Doping = char === '-' ? 8 : 0; // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
+                    tu.Doping = char === '-' ? 2 : 0; // 8 : 0 // charge density. Blue is so weak on my monitor. Single digit octal number. I cannot use hex because letters already have so meany meanings in my encoding. I may need + doping in the channel to get a uniform mobile carrier density at 50% opening for max slope at switch .. center slope to get beautiful curves.
                 }
                 else {
                     tu = new Metal();
@@ -309,6 +316,8 @@ export class FieldToDiagonal extends MapForField {
                 const n = fk.RunningNumberOfJaggedArray;
                 if (typeof n == 'number') { // nonsense todo : (floating) electrodes have RunningNumberOfJaggedArray, too. Floating needs to pull in, too
                     const v = voltage[n]; // for debug .. makes no sense .. todo: remove
+                    if (Number.isNaN(v))
+                        throw "voltage[" + n + "] is not a number. Field at (" + i + "," + k + ")";
                     if (fk.BandGap == 0) {
                         fk.SetCarrier(v);
                         //throw "only set voltage in Semiconductor at the moment";
@@ -320,25 +329,52 @@ export class FieldToDiagonal extends MapForField {
             });
         });
     }
-    PrintGl() {
-        const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length);
+    PrintGl(borderWidthIntexel = 1) {
+        const pixel = new Uint8Array(4 * (this.maxStringLenght + 2 * borderWidthIntexel) * (this.touchTypedDescription.length + 2 * borderWidthIntexel));
         // RGBA. This flat data structure resists all functional code
-        // ~screen
-        for (let i = 0; i < pixel.length;) {
-            // bluescreen
+        // ~screen .. RGBA ?
+        for (let i = (this.maxStringLenght + 1) * borderWidthIntexel; i < (pixel.length - this.maxStringLenght * borderWidthIntexel);) {
             pixel[i++] = 0;
             pixel[i++] = 0;
             pixel[i++] = 0;
-            pixel[i++] = 32; // partly transparent like on modern windows managers
+            pixel[i++] = 255; // This is never needed on the page. Cannot even think that it makes sense for the whole layout. 32 // partly transparent like on modern windows managers
         }
+        const scale = 64; //  /*64 32*/
+        const green = Math.min(255, 1.2 * FieldToDiagonal.literalVoltageBoost * scale); // somehow I like black and styed below  the middle of literal potential  == ground. As opposed to DD and SS rails?
+        console.log("Tupel.ChargeDensityOffset " + Tupel.ChargeDensityOffset); //+ " first" +this.fieldInVarFloats[0][0].ChargeDensityOffset)
+        // borders -- kinda ugly, but only sime lines. Why border vs background? For debug? For speed later? Tiles? show jaggies?
+        for (var side = 0; side < 2; side++) {
+            var len = 4 * (this.maxStringLenght + 3 * borderWidthIntexel) * borderWidthIntexel;
+            var len2 = side * (pixel.length - len);
+            for (let i = len2; i < len2 + len;) {
+                // bluescreen
+                pixel[i++] = 1 * scale; // semiconductor is in the middle
+                pixel[i++] = green;
+                pixel[i++] = Tupel.ChargeDensityOffset * scale;
+                pixel[i++] = 255;
+            }
+        }
+        var len = 4 * (2 * this.maxStringLenght + 3 * borderWidthIntexel) * borderWidthIntexel;
+        var len2 = pixel.length - len;
+        for (let i = len; i < len2 * borderWidthIntexel; i += 4 * this.maxStringLenght) {
+            for (var side = 0; side < 2; side++) {
+                // bluescreen
+                pixel[i++] = 1 * scale;
+                pixel[i++] = green;
+                pixel[i++] = Tupel.ChargeDensityOffset * scale;
+                pixel[i++] = 255;
+            }
+        }
+        //return { pixel: pixel, width: this.maxStringLenght+2*borderWidthIntexel, height: this.touchTypedDescription.length+2*borderWidthIntexel };
         // flatten
         this.fieldInVarFloats.forEach((str, i) => {
             // JS is strange still. I need index:      for (let c of str) 
             for (let k = 0; k < str.length; k++) {
                 const c = str[k];
-                let p = ((i * this.maxStringLenght) + k) << 2;
-                [c.BandGap, c.Potential, c.Doping, 8].forEach(component => {
-                    pixel[p++] = Math.max(0, Math.min(255, component * 32 - 0.5));
+                let p = (((borderWidthIntexel + i) * (this.maxStringLenght + 2 * borderWidthIntexel)) + k + borderWidthIntexel) << 2;
+                [c.BandGap, c.Potential * 0.7, c.ChargeDensity() * 1.5, 255].forEach(component => {
+                    //  [0, 2, 0, 255].forEach(component => {
+                    pixel[p++] = Math.max(0, Math.min(255, Math.floor(component * scale)));
                     //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
                     // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
                     // pixel[p++] = c.Potential * 32  // g octal (easy to type) to byte. The calculation uses floats anyway .. so neither precision nor range of the output device have a meaning for it
@@ -349,7 +385,7 @@ export class FieldToDiagonal extends MapForField {
                 });
             }
         });
-        return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
+        return { pixel: pixel, width: this.maxStringLenght + 2 * borderWidthIntexel, height: this.touchTypedDescription.length + 2 * borderWidthIntexel };
     }
     // Code for testing! Only diagonal. ToDo: Find special cases code!
     // What about jaggies? Do if in inner loop? If beyong jaggy above || first line?
@@ -479,6 +515,7 @@ export class FieldToDiagonal extends MapForField {
         return [vector, matrix];
     }
 }
+FieldToDiagonal.literalVoltageBoost = 2; //3;
 export class Field extends FieldToDiagonal {
     constructor() {
         super(...arguments);
@@ -621,6 +658,19 @@ export class Field extends FieldToDiagonal {
     // the uhm aehm no .. not definite. Needs to be square and that comes from field interpretation
     GroupByKnowledge(M, dropColumn = false) {
         // todo: static function?  this.M = M;
+        /**
+        m.negate()
+            
+            A*B = 1 = B*A
+            A*v =     u    forAll v
+            A*v = 1 * u    forAll v   |  B*
+            1*v = B * u    forAll v
+            
+            A*v = 1 * u    forAll v    | - A*v
+            0   = 1 * u - A*v  forAll v		but augment is on the other side. Before augment
+            now we can swap columns, then move back ( m.negate() again ? ) and invert
+        After split .. I expect all values to have the wrong sign ( both charge and potential )
+         */
         // M.row.forEach((r, i) => {
         // this.i = i;
         const passedThrough = this.IterateOverAllCells(this.groupByKnowledge);

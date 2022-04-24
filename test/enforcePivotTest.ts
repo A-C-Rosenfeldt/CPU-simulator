@@ -3,7 +3,29 @@ import { expect } from 'chai';
 import 'mocha';
 
 describe('Row alone: Find 0.0   statistics please', () => {
-    it('trim', () => {
+	it('split', () => {
+		const r = new Row([[49,1]]) // empty throws. I cannot see a usage for empty rows in a field
+		r.KeyValue = [   // private values grabbed from debugger . Todo: Change to use public interface
+			48,			49,			90,			91,			96,			98
+		]
+		r.Value=[
+			[			  1,			],
+			[			  1,			],
+			[			  1,			  -2,			],
+		  ]
+		const pos=new Array(...r.KeyValue) // shallow clone. Not really needed
+		const cut=49
+		const s=r.split(1, cut)
+		
+		expect(s.KeyValue.length & 1 ).to.equal(0)
+
+		for(var i=s.KeyValue.length;i>1;i--){
+			const neu = s.KeyValue.pop();
+			expect(neu).to.greaterThanOrEqual(0)
+			expect(neu).to.equal(pos.pop()-cut)
+		}
+	})
+	it('trim', () => {
 		{
 			const span = new KeyValueValue<number>(3, 4);
 			span.Value = [1, 2, 3] // negative sample
@@ -11,7 +33,7 @@ describe('Row alone: Find 0.0   statistics please', () => {
 			expect(row.Value[0].length).to.equal(3)
 		}
 
-		{			
+		{
 			const span0 = new KeyValueValue<number>(3, 4); // len start .. I shoudl be the other way around .. but in this way it is the default string property first
 			span0.Value = [0, 2, 3] // negative sample
 			const row0 = new Row([span0])
@@ -22,7 +44,7 @@ describe('Row alone: Find 0.0   statistics please', () => {
 			span0.Value = [1, 2, 3] // negative sample
 			const row0 = new Row([span0])
 			expect(row0.Value[0].length).to.equal(3)
-			row0.Value[0][0]=0 // happens in inverse at a trivial stage where we should better work in place -- but maybe elsewhere also?
+			row0.Value[0][0] = 0 // happens in inverse at a trivial stage where we should better work in place -- but maybe elsewhere also?
 
 			let newKeyValues: number[] = []
 			let newValues: number[][] = [];
@@ -34,13 +56,13 @@ describe('Row alone: Find 0.0   statistics please', () => {
 			expect(newKeyValues[0]).to.equal(5)
 		}
 	})
-    it('cut', () => {
+	it('cut', () => {
 		{
 			const span0 = new KeyValueValue<number>(3, 4); // len start .. I shoudl be the other way around .. but in this way it is the default string property first
 			span0.Value = [1.5, 2.5, 3.5] // negative sample
 			const row0 = new Row([span0])
 			expect(row0.Value[0].length).to.equal(3)
-			row0.Value[0][1]=0.0 // happens in inverse at a trivial stage where we should better work in place -- but maybe elsewhere also?
+			row0.Value[0][1] = 0.0 // happens in inverse at a trivial stage where we should better work in place -- but maybe elsewhere also?
 
 			let newKeyValues: number[] = []
 			let newValues: number[][] = [];
