@@ -577,7 +577,7 @@ export class Row {
         while (i < this.KeyValue.length && this.KeyValue[i] < pos) {
             i++;
         } // orderByKnowledge has halves for this
-        i = (i + 1) & 1; // I think JS (and Java) have defined this (unlike C). We need to start with an opening Key . see test below
+        i = (i + 1) & (~1); // I think JS (and Java) have defined this (unlike C). We need to start with an opening Key . see test below
         var r = new Row([]);
         if (side == 0) {
             r.KeyValue = this.KeyValue.slice(0, i);

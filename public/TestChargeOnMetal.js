@@ -52,7 +52,9 @@ const imageM = [];
             // Maybe hide/encapsulate the rows? M2.row = m.row.map(r => r.split(1, m.row.length)) // this is ugly internal stuff. I guess I need in place before I can get new features.
             const potential = M2.MatrixProduct(v); // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
             Swap.pullInSemiconductorVoltage(potential); // opposite of groupByKnowledge
-            const imageField = Swap.PrintGl(0);
+            console.log("Swap[4][4].potential: " + Swap.fieldInVarFloats[4][4].Potential);
+            console.log("Swap[4][3].potential: " + Swap.fieldInVarFloats[4][3].Potential);
+            const imageField = Swap.PrintGl(1);
             images.push(imageField);
             console.log("[RGBA: " + imageField.pixel[0] + "," + imageField.pixel[1] + "," + imageField.pixel[2] + "," + imageField.pixel[3]);
             const end = imageField.pixel.length - 4;

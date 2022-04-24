@@ -202,6 +202,10 @@ export class Tupel extends LinkIntoMatrix {
   }
 
   AddCarrier(val: number, carrier: Electron = null) {
+    if (Number.isNaN(val)){// this should not happen with poisson like matrix. Maybe electrodes are more complicated? I suspect bugs.
+      throw "carrier count must stay a number ( some would even say: integer) "
+    }
+
     // postpone double buffer into a different class 1^
     this.CarrierCount[1 ^ Tupel.bufferId] = this.CarrierCount[Tupel.bufferId] + val;
     // carrier.next=this.Electron
@@ -209,6 +213,9 @@ export class Tupel extends LinkIntoMatrix {
   }
 
   SetCarrier(val: number) {
+    if (Number.isNaN(val)){// this should not happen with poisson like matrix. Maybe electrodes are more complicated? I suspect bugs.
+      throw "carrier count must be a number ( some would even say: integer) "
+    }
     // postpone double buffer into a different class 1^
     this.CarrierCount[ Tupel.bufferId] = val; // for surface charge on metal electrodes
     // maybe free space optimzation, where close electrons interact via 1/r law. So I need infinitesimal math?   this.Carrier=null
@@ -424,6 +431,7 @@ export class FieldToDiagonal extends MapForField {
         const n = fk.RunningNumberOfJaggedArray
         if (typeof n == 'number') { // nonsense todo : (floating) electrodes have RunningNumberOfJaggedArray, too. Floating needs to pull in, too
           const v = voltage[n] // for debug .. makes no sense .. todo: remove
+          if (Number.isNaN(v)) throw "voltage["+n+"] is not a number. Field at ("+i+","+k+")"
           if (fk.BandGap == 0){
             fk.SetCarrier( v )
             //throw "only set voltage in Semiconductor at the moment";
@@ -440,7 +448,7 @@ export class FieldToDiagonal extends MapForField {
     const pixel = new Uint8Array(4 * (this.maxStringLenght+2*borderWidthIntexel) * (this.touchTypedDescription.length+2*borderWidthIntexel))
     // RGBA. This flat data structure resists all functional code
     // ~screen .. RGBA ?
-    for (let i = (this.maxStringLenght+1)*borderWidthIntexel; i < (pixel.length-this.maxStringLenght-1)*borderWidthIntexel;) {      
+    for (let i = (this.maxStringLenght+1)*borderWidthIntexel; i < (pixel.length-this.maxStringLenght*borderWidthIntexel);) {      
       pixel[i++] = 0
       pixel[i++] = 0
       pixel[i++] = 0
@@ -454,7 +462,7 @@ export class FieldToDiagonal extends MapForField {
     // borders -- kinda ugly, but only sime lines. Why border vs background? For debug? For speed later? Tiles? show jaggies?
     for(var side=0;side<2;side++){
 
-      var len=4*(this.maxStringLenght+3*borderWidthIntexel)
+      var len=4*(this.maxStringLenght+3*borderWidthIntexel)*borderWidthIntexel
       var len2=side*(pixel.length-len)
       for (let i = len2;i< len2 + len; ) {
         // bluescreen
@@ -465,9 +473,9 @@ export class FieldToDiagonal extends MapForField {
       }
     }
 
-    var len=4*(2*this.maxStringLenght+3*borderWidthIntexel)
+    var len=4*(2*this.maxStringLenght+3*borderWidthIntexel)*borderWidthIntexel
     var len2=pixel.length-len
-    for (let i = len;i< len2 ; i+=4 * this.maxStringLenght) {
+    for (let i = len;i< len2*borderWidthIntexel ; i+=4 * this.maxStringLenght) {
       for(var side=0;side<2;side++){
         // bluescreen
         pixel[i++] = 1*scale
@@ -477,6 +485,7 @@ export class FieldToDiagonal extends MapForField {
       }      
     }    
 
+    //return { pixel: pixel, width: this.maxStringLenght+2*borderWidthIntexel, height: this.touchTypedDescription.length+2*borderWidthIntexel };
     // flatten
     this.fieldInVarFloats.forEach((str, i) => {
       // JS is strange still. I need index:      for (let c of str) 
@@ -485,6 +494,7 @@ export class FieldToDiagonal extends MapForField {
         let p = (((borderWidthIntexel+i) * (this.maxStringLenght+2*borderWidthIntexel) ) + k+borderWidthIntexel) << 2;
 
         [c.BandGap, c.Potential*0.7, c.ChargeDensity()*1.5, 255].forEach(component => {
+        //  [0, 2, 0, 255].forEach(component => {
           pixel[p++] = Math.max(0, Math.min(255, Math.floor(component * scale )))
           //iD.data.set([  About octal I go to 8 including and let OpenGL saturate .. need all the contrast I can get
           // pixel[p++] = c.BandGap * 32 // r  octal (easy to type) to byte // 2d Canvas: bandgaps.get(c)*50
