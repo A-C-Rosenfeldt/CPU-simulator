@@ -672,31 +672,37 @@ export class Row {
 
         const rr = new Array<Row>() //.fill( new Row([]) ) //cloneable.deepCopy(this))
 
-        var i = 0
-        while (i < this.KeyValue.length && this.KeyValue[i] < pos) { i++ }  // orderByKnowledge has halves for this
-        i=(i+1)&(~1) // I think JS (and Java) have defined this (unlike C). We need to start with an opening Key . see test below
+        var KeyKeyValue = 0
+        while (KeyKeyValue < this.KeyValue.length && this.KeyValue[KeyKeyValue] < pos) { KeyKeyValue++ }  // orderByKnowledge has halves for this
+        if (side==1 && KeyKeyValue>0 && !(this.KeyValue[KeyKeyValue] < pos)) { KeyKeyValue--; } // otherwise there would be nothing to slice
+        // we only want opening : >> 1
+        // in case: we need to advance => +1
+        KeyKeyValue=(KeyKeyValue+side) >> 1 // We want to hit on Values . // I think JS (and Java) have defined this (unlike C). We need to start with an opening Key . see test below
+
         var r = new Row([])
         if (side == 0) {
-            r.KeyValue = this.KeyValue.slice(0, i)
-            r.Value = this.Value.slice(0, i >> 1) // like in orderByKnowledge. No spurious +1 or anything
+            r.KeyValue = this.KeyValue.slice(0, KeyKeyValue << 1)
+            r.Value = this.Value.slice(0, KeyKeyValue ) // like in orderByKnowledge. No spurious +1 or anything
             var ultra = r.KeyValue.length - 1
         } else { // test fails 2022-04-23 for count(KeyValue<pos) & 1 == 1
-            r.KeyValue = this.KeyValue.slice(i)
-            r.Value = this.Value.slice((i + 1) >> 1)  // ceil()
+            r.KeyValue = this.KeyValue.slice(KeyKeyValue << 1)
+            r.Value = this.Value.slice(KeyKeyValue )  // that would mean that i is lying: // ceil()
             ultra = 0
         }
         //for(var side=0;side++;side<2){
-        if (i & 1) {
-            var l = pos - r.KeyValue[ultra]  // todo: search for last()
-            if (l != 0) {
-                if (side == 0) {
-                    r.KeyValue.push(pos)
-                    r.Value.push(this.Value[i >> 1].slice(0, l))
-                } else {
-                    r.KeyValue.unshift(pos)
-                    r.Value.unshift(this.Value[i >> 1].slice(l))
+        //if (KeyKeyValue & 1) 
+        {
+            var l = pos - r.KeyValue[ultra]  // KeyValue can reach to the other side. And we also have grabbed Values from there. We need to replace this. If I store a breach in a different variable, code becomes unreadable
+            //if (l != 0) {
+                if (side == 0 && l<0) {
+                    r.KeyValue[ultra]=pos // arrays are muteable :-)  //.push(pos)
+                    r.Value[ultra]=(this.Value[KeyKeyValue ].slice(0, -l))
                 }
-            }
+                if (side == 1 && l>0) {
+                    r.KeyValue[ultra]=pos
+                    r.Value[ultra>>1]=(this.Value[KeyKeyValue ].slice(l))
+                }
+            //}
         }
 
         // I thinks this is also different in join. The swap array is mirrored, but the result is not pulled back to origin 
@@ -709,7 +715,7 @@ export class Row {
 
 
         rr[0].KeyValue.push(pos)  // this is all checked in JoinOperatorITerator. I hate to do it here
-        rr[1].KeyValue.slice(i)
+        rr[1].KeyValue.slice(KeyKeyValue)
         rr[1].KeyValue.unshift(pos) // this is all checked in JoinOperatorITerator. I hate to do it here
 
 

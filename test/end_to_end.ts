@@ -73,7 +73,7 @@ describe('end2end', () => {
 			}
 
 			
-			expect(hits).to.equal( variations&2 ) // funny accident
+			expect(hits).to.equal( (~variations) &2 ) // funny accident
 
 			if ((++variations & 7) == 4)
 				contacts2d = contacts2d.map(s => {

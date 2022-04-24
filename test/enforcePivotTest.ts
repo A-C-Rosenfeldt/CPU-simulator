@@ -19,7 +19,7 @@ describe('Row alone: Find 0.0   statistics please', () => {
 		
 		expect(s.KeyValue.length & 1 ).to.equal(0)
 
-		for(var i=s.KeyValue.length;i>0;i--){
+		for(var i=s.KeyValue.length;i>1;i--){
 			const neu = s.KeyValue.pop();
 			expect(neu).to.greaterThanOrEqual(0)
 			expect(neu).to.equal(pos.pop()-cut)
