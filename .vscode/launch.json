@@ -48,6 +48,13 @@
             "webRoot": "${workspaceFolder}/public"
         },
         {
+            "name": "Launch Chrome",
+            "request": "launch",
+            "type": "chrome",
+            "url": "http://localhost:3000/index.htm",
+            "webRoot": "${workspaceFolder}"
+        },        
+        {
             "type": "node",
             "request": "launch",
             "name": "Launch Program generic",
