@@ -263,9 +263,9 @@ export class MapForField {
   // EG exampleField
   constructor(touchTypedDescription: string[]) {
     this.maxStringLenght = Math.max.apply(null, touchTypedDescription.map(t => t.length))
-    console.log("cotr: touchTypedDescription: "+touchTypedDescription)
+    //console.log("cotr: touchTypedDescription: "+touchTypedDescription)
     this.flatLength = touchTypedDescription.map(t => t.length).reduce((a, c) => a + c, 0)
-    console.log("cotr: this.flatLength: "+this.flatLength)
+    //console.log("cotr: this.flatLength: "+this.flatLength)
     this.touchTypedDescription = touchTypedDescription
     // parse string and .. yeah really do not know if I should replace UTF-8 with JS typeInformation
     // Yes we should because I do not want to expose this to  Field2Matrix
@@ -457,7 +457,7 @@ export class FieldToDiagonal extends MapForField {
 
     const scale=64 //  /*64 32*/
     const green= Math.min(255,1.2*FieldToDiagonal.literalVoltageBoost*scale) // somehow I like black and styed below  the middle of literal potential  == ground. As opposed to DD and SS rails?
-    console.log("Tupel.ChargeDensityOffset "+ Tupel.ChargeDensityOffset );//+ " first" +this.fieldInVarFloats[0][0].ChargeDensityOffset)
+    //console.log("Tupel.ChargeDensityOffset "+ Tupel.ChargeDensityOffset );//+ " first" +this.fieldInVarFloats[0][0].ChargeDensityOffset)
 
     // borders -- kinda ugly, but only sime lines. Why border vs background? For debug? For speed later? Tiles? show jaggies?
     for(var side=0;side<2;side++){
@@ -724,7 +724,7 @@ export class Field extends FieldToDiagonal {
   // So this is for my internal formats ( field and matrix ). Should be possible to edit all interface to assimilate all adapter-code
   // This code is (ToDo )used by the following 3 methods.
   protected IterateOverAllCells<T>(f: (i_mat: Tupel, i: number, k: number) => T): Array<T> {
-    console.log("this.flatLength: "+this.flatLength)
+    //console.log("this.flatLength: "+this.flatLength)
     const collector = new Array<T>(this.flatLength)
     let i_mat = 0
     for (let i = 0; i < this.fieldInVarFloats.length; i++) {
@@ -737,7 +737,7 @@ export class Field extends FieldToDiagonal {
         //f(i_mat, i, k);
       }
     }
-    console.log("collector.length: "+collector.length)
+    //console.log("collector.length: "+collector.length)
     return collector
   }
 
@@ -816,7 +816,7 @@ export class Field extends FieldToDiagonal {
    // M.row.forEach((r, i) => {
      // this.i = i;
       const passedThrough: Array<boolean> = this.IterateOverAllCells<boolean>(this.groupByKnowledge)
-      console.log("passedThrough: "+passedThrough ) // alread unit tested (how? ) . Right now doing ['Ai']
+      //console.log("passedThrough: "+passedThrough ) // alread unit tested (how? ) . Right now doing ['Ai']
 
       // parameter in field is boolean, but for the algorithm I tried to adapt to starts[] to reduce the lines of critical code
       const startsToSwap = new Array<number>()
@@ -828,7 +828,7 @@ export class Field extends FieldToDiagonal {
       }, false)
       // shift does this for us or not. Hack a seam into left and right side of augmented matrix 
       startsToSwap.push(passedThrough.length)
-      console.log("startsToSwap: "+startsToSwap ) // alread unit tested (how? ) . Right now doing ['Ai']
+      //console.log("startsToSwap: "+startsToSwap ) // alread unit tested (how? ) . Right now doing ['Ai']
       // First, lets check if really necessary: if (passedThroughstartsToSwap.push(i) // should not be that many
       M.swapColumns(startsToSwap, dropColumn)  // so this works on a single (rectangular) matrix to avoid the join (on row multiplication)? Starts to swap tells us which field cells just keep their value ( in case of dropColumn)
  //   })

@@ -73,15 +73,15 @@ const imageM: SimpleImage[] = []
 			const potential = M2.MatrixProduct(v) // No charge yet .. so all semiconductor entries are 0 . I sure need to test that before I add carriers ( tube .. before doping )
 			Swap.pullInSemiconductorVoltage(potential) // opposite of groupByKnowledge
 
-			console.log("Swap[4][4].potential: "+Swap.fieldInVarFloats[4][4].Potential);
-			console.log("Swap[4][3].potential: "+Swap.fieldInVarFloats[4][3].Potential);
+			//console.log("Swap[4][4].potential: "+Swap.fieldInVarFloats[4][4].Potential);
+			//console.log("Swap[4][3].potential: "+Swap.fieldInVarFloats[4][3].Potential);
 
 			const imageField = Swap.PrintGl(1);
 			images.push(imageField)
 			
-			console.log( "[RGBA: "+imageField.pixel[0]+","+imageField.pixel[1]+","+imageField.pixel[2]+","+imageField.pixel[3])
+			//console.log( "[RGBA: "+imageField.pixel[0]+","+imageField.pixel[1]+","+imageField.pixel[2]+","+imageField.pixel[3])
 			const end=imageField.pixel.length-4
-			console.log( "]RGBA: "+imageField.pixel[0+end]+","+imageField.pixel[1+end]+","+imageField.pixel[2+end]+","+imageField.pixel[3+end])
+			//console.log( "]RGBA: "+imageField.pixel[0+end]+","+imageField.pixel[1+end]+","+imageField.pixel[2+end]+","+imageField.pixel[3+end])
 
 			if ((++variations & 7) == 4) contacts2d=contacts2d.map(s => {
 				// strings are immutable in JS. But arrays are not. So we are forced to use Join.

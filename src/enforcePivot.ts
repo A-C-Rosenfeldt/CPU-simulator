@@ -1238,7 +1238,7 @@ export class Tridiagonal implements Matrix {
             const swapBordersShiftedIntoOverlayRegion = // nonsense, prototype I guess // [0, 0].concat(swapHalf.map(pos => pos + (this.row.length >> 1)), [this.row.length, this.row.length]) // concat: cut spans which span the center. This method seems to be responsible for this feature
             /*swapHalf.concat*/(swapHalf.map(s=>s+this.row.length)) // after  augment with unity our matrix is twice as wide as high. Jagged and arbitrary width are only used for field
             // We do not need to cut seams into the center between original and augmention. Swap works regardless
-            console.log("swapBordersShiftedIntoOverlayRegion: "+swapBordersShiftedIntoOverlayRegion)
+            //console.log("swapBordersShiftedIntoOverlayRegion: "+swapBordersShiftedIntoOverlayRegion)
             this.row.forEach((row, i_row) => { // the block clearly separates singular and plural
                 const spans_new_Stream = [new AllSeamless(), new AllSeamless()] // todo: inject unit test debug moch    I copy row instead  l)
                 const length = this.row.length; // data private to Matrix. Maybe Row should know its length? But it would be duplicated state. Pointer to parent Matrix? Maybe later.
