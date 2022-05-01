@@ -193,10 +193,11 @@ function loadShader(gl, type, source) {
   return shader;
 }
 
-
-export class SimpleImage {
+export class Squeeze{
   width: number
   height: number
+}
+export class SimpleImage extends Squeeze {
   pixel: Uint8Array
   span?: Uint8Array  // not so simple anymore
 }

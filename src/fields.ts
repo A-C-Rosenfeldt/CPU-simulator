@@ -282,11 +282,12 @@ export class MapForField {
       iD.data.set([0, 25, 0, 255], pointer) // ~dark green 
     }
 
+    // todo remove dupe
     this.touchTypedDescription.forEach((str, i) => {
       // JS is strange still. I need index:      for (let c of str) 
       for (let k = 0; k < str.length; k++) {
         const c = str[k]
-        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])
+        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])  // s accept free electrons while i does not ( so in the fab they don't make Shottky diodes and don't align the bands -- interface chemistry, not bulk alone )
         iD.data.set([
           bandgaps.get(c) * 30,
           0,
@@ -313,7 +314,7 @@ export class MapForField {
       // JS is strange still. I need index:      for (let c of str) 
       for (let k = 0; k < str.length; k++) {
         const c = str[k]
-        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])
+        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])  // todo remove dupe
         let p = ((i * this.maxStringLenght) + k) << 2;
 
         //iD.data.set([
@@ -367,7 +368,7 @@ export class FieldToDiagonal extends MapForField {
       // JS is strange still. I need index:      for (let c of str) 
       //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
 
-      const public_bandgap = new Map([['i', 2], ['_', 1], ['-', 2], ['s', 1], ['m', 0]])
+      const public_bandgap = new Map([['i', 2], ['_', 1], ['-', 2], ['s', 1], ['m', 0]]) //  // s accept free electrons while i does not ( so in the fab they don't make Shottky diodes and don't align the bands -- interface chemistry, not bulk alone )
       const forBlock = function (char: string): Tupel {
         const n = Number.parseFloat(char)
         if (Number.isNaN(n)) {

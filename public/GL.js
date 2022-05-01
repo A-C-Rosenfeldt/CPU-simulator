@@ -146,7 +146,9 @@ function loadShader(gl, type, source) {
     }
     return shader;
 }
-export class SimpleImage {
+export class Squeeze {
+}
+export class SimpleImage extends Squeeze {
 }
 //
 // Initialize a texture and load an image.
