@@ -1,8 +1,6 @@
-// Todo: split into production and demo code
-import { particle } from "./electronsAsGLPoints.js";
 //import {}
 import { Field, Metal } from './fields.js';
-import { field2Gl } from "./GL.js";
+//import { field2Gl, Squeeze } from "./GL.js";
 var contacts2d = ['BBsss',
     'BBsss',
     'sssss',
@@ -10,7 +8,7 @@ var contacts2d = ['BBsss',
     'sssAA'];
 var swap = new Field(contacts2d);
 // avoid to capture uncontrolled. Testable
-function sucks(a, strokes, topLeft, direction = { vertical: false }) {
+export function sucks(a, strokes, topLeft, direction = { vertical: false }) {
     const stroke = [];
     //(a.BandGap<threeQuarterConductor) !== (b.BandGap<threeQuarterConductor) && // inteface
     //for(
@@ -36,24 +34,24 @@ function sucks(a, strokes, topLeft, direction = { vertical: false }) {
     } while (i == 1);
     return; // try to avoid: null
 }
-const strokes = []; //new Array<number[]>()
-{
+// this was naked code, but I need to test ( half TDD, written some, but does not show on screen yet ) 2022-05-03
+export function iterateOverAllEdges(swap, perEdge) {
+    const strokes = []; //new Array<number[]>()
     var previousRow = null, previousCell = null;
     swap.fieldInVarFloats.map((row, ri) => {
         if (previousRow != null)
             row.map((cell, ci) => {
                 const threeQuarterConductor = 3;
                 //const interFace = (a,b)=>   // todo:check field
-                var vertices;
                 if (previousCell != null) {
                     //strokes.push( 
-                    sucks([cell, previousCell], strokes, [ri, ci], { vertical: true });
+                    perEdge([cell, previousCell], strokes, [ri, ci], { vertical: true });
                     // seed is in suck
                 }
                 if (previousRow != null) {
                     const vCell = previousRow[ci];
                     if (typeof vCell === "object") { // avoid to mention the base of arrays. I guess, "first" and "last" is more of standard than 0 and 1 . Then again 0 and 1 is THE computer standard. I don't get it.
-                        sucks([cell, vCell], strokes, [ri, ci]);
+                        perEdge([cell, vCell], strokes, [ri, ci]);
                         // seed in suck
                     }
                 }
@@ -62,13 +60,8 @@ const strokes = []; //new Array<number[]>()
         previousCell = null;
         previousRow = row;
     });
+    return strokes;
 }
+const signatu = sucks;
 // Swap.fieldInVarFloats.map( row=> row.reduce( (previous,cell) => {
 // },null) )
-{
-    // 
-    const extent = swap.extend();
-    //const vertices = [0, 0, 1, 1]  // flat
-    field2Gl("EmissionFromMetal", [swap.PrintGl()]); // field as background
-    particle("EmissionFromMetal", strokes, extent); // share transformation matrix for border (make texels size=1)?
-}

@@ -1,6 +1,6 @@
 import { Cloneable, Row, Tridiagonal } from '../src/enforcePivot';
 import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, Contact } from '../src/fields'
-import { main } from '../src/GL';
+
 import { ContactedField } from '../src/fieldStatic'
 
 import { expect } from 'chai';
