@@ -1,4 +1,4 @@
-import { main } from './GL.js'
+import { field2Gl } from './GL.js'
 
 const pixel = new Uint8Array(1024); // 2+4+4 = 10
 pixel[0] = 0; //[0, 0, 255, 255];  // opaque blue

@@ -2,7 +2,7 @@
 class AttribNameRange {
 }
 // CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
-export function main(canvasId, data) {
+export function field2Gl(canvasId, data) {
     const gl = document.getElementById(canvasId).getContext("webgl");
     if (!gl) {
         alert("Unable to initialize WebGL. Your browser or machine may not support it.");

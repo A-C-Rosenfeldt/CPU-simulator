@@ -1,4 +1,4 @@
-import { main } from './GL.js';
+import { field2Gl } from './GL.js';
 import { setContactVoltages } from './field/setContactVoltage.js';
 import { Field } from './fields.js';
 const imageM = [];
@@ -26,7 +26,7 @@ const imageM = [];
     Swap.pullInSemiconductorVoltage(potential); // opposite of groupByKnowledge
     var imageGl = Swap.PrintGl();
     images.push(imageGl); //main('FieldGl0_field',imageGl) 
-    main('metal_charge', images);
+    field2Gl('metal_charge', images);
 }
 {
     const images = [];
@@ -102,7 +102,7 @@ const imageM = [];
         var imageGl = Swap.PrintGl();
         images.push(imageGl); //main('FieldGl0_field',imageGl) 
         // too big  main('metal_charge_matrix', imageM)
-        main('surfac_bulk', images);
+        field2Gl('surfac_bulk', images);
     }
-    main('metal_charge_matrix', imageM);
+    field2Gl('metal_charge_matrix', imageM);
 }

@@ -9,7 +9,7 @@ class AttribNameRange {
 }
 
 // CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
-export function main(canvasId: string, data: SimpleImage[]) {
+export function field2Gl(canvasId: string, data: SimpleImage[]) {
 
   const gl = (document.getElementById(canvasId) as HTMLCanvasElement).getContext("webgl");
   if (!gl) {
@@ -196,6 +196,7 @@ function loadShader(gl, type, source) {
 export class Squeeze{
   width: number
   height: number
+  extent?: number[]  // todo: switch to this. I think a class with a single member is no anit-pattern  
 }
 export class SimpleImage extends Squeeze {
   pixel: Uint8Array

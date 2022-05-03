@@ -186,11 +186,12 @@ export class MapForField {
         for (let pointer = 0; pointer < iD.data.length; pointer += 4) {
             iD.data.set([0, 25, 0, 255], pointer); // ~dark green 
         }
+        // todo remove dupe
         this.touchTypedDescription.forEach((str, i) => {
             // JS is strange still. I need index:      for (let c of str) 
             for (let k = 0; k < str.length; k++) {
                 const c = str[k];
-                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]); // s accept free electrons while i does not ( so in the fab they don't make Shottky diodes and don't align the bands -- interface chemistry, not bulk alone )
                 iD.data.set([
                     bandgaps.get(c) * 30,
                     0,
@@ -216,7 +217,7 @@ export class MapForField {
             // JS is strange still. I need index:      for (let c of str) 
             for (let k = 0; k < str.length; k++) {
                 const c = str[k];
-                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]);
+                const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]]); // todo remove dupe
                 let p = ((i * this.maxStringLenght) + k) << 2;
                 //iD.data.set([
                 pixel[p++] = bandgaps.get(c) * 50;
@@ -255,7 +256,7 @@ export class FieldToDiagonal extends MapForField {
             const row = new Array(str.length); //[]=[]
             // JS is strange still. I need index:      for (let c of str) 
             //const c = this.preprocessChar(str[k])  // static would feel weird if we are going to overwrite it
-            const public_bandgap = new Map([['i', 2], ['_', 1], ['-', 2], ['s', 1], ['m', 0]]);
+            const public_bandgap = new Map([['i', 2], ['_', 1], ['-', 2], ['s', 1], ['m', 0]]); //  // s accept free electrons while i does not ( so in the fab they don't make Shottky diodes and don't align the bands -- interface chemistry, not bulk alone )
             const forBlock = function (char) {
                 const n = Number.parseFloat(char);
                 if (Number.isNaN(n)) {
@@ -521,6 +522,9 @@ export class Field extends FieldToDiagonal {
         super(...arguments);
         this.bufferId = 0; // like field in video. Used to double buffer the carriers instead of doing interlaced.
         // I feel like there already needs to be some code. For example:  fieldStatic.ts/
+    }
+    extend() {
+        return [this.maxStringLenght, this.touchTypedDescription.length];
     }
     ToDoubleSquareMatrixSortByKnowledge_naive() {
         this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )

@@ -1,6 +1,6 @@
 //import import * as validator from "./ZipCodeValidator"; './enforcePivot'
 import { Tridiagonal, Row } from './enforcePivot.js';
-import { main, SimpleImage } from './GL.js';
+import { field2Gl, SimpleImage } from './GL.js';
 //import 'assert'
 // The browser ( or OS or video driver ) limit the number of WebGl Canvase. If that is solved, I may show this bare bones approach again
 // 2d canvas was nasty and later I need crossing wires!!
@@ -81,4 +81,4 @@ images.push(dupe);
 // }catch{
 //     console.warn("not all fields could be created")
 // }
-main('MatrixCanvasGlSwapMiddle', images);
+field2Gl('MatrixCanvasGlSwapMiddle', images);

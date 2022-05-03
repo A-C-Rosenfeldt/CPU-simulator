@@ -18,7 +18,7 @@ import { Tridiagonal, KeyValueValue, Row, FromRaw } from './enforcePivot.js'
 // ts-mocha -p src/tsconfig.json src/**/*.spec.ts
 
 //import { Wire } from './wire'  // kind of hoisting. I need to criss cross import for parent-child  relation
-import { SimpleImage } from './GL.js'
+import { SimpleImage, Squeeze } from './GL.js'
 import './field/semiconductor.js'
 import './field/metal.js'
 import { Electron } from './field/semiconductor.js'
@@ -635,7 +635,15 @@ export class FieldToDiagonal extends MapForField {
   }
 }
 
-export class Field extends FieldToDiagonal {
+export interface SqueezeA{
+  extend: ()=> number[]
+}
+
+export class Field extends FieldToDiagonal implements SqueezeA {
+  extend(){
+     return [this.maxStringLenght, this.touchTypedDescription.length]
+  }
+
   ToDoubleSquareMatrixSortByKnowledge_naive(): Tridiagonal { // we would need to join rows : []{  //  for some reason I decided against Matric[] {
 
     this.CreateSides(); // known cells (for naive: metal) go into one group ( right hand side, =1), unknown (s and i) go into another (left hand side = 0 ) )

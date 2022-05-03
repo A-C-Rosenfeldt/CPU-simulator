@@ -1,6 +1,6 @@
 //import import * as validator from "./ZipCodeValidator"; './enforcePivot'
 import { Tridiagonal, Row, JoinOperatorIterator, SeamlessValues } from './enforcePivot.js'
-import { main, SimpleImage } from './GL.js';
+import { field2Gl, SimpleImage } from './GL.js';
 //import 'assert'
 
 // The browser ( or OS or video driver ) limit the number of WebGl Canvase. If that is solved, I may show this bare bones approach again
@@ -96,5 +96,5 @@ const images :SimpleImage[] =[]
 //     console.warn("not all fields could be created")
 // }
 
-main('MatrixCanvasGlSwapMiddle',images)
+field2Gl('MatrixCanvasGlSwapMiddle',images)
     

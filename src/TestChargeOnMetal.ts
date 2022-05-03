@@ -1,4 +1,4 @@
-import { main, SimpleImage } from './GL.js';
+import { field2Gl, SimpleImage } from './GL.js';
 import { Tridiagonal } from './enforcePivot.js';
 import { setContactVoltages } from './field/setContactVoltage.js'
 import { Field } from './fields.js';
@@ -37,7 +37,7 @@ const imageM: SimpleImage[] = []
 	images.push(imageGl) //main('FieldGl0_field',imageGl) 
 
 
-	main('metal_charge', images)
+	field2Gl('metal_charge', images)
 }
 
 {
@@ -135,8 +135,8 @@ const imageM: SimpleImage[] = []
 		images.push(imageGl) //main('FieldGl0_field',imageGl) 
 
 		// too big  main('metal_charge_matrix', imageM)
-		main('surfac_bulk', images)
+		field2Gl('surfac_bulk', images)
 	}
 
-	main('metal_charge_matrix', imageM)
+	field2Gl('metal_charge_matrix', imageM)
 }

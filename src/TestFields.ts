@@ -1,6 +1,6 @@
 import { Row } from './enforcePivot.js';
 import { MapForField, exampleField, FieldToDiagonal, fieldTobeSquared, Field, bandsGapped, arenaVerbatim, Tupel } from './fields.js'
-import { main, SimpleImage } from './GL.js';
+import { field2Gl, SimpleImage } from './GL.js';
 //import 'assert'
 
 console.log("in TestFields.ts")
@@ -56,7 +56,7 @@ try{
     // const h=new Map<string, Tupel>()
     // h.has("A") // multiple cables or points on a cable ( that would just be a layout thing ) can be all have a common contact. Use Linalg to solve wires: We have base voltage with incoming current. Any delta (outgoing "reflected") current leads to delta voltage (Ohm). Kirchoff node role: Sum of all currents needs to be zero
 }catch{}
-main('FieldGl0',images)
+field2Gl('FieldGl0',images)
 
 while(typeof images.pop() !== 'undefined'); // const.clear()
 
@@ -84,4 +84,4 @@ try{
     // // 20201118: Overflow of one field? Hmm first line has an underflow? Can't really happen, the buffer is flat but had boundaries. Maybe try to only draw one line? Kill the 1st line?
 
 }catch{}
-main('FieldGl',images)
+field2Gl('FieldGl',images)
