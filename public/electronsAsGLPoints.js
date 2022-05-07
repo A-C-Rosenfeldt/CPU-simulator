@@ -40,15 +40,17 @@ export function particle(canvasId, strokes, extent) {
         }
         var coord = gl.getAttribLocation(shaderProgram, "coordinates");
         // Point an attribute to the currently bound VBO
-        gl.vertexAttribPointer(coord, 3 /*size */, gl.FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
+        gl.vertexAttribPointer(coord, 2 /*size */, gl.FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
         gl.enableVertexAttribArray(coord);
         {
             const squeeze = new Float32Array(16);
             squeeze.fill(0);
             for (var i = 15; i > 0; i -= 5)
                 squeeze[i] = 1;
-            squeeze[0] = 1 / extent[0]; // ugly  // todo: put just back in: //(data.length * (itemWidth+1) -1)  // gaps are 10%
-            squeeze[5] = -1 / extent[1]; // see next line. Todo: Use Matrix multiplication to keep this in a single place. Or even better: Scale texture objects to the size of their texture. Share the gl context!
+            squeeze[0] = 2 / extent[0]; // ugly  // todo: put just back in: //(data.length * (itemWidth+1) -1)  // gaps are 10%
+            squeeze[5] = -2 / extent[1]; // see next line. Todo: Use Matrix multiplication to keep this in a single place. Or even better: Scale texture objects to the size of their texture. Share the gl context!
+            squeeze[3 * 4] = -1; //  // OpenGl is Column Major. Why? I love inner products!
+            squeeze[3 * 4 + 1] = +1; // denominator is -1  .. why different sign?
             //squeeze[5] = -squeeze[5]   // to make source code and graphics match:  top to bottom .  Maybe I need a production version which loads from file .. I mean if nobody debugs the code then there is no problem
             // linking needs to happen before? strange language
             // use program also needs to be before
@@ -59,7 +61,7 @@ export function particle(canvasId, strokes, extent) {
         strokes.forEach(stroke => {
             gl.bufferData(gl.ARRAY_BUFFER, // type and target slot
             new Float32Array(stroke), // source
-            gl.STATIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
+            gl.DYNAMIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
             );
             gl.drawArrays(gl.LINE_STRIP, 0 /*first*/, 2 /*count*/); // to not confuse tracks
         });
@@ -74,6 +76,7 @@ export function particle(canvasId, strokes, extent) {
             'uniform mat4 SqueezeMatrix;' +
             'void main(void) {' +
             ' gl_Position = SqueezeMatrix * coordinates ;' +
+            'gl_PointSize = 2.0;' +
             '}');
         gl.compileShader(vertShader);
         if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
@@ -99,8 +102,10 @@ export function particle(canvasId, strokes, extent) {
             squeeze.fill(0);
             for (var i = 15; i > 0; i -= 5)
                 squeeze[i] = 1;
-            squeeze[0] = 1 / extent[0]; // ugly  // todo: put just back in: //(data.length * (itemWidth+1) -1)  // gaps are 10%
-            squeeze[5] = -1 / extent[1]; // see next line. Todo: Use Matrix multiplication to keep this in a single place. Or even better: Scale texture objects to the size of their texture. Share the gl context!
+            squeeze[0] = 2 / extent[0]; // ugly  // todo: put just back in: //(data.length * (itemWidth+1) -1)  // gaps are 10%
+            squeeze[5] = -2 / extent[1]; // see next line. Todo: Use Matrix multiplication to keep this in a single place. Or even better: Scale texture objects to the size of their texture. Share the gl context!
+            squeeze[3 * 4] = -1; //  // OpenGl is Column Major. Why? I love inner products!
+            squeeze[3 * 4 + 1] = +1; // denominator is -1  .. why different sign?         
             //squeeze[5] = -squeeze[5]   // to make source code and graphics match:  top to bottom .  Maybe I need a production version which loads from file .. I mean if nobody debugs the code then there is no problem
             // linking needs to happen before? strange language
             // use program also needs to be before
@@ -109,11 +114,11 @@ export function particle(canvasId, strokes, extent) {
         strokes.forEach(stroke => {
             gl.bufferData(gl.ARRAY_BUFFER, // type and target slot
             new Float32Array(stroke), // source
-            gl.STATIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
+            gl.DYNAMIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
             );
             gl.drawArrays(gl.POINTS, 0 /*first. todo: use reduce calls above */, 2 /*count*/); // velocity // difference 1/2
         });
-        {
+        if (false) {
             var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
             gl.shaderSource(fragShader, 'void main(void) {' +
                 ' gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);' + // the difference 0/2
@@ -141,7 +146,7 @@ export function particle(canvasId, strokes, extent) {
             strokes.forEach(stroke => {
                 gl.bufferData(gl.ARRAY_BUFFER, // type and target slot
                 new Float32Array(stroke), // source
-                gl.STATIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
+                gl.DYNAMIC_DRAW //.STATIC_DRAW // a hint that I will not modify this afterwards ( recreate every frame to minimize marshalling)
                 );
                 gl.drawArrays(gl.POINTS, 0 /*first*/, 2 /*count*/); // velocity // difference 1/2
             });

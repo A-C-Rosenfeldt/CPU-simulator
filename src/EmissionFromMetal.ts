@@ -19,23 +19,26 @@ export interface OutStream {
 
 // avoid to capture uncontrolled. Testable
 export function sucks(a: Tupel[], strokes: OutStream, topLeft: number[], direction: { vertical: boolean } = { vertical: false }): void {
-	const stroke: number[] = []
 	//(a.BandGap<threeQuarterConductor) !== (b.BandGap<threeQuarterConductor) && // inteface
 	//for(
-	var i = 0 //;i<=1;i++)		
-	if ((a[i] instanceof Metal) !== (a[i ^ 1] instanceof Metal) ){ // inteface  // // FieldToDiagonal{ ConstTextToVarFloats(){Map([['i', 2] ['s', 1]}  ; literalVoltageBoost=2 }
+		
+	if ((a[0] instanceof Metal) !== (a[1] instanceof Metal) ){ // inteface  // // FieldToDiagonal{ ConstTextToVarFloats(){Map([['i', 2] ['s', 1]}  ; literalVoltageBoost=2 }
+		var i = 0 //;i<=1;i++)	
 		do { // binary
 			if (
-				(a[i].BandGap < 3 /*threeQuarterConductor todo:inject*/ && a[i].Potential > a[i ^ 1].Potential) //=== (a.BandGap<threeQuarterConductor)  // voltage sucks
+				( !(a[i] instanceof Metal) && a[i].BandGap < 3 /*threeQuarterConductor todo:inject*/ && a[i].Potential > a[i ^ 1].Potential) //=== (a.BandGap<threeQuarterConductor)  // voltage sucks
 			) {
+				//  TODO: write test for stroke    console.log("direction.vertical"+direction.vertical+"i"+i+" bg "+a[i].BandGap+" bg "+a[i^1].BandGap);
 				// create seeds, we need two parameters. the i and
 				// both directions should appear the same. Later: Anisotropie?
-				for (var k = 0; k < 8; k++) {  // define number of emitters per edge in one place
+				for (var k = 0; k < 4; k++) {  // define number of emitters per edge in one place
 					var emission = topLeft.slice()
-					emission[direction.vertical ? 1 : 0] += k / 8; stroke.push(...emission) // flat
-					emission[direction.vertical ? 0 : 1] += i / 3; stroke.push(...emission)
+					const stroke=[]
+					emission[ (!direction.vertical) ? 1 : 0] += k / 4; stroke.push(...emission) // flat
+					emission[ (!direction.vertical) ? 0 : 1] += -(i-0.5) / 3; stroke.push(...emission)
 
-					strokes.push(stroke) 
+					strokes.push(stroke) // todo: also make flat
+					
 					// vertices.push(ri+(direction.vertical?(k/8 /* float cannot shift */ ):0),ci+(direction.vertical?0:k/8))
 					// vertices.push(ri+(direction.vertical?(k/8 /* float cannot shift */ ):0),ci+(direction.vertical?0:k/8))
 				}
@@ -67,7 +70,7 @@ export function iterateOverAllEdges(swap: Field, perEdge: PerEdge): number[][] {
 			if (previousRow != null) {
 				const vCell = previousRow[ci]
 				if (typeof vCell === "object") { // avoid to mention the base of arrays. I guess, "first" and "last" is more of standard than 0 and 1 . Then again 0 and 1 is THE computer standard. I don't get it.
-					perEdge([cell, vCell], strokes, [ri, ci])
+					perEdge([cell, vCell], strokes, [ri, ci], { vertical: false })
 					// seed in suck
 				}
 
