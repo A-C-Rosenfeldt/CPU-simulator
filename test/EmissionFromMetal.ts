@@ -47,7 +47,7 @@ describe('emission', () => {
 		}
 
 		sucks(swap.fieldInVarFloats[0] , strokes, [0,0] ) // direction: { vertical: boolean } = { vertical: false })		
-		expect(strokes.length ).to.equal(8)
+		expect(strokes.length ).to.equal(4)
 	})
 
 })

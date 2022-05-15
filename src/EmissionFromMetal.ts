@@ -19,9 +19,7 @@ export interface OutStream {
 
 // avoid to capture uncontrolled. Testable
 export function sucks(a: Tupel[], strokes: OutStream, topLeft: number[], direction: { vertical: boolean } = { vertical: false }): void {
-	//(a.BandGap<threeQuarterConductor) !== (b.BandGap<threeQuarterConductor) && // inteface
-	//for(
-		
+	// When needed for gates, todo: check for shottkey / low workfunction	
 	if ((a[0] instanceof Metal) !== (a[1] instanceof Metal) ){ // inteface  // // FieldToDiagonal{ ConstTextToVarFloats(){Map([['i', 2] ['s', 1]}  ; literalVoltageBoost=2 }
 		var i = 0 //;i<=1;i++)	
 		do { // binary

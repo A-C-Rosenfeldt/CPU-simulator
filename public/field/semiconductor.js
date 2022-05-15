@@ -181,16 +181,21 @@ export class Trajectory {
         //return charge as Field.  //  ToDo: setAttribute?
     }
 }
+// Dupe. moved to: Emission from metal. Todo: 
 // So we inherit from Trajectory to not need to  pass  propagate()  through.
 // Or we we have this as field to construct our directed graph where core methods don't know about comfor methods ( I don't like hoisting )
-export class Cathode {
-    constructor(field) {
-        this.width = 8; // Indeed the map dictates the width. Transcribe on construction.
-        this.flow = new Trajectory[this.width];
-        this.field = field;
+/*export class Cathode{
+    public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
+    public flow:Trajectory[]=new Trajectory[this.width];
+    field: FieldToDiagonal;
+
+    constructor(field:  FieldToDiagonal  ){
+        this.field=field
     }
-    RenderMesh() {
-        this.flow[0].Propagate(this.field);
+
+    public RenderMesh(): number{
+
+        this.flow[0].Propagate(this.field)
         // Join trajectories which may go at different speed
         // Now I ( we all ) remember that the join algorithm does spontanous symmetry breaking, but otherwise its for in for.
         // Still we could try to generallize code use in Matrix.Add()
@@ -201,6 +206,7 @@ export class Cathode {
         return 3; // 1/[x+1]-[x]  // zero distance would have infinite energy due to charge-charge repulsion
     }
 }
+*/
 /*
 
 So I've got some divergence which cannot be explained

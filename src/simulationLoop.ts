@@ -1,7 +1,7 @@
 import { Tridiagonal } from './enforcePivot.js';
 import { Field , bandsGapped, Contact, Tupel} from './fields.js'
 import { ContactedField } from './fieldStatic'
-import { Cathode, Trajectory } from './field/semiconductor'
+import {  Trajectory } from './field/semiconductor'
 import { Wire } from './wire.js';
 class Simulation{
 	keyPressed:boolean;

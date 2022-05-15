@@ -216,9 +216,10 @@ export class Trajectory{
     }
 }
 
+// Dupe. moved to: Emission from metal. Todo: 
 // So we inherit from Trajectory to not need to  pass  propagate()  through.
 // Or we we have this as field to construct our directed graph where core methods don't know about comfor methods ( I don't like hoisting )
-export class Cathode{
+/*export class Cathode{
     public readonly width:number=8; // Indeed the map dictates the width. Transcribe on construction.
     public flow:Trajectory[]=new Trajectory[this.width];
     field: FieldToDiagonal;
@@ -240,7 +241,7 @@ export class Cathode{
         return 3; // 1/[x+1]-[x]  // zero distance would have infinite energy due to charge-charge repulsion
     }
 }
-
+*/
 /*
 
 So I've got some divergence which cannot be explained
