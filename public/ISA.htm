@@ -9,6 +9,41 @@
         </style>
     </head>
     <body>
+        <h1>Back to 8008</h1>
+        <p>
+        So looking at small code examples, I came to this system design.
+        8 registers with nice SRAM and 3 busses to clearly show what is going on.
+        I like to reduce the noise due to the write back register. 
+        Instead I want to use 4 of the physical registers and register renaming to have 3 read-write registers: Accu, Count, Stackpointer.
+        Result of Add can be used as address: Source+Count for example.
+        4 registers can only occur as read or write in the instruction.
+        </p>
+        <p>
+            I only show 256 bytes of RAM and ripple carry is fast enough for this.
+            Decoded address lines are stored in a pipeline register to give the execution a head start.
+            With writeback I could do some ripple in the second phase, though I feel like the carry flag (for branch) will be late then.
+            Standalone adders have too much space and current available, so they look ahead.
+            I could skew execution, but would need a pipeline register for the decoded read addresses,
+            and I will need to wait for carry if the next instruction depends on it.
+        </p>
+        <p>
+            How difficult is register decoding though?
+            I need 3 bits for the operation. So StackPointer is assigned the Program-Counter group of instructions.
+            There are only two GP-registers: A and C = 1 bit. Then 3 bits for the source=other registers ( 110=PC, 111=SP).
+            Load Store to other registers or to memory. Addressing mode [other+C] &lt;-&gt; A . Immediate.
+            And then I need 12 bits tic toc for register re-naming. So decode will be slower than ALU anyway ..
+            The NZ flags only need a single register because they are always written as a whole or read.
+            Only carray needs to be double for ROR and ADC.
+        </p>
+        <p>
+            Best I can do is not overshot a branch instruction. So I use an 8 bit ripple counter for the PC.
+            I show the decoding on screen just like the register file.
+            From this it should be clear that instruction fetch does indeed cost a cylce ( no decoded pipeline register, but a whole whopping 8 bits and pages ).
+            I check for 001 in "other register" while memory reads out the immediate and PC increments.
+            If 001, I veto the read and instead direct any waiting load store .
+            Now I can see how a 2 cycle decode circuit would want data memory access in every instruction.
+            I guess I'd rather go with a pipeline here.
+        </p>
         <h1>sources need to be decoded easily</h1>
         We have 2x3 bits for the sources. They are 5 general purpose registers, the programPointer, immediate value ( data register after the decoding phase ).
         One of the sources is called source, the other target because we also write back to it.
