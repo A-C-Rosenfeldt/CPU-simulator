@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <title>Navier Stokes</title>
+        <style>
+            table,th,td{
+                border: 1px blue solid;
+                border-collapse: collapse;
+            }
+        </style>
+    </head>
+    <body>
+		<p>Beam crossing looks ugly, hence not particle effect for electrons.
+			Instead I do semiconductor: electron density on a grid.
+			I start with JS (TS really).
+			I dunno, is the GL shader language readable for complex stuff?
+		</p>
+		<h2>1d case</h2>
+		<p>Seems like JS timer, canvas, and canvas.drawImage() are low power consumption.
+				
+		</p>
+		<canvas id="t_vertical" width="540" height="100" style="border:1px solid #000000;" class=""></canvas>    
+		<h2>2d case</h2>
+		<p>
+isotropie:	flow with fixed velocity.
+Impulse flow over the borders of the cells (because we chose to use a grid): velocity * impulse_density.
+
+		</p>
+		<p>
+Newton axioms: Delta_P due to state across border leads to delta_impulse of the flow.
+Also electric field * density leads to delta_impulse.
+state: looks like Density determines Pressure (and via Poisson the electric field).
+Circular path which we just follow iteratively. I don't really have a temperature, do I?
+We already took into account the field across cells, but also need to look inside a cell.
+State equeation!
+With charge in 2d pressure is .. 2d is so difficult.
+With more charge carriers, we get more electric field. So force = density ( n / cell ) .. ah per particle.
+Pressure is per line. So pressure is = n^2 ? Funny not to consider collisions. Feels a bit wrong because with more electrons they are closer to each other and a shorter mean path and I guess P = n^4 .
+Finite integral over 1/x (force in 2d) is 1/x^2 . Where can I integrate this? Ah, nope ,
+the small x don't exist due to repulsion and the large don't due to cell size.
+		</p>
+	Check effect of state isotropie : circular waves .
+
+
+	<div>
+		<canvas id="t_animated" width="540" height="100" style="border:1px solid #000000;" class=""></canvas>    
+		<button id="t_animate_"> button, weil es nur als Film funktioniert (CSS animation ? ) </button>
+		</div>
+	</body>
+</html>
