@@ -25,6 +25,20 @@
 			Then I take the integral ( compact base ) to conserve the number of charge carriers and set the electron density.
 			For the new grid I sum up the integrals of the basis functions which overlap with each cell.
 			Those are all polynoms and thus integration is straight forward.
+		</p>
+		<p>
+			A scrap that. Antialiasing may have some synergy with hardware implementations, but here we better pull using bi-cubic interpolation.
+			To conserve the charges locally, the matrix for particle redistribution needs to have column sums of 1. Normalize!
+			That is strange, bi-cubic pushing would give us the forward norm directly.
+			Where is my time inversion symmetry gone? Do I need Antialiasing? I man, I could use stupid supersampling
+			because a short calculation in my head gave polynoms of 9th degree or so. I'd rather use 4x4 subpixels.
+			With real viscosity and pressure gradient, I could us linear interpolation and Antialiasing. And here I mean really linear, like on N64 by triangulateing the lattice.
+			I think then I only get polygons up to order 3 like it is to expected in 3 dimensions ( height is weight ).
+			Does this give me column and row norms no matter if I push or pull? No again it only gives row norms.
+			Ah does not matter. The other way (in time) needs the inverse matrix, not the transpose.
+			So bi-cubic pulling it is. Or bi-linear with grid staggering. Uh, a parameter. Staggering feels hard to debug: How draw to canvas, how to map to field and circuit layout?
+		</p>
+		<p>		
 			This mapping relieves us from a lot of the Nabla operators for acceleration ( right hand side ).
 			Linear interpolation is just so succesful generally. This approach has no new tuning paramters.
 			Navier Stokes in 2d has a solution even without the grid, so maybe I need to go 3d to really apreciate it?
