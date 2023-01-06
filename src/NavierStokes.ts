@@ -1,4 +1,4 @@
-
+import { field2Gl, SimpleImage } from './GL.js';
 /*
 {\displaystyle {\frac {\partial {\vec {m}}}{\partial t}}+\nabla \cdot ({\vec {v}}\otimes {\vec {m}})=-\nabla p+\mu \Delta {\vec {v}}+{\frac {\mu }{3}}\nabla (\nabla \cdot {\vec {v}})+{\vec {f}}.}
 
@@ -22,6 +22,52 @@ diffusion ( grid effect ) is okay for a semiconductor ( i abondoned tube due to:
 
 */
 
+class liquid_cell{
+	n : number //number_of_particles
+	v: number[] // velocity
+}
+
+class liquid_lattice{
+lattice:liquid_cell[][][] // t & 1 , y , x ( row major .. like I have row objects)
+t=0
+propagate(){ // todo: share interface with elecro static 
+	// use n from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
+	let x=1;y=1
+	let a=this.lattice[this.t][y][x].n*field // acceleration due to electic field
+	// acceleration due to pressure gradient . Stagger?
+	a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
+	a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
+	// viscosity
+	let strain:number[][]
+	strain[0][0]=this.lattice[this.t][y][x+1].v[0]-this.lattice[this.t][y][x-1].v[0]
+	// etc
+	// ignore rotation
+	let symmetric=(strain[1][0]+strain[0][1])/2
+	strain[1][0]=strain[0][1]=symmetric
+	// ignore change of pressure ( over time due to velocity )
+	let divergence=(strain[0][0]+strain[1][1])/2
+	strain[0][0]-=divergence
+	strain[1][1]-=divergence
+	stress=nue*strain
+	a=
+
+	let v=this.lattice[this.t][y][x].v
+	let n=this.lattice[this.t][y][x].n
+	// v+=a
+	let v_x=v[0]
+	let v_x_i=Math.floor(v_x)
+	let v_x_f=v_x-v_x_i
+
+	// collision with metal or boundary of the array ( made of metal )
+	// Bresenham
+
+	// bilinear interpolation conserves n
+	this.lattice[this.t^1][y][x+v_x_i].n+=n*v_x_f
+	this.lattice[this.t^1][y][x+v_x_i+1].n+=n*(1-v_x_f)
+
+}
+
+
 Print(): ImageData { //ToPicture   print=text vs picture?
     const iD = new ImageData(this.maxStringLenght, this.touchTypedDescription.length)
     // RGBA. This flat data structure resists all functional code
@@ -29,6 +75,9 @@ Print(): ImageData { //ToPicture   print=text vs picture?
     for (let pointer = 0; pointer < iD.data.length; pointer += 4) {
       iD.data.set([0, 25, 0, 255], pointer) // ~dark green 
     }
+	return null // todo
+}
+}
 
 function show(){
 	requestAnimationFrame(render);
