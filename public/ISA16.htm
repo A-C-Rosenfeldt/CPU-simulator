@@ -9,6 +9,15 @@
         </style>
     </head>
     <body>
+        <h2>SH2</h2>
+        There is really not much to be gained from staying with 8bit granularity even on an 8bit data bus.
+        SH2 instruction set has almost 1:1 replacement for a lot of commands
+        and makes NOT and NEG 2 byte in a logical way.
+        With addresses as first class citizen we need Add #02 as likely as INC,
+        thus only use the two byte version.
+        Branches are 2 bytes already.
+        16 bit immediates are kinda nasty.. Maybe offer some paring:
+        load reg1 reg2 im1 im2 (with a reg0 to skip im2 like on MIPS, maybe then even only use reg+immediate addressing like on MIPS) . Or any instruction can have flag to become im+src -> target.
         <h2>power efficient CMOS with less noise on screen</h2>
         <p>So I think I should give up on byte opcodes. The second byte can be a literal or a target register. Also a segment+offset ( both register ) could be possible.
             Fixed instruction length simplifies the bus and the jumps, but immediates already introduce variable length instructions.

@@ -9,7 +9,56 @@
         </style>
     </head>
     <body>
-		<p>Beam crossing looks ugly, hence not particle effect for electrons.
+		<h2> verlet vs grid</h2>
+		<p>
+			So it seems that with Navie Stokes the internal state equation brings me back to kineamtic gas theory ( Verlet ).
+			With charge on the carriers the equation becomes complicated ( doping level ) and I also need temperature.
+			What if I yeah like in a beginner physics course do the epsilontic once again?
+		</p>
+		<p>
+			For electostatic simulation I already use a grid. So for kinetic particles I can use it to.
+			The grid position and velocity isn't even important then.
+			For each cell I calculate the electrostatic forces apply them to velocity and apply velocity to the new location of this cell.
+			In a timestep I map all nodes of a lattice onto a new regular grid. In case of crossing, I halve the time step.
+			At each vertex I have an electron density. I (bi-)interpolate linearly over the faces.
+			I mean, first I calculate the basis function which spreads the values at the vertex over the face for each vertex.
+			Then I take the integral ( compact base ) to conserve the number of charge carriers and set the electron density.
+			For the new grid I sum up the integrals of the basis functions which overlap with each cell.
+			Those are all polynoms and thus integration is straight forward.
+			This mapping relieves us from a lot of the Nabla operators for acceleration ( right hand side ).
+			Linear interpolation is just so succesful generally. This approach has no new tuning paramters.
+			Navier Stokes in 2d has a solution even without the grid, so maybe I need to go 3d to really apreciate it?
+			Navier Stokes has a real viscosity term which should be isotropic ( proof ). Maybe in my application it is not important because I already decided to align all transistors to grid to give it a technical look.
+			The wires on the other hand are 3d splines .. or really surfaces for the parallel connections ( ribbon cable ).
+			I need cables because there is just no good 2d notation for crossing wires. Still most of the time the cables are pinnend to the board.
+		</p>
+		<p>
+			Do I need gradient P when I use PV=nkT ? In this case gradient P is gradient n . Ah, I cannot just diffuse n. Gradient n influences velocity which in turn influences location.
+			So collisions between gas particles is important here. I wonder why averaging over a cell has a different effect. Ah, averaging does not create large velocities.
+			Yeah, so not a big deal. One more parameter ( particle weight ) to add gradient n to velocitie. I do Euler integration. No idea how this would look with Verlet.
+			Velocity Verlet seems to use the most fresh values from Euler Integration. So location+=velocity and then calculate the electro static field there and use this new value to change acclereration.
+			Then use the mean value of the new and old acceleration to update the velocity. I can use this. I have the equal sign, which in the solver becomes an assignment ( or += ) operator. I can average there.
+			Shear viscosity is what we want. Laplace * velocity additionally gives us kinda compression velocity which is also to be expected from kinetic gas theory. It would only be strange for liquids.
+			What is the third term in Navier Stokes for? I removes rotation because it does not creat friction forces.
+			The velocity gradient in 2d is a 2x2 matrix. Is the rotation fully anti-symmetric ? [ [ a b] [-b a] ] ah yes. Ah, I see, in 3d it is not really a rotation matrix, but more its generator.
+			So we take the symmetric part.
+		</p>
+		<p>
+			Somehow I get that the 3 removes the Spur of the 3d stress matrix because symmetric expansion should not result in any forces.
+			The 3 comes from equally splitting a correction offset to the diagonale to pin the Spur to 0. For 2d this would be 2 .
+			With a 2x2 matrix we take the difference between the two values and then insert +1/2 and -1/2 . And now we have viscosity independent of our lattice.
+		</p>
+		<p>
+			Verlet integration of gas needs Monte Carlo simulation which introduces noise, which does not look good and also finds its way into the electrostatic simulation. 
+			Beam crossing looks ugly, but what if I do point to point electostatic interaction with high fidelity? Could lead to nice scattering.
+			In real tubes the space charge prevents any meaningful density, but in my sciFy world I combine doping (for nice channels) with free particles.
+			I could not come up with any sub poisson noise technique. On electron emission I could set the size of the packet to fix the current.
+			But somehow I feel like this needs adjustment over the course of the flight.
+			Like with optics and beamlets (Gaussain beams) instead of rays, each particle would have a size to avoid spots like in a histogram.
+			There would be diffusion where on every step electrons flow from packet to packet or packet dislocate a little bit to smooth auth electron density.
+			Overall this feels like too many tuning parameters. 
+		</p>
+		<p>	
 			Instead I do semiconductor: electron density on a grid.
 			I start with JS (TS really).
 			I dunno, is the GL shader language readable for complex stuff?
