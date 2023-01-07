@@ -33,7 +33,7 @@ t=0
 propagate(){ // todo: share interface with elecro static 
 	// use n from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
 	let x=1;y=1
-	let a=this.lattice[this.t][y][x].n*field // acceleration due to electic field
+	let a=0; //=this.lattice[this.t][y][x].n*field // acceleration due to electic field
 	// acceleration due to pressure gradient . Stagger?
 	a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
 	a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
@@ -49,24 +49,88 @@ propagate(){ // todo: share interface with elecro static
 	strain[0][0]-=divergence
 	strain[1][1]-=divergence
 	stress=nue*strain
-	a=
+	
+	// v+=a 
+	// the a from the fluid will be added onto allo parabolas in the electro static field
 
 	let v=this.lattice[this.t][y][x].v
-	let n=this.lattice[this.t][y][x].n
-	// v+=a
-	let v_x=v[0]
-	let v_x_i=Math.floor(v_x)
-	let v_x_f=v_x-v_x_i
+	let n=this.lattice[this.t][y][x].n	
+	let r:number[]
+	[r_parted,v]=this.Trace(r,v,a) // a from the fluid, r and v from lattice 
+
 
 	// collision with metal or boundary of the array ( made of metal )
 	// Bresenham
 
+	// final destination
+
+
+
 	// bilinear interpolation conserves n
-	this.lattice[this.t^1][y][x+v_x_i].n+=n*v_x_f
+	this.lattice[this.t^1][y][r_parted[0][0]].n+=n*v_x_f
 	this.lattice[this.t^1][y][x+v_x_i+1].n+=n*(1-v_x_f)
 
 }
 
+Div_Mod(v_x:number):Array<number>{
+	// v+=a
+	let v_x_i=Math.floor(v_x)
+	let v_x_f=v_x-v_x_i
+	return [v_x_i,v_x_f]
+}
+
+// todo: write lots of test
+Trace(r_parts:Array<Array<Number>>,v,a):Array<number>{
+	let r=r_parts[1], tm=0
+	let r_parted=r.map(this.Div_Mod)
+	// collision with cell borders	
+	for (let border=-1;border=1;border++){
+	let t=map (this.PQ_equation(v/a,r_parted[1]/a) )
+	if (t[0]>tm && t[0] < t[1] ) tm=t[0]
+	}
+
+	// collision with diagonal to stay linear ( triangles with const field) 
+	let factor=Math.SQRT1_2  // slice and splice don't work here well
+	let cd=coeff.map(derivative =>{
+		
+	let d=derivative.Map( dimension =>
+		dimension.reduce( (s,part)=>  s+ part  )*factor
+	)
+	factor=1
+	}
+	)
+
+	let t=map (this.PQ_equation(v/a,r_parted[1]/a) )
+	if (t[0]>tm && t[0] < t[1] ) tm=t[0]
+
+	let ta:Array<number>=[]
+	ta.sort();let i=0
+	while(ta[i++]<0);
+	return ta[i]
+
+ return [r,v]
+}
+
+PQ_equation(p,q):number{
+	let f=p/(2*q)
+	let r=Math.sqrt(f^2-q)
+	let s= [f+r,f-r] // we are only 
+	if (s[0]>0 ) return s[0]
+	return s[1]
+}
+
+ // Poisson for bound ( and jagged ) array.  Copy from field/538
+// boundary condition for flow:
+// insulator: No free carriers, no flow. For high mobility and hot electrons I want to allow flow, just the bandgap will repel them
+//   while the flow does not care about the grid, the electric field does
+//    so I can finally construct a trace out of parabolas as planned for particles a long time ago
+// metal: 
+//  anode: the charge goes into the pool for the piece of metal 
+//  cathode: Uh like with individual particles I have the Fermi distribution bangs against the Schottky / Tunnel Diode. 
+//    The field strength outside is important => some exponential function
+ ShapeToSparseMatrix(metalLiesOutside = false): [Array<number>,/*=*/Tridiagonal/* x U*/] {
+
+}
 
 Print(): ImageData { //ToPicture   print=text vs picture?
     const iD = new ImageData(this.maxStringLenght, this.touchTypedDescription.length)
