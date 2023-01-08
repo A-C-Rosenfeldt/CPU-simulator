@@ -22,42 +22,120 @@ diffusion ( grid effect ) is okay for a semiconductor ( i abondoned tube due to:
 
 */
 
+class Vector extends Array<number>{
+	// clear(){
+	// 	this.fill(0)
+	// }
+	constructor(...items:Array<number>){
+		super(...items)
+	}	
+	add(that:Array<number>, sub:boolean=false){
+		for(let i=0;i<this.length;i++){
+			if (sub)
+			 this[i]-=that[i]
+			else
+			 this[i]+=that[i]
+		}
+	}
+}
+
 class liquid_cell{
 	n : number //number_of_particles
 	v: number[] // velocity
+	a: Vector<number> // acceleration due to stain
 }
 
 class liquid_lattice{
+	mu=1 // viscosity needs to be tuned for a nice look 
 lattice:liquid_cell[][][] // t & 1 , y , x ( row major .. like I have row objects)
 t=0
 propagate(){ // todo: share interface with elecro static 
 	// use n from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
-	let x=1;y=1
+	let x=1,y=1,pre_i=0
+
+	// clear
+	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
+		for (let k = 0; k < str.length; k++) { 
+			
+			this.lattice[this.t^1][y+1][x].a.fill(0)
+			}	
+		}
+
+	// from FieldToDiagonalShapeToSparseMatrix
+	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
+	for (let k = 0; k < str.length; k++) { 
+		
 	let a=0; //=this.lattice[this.t][y][x].n*field // acceleration due to electic field
 	// acceleration due to pressure gradient . Stagger?
 	a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
 	a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
-	// viscosity
-	let strain:number[][]
-	strain[0][0]=this.lattice[this.t][y][x+1].v[0]-this.lattice[this.t][y][x-1].v[0]
+	// viscosity . The electron gas flies freely over the bandgap / potential landscape
+	//let strain:number[][]
+
+
+	//strain[0][0]=this.lattice[this.t][y][x+1].v[0]-this.lattice[this.t][y][x-1].v[0]
 	// etc
+	var accumulator_vec = 0
+	const setCells: Array<Array<number>> = [] // This is not a map because I don't access randomly
+	//console.log(" push starting ")
+	let strain:Vector[] =[new Vector(0,0),new Vector(0,0)] ; // like clear?
+	for (var di = 0; di < 2; di++)for (var dk = 0; dk < 2; dk++) { // from FieldToDiagonalShapeToSparseMatrix
+	  const si = i - 1 + (di + dk) //  s=source=pull   // 00 01 10 11  monotonous increase
+		const sk = k - 0 + (di - dk) // for the si=const part :  +0-1 +1-0   => strong monotonous increase
+		strain[Math.abs(si)].add(this.lattice[this.t][y+sk][x+si].v,si<0 || sk<0)  ;
+	}
+
 	// ignore rotation
-	let symmetric=(strain[1][0]+strain[0][1])/2
+	const symmetric=(strain[1][0]+strain[0][1])/2
 	strain[1][0]=strain[0][1]=symmetric
-	// ignore change of pressure ( over time due to velocity )
-	let divergence=(strain[0][0]+strain[1][1])/2
+	// ignore change of pressure ( over time due to velocity ): Stokes conjecture
+	const divergence=(strain[0][0]+strain[1][1])/2
 	strain[0][0]-=divergence
 	strain[1][1]-=divergence
-	stress=nue*strain
-	
+	//stress=this.mu*strain // now finally we can use apply unity as the stress<-strain tensor
+	const stress=strain.map(row=>row.map(cell =>this.mu*cell))	
+	stress.forEach(row=> { this.lattice[this.t][y][x+1].a.add(row) })
+
+	// todo: Roles of source and destination are switched. Also: Do I use xy throughout? ik is for grid / matrix. xy would be integer + fractional
+	for (var di = 0; di < 2; di++)for (var dk = 0; dk < 2; dk++) { // from FieldToDiagonalShapeToSparseMatrix
+		const si = i - 1 + (di + dk) //  s=source=pull   // 00 01 10 11  monotonous increase
+		const sk = k - 0 + (di - dk) // for the si=const part :  +0-1 +1-0   => strong monotonous increase
+
+		let stre=stress[0]
+		//if () stre=-stre
+		this.lattice[this.t][y+si][x+sk].a.add( stre,si<0 || sk<0)
+
+
+	}	
+
+
 	// v+=a 
 	// the a from the fluid will be added onto allo parabolas in the electro static field
-
 	let v=this.lattice[this.t][y][x].v
-	let n=this.lattice[this.t][y][x].n	
-	let r:number[]
-	[r_parted,v]=this.Trace(r,v,a) // a from the fluid, r and v from lattice 
+	let n=this.lattice[this.t][y][x].n
 
+
+
+	let r:number[]
+	let derivatives:number[]
+	let vector_of_derivatives:number[][] =[[r[0],v[0],a[0]],[r[1],v[1],a[1]]]
+
+	let tm=0.0,r_parted:number[][]
+	while( tm<1.0){
+		r_parted=r.map(dimension=>this.Div_Mod(dimension))
+
+		// bilinear interpolation conserves n
+		this.lattice[this.t^1][y][r_parted[0][0]].n+=n*v_x_f
+		this.lattice[this.t^1][y][x+v_x_i+1].n+=n*(1-v_x_f)		
+
+		tm=this.Trace(r_parted,v,a); // a from the fluid, r and v from lattice 
+		vector_of_derivatives.forEach(d=>{
+			const tm2=tm/2
+			d[1] += d[2]*tm2
+			d[0] += d[1]*tm
+			d[1] += d[2]*tm2
+		});
+	}
 
 	// collision with metal or boundary of the array ( made of metal )
 	// Bresenham
@@ -66,10 +144,8 @@ propagate(){ // todo: share interface with elecro static
 
 
 
-	// bilinear interpolation conserves n
-	this.lattice[this.t^1][y][r_parted[0][0]].n+=n*v_x_f
-	this.lattice[this.t^1][y][x+v_x_i+1].n+=n*(1-v_x_f)
 
+	}}
 }
 
 Div_Mod(v_x:number):Array<number>{
@@ -80,8 +156,8 @@ Div_Mod(v_x:number):Array<number>{
 }
 
 // todo: write lots of test
-Trace(r_parts:Array<Array<Number>>,v,a):Array<number>{
-	let r=r_parts[1], tm=0
+Trace(r_parts:Array<Array<Number>>,v,a):number{
+	let r=r_parts[1], tm=1 // timestep . Both location and time are discrete
 	let r_parted=r.map(this.Div_Mod)
 	// collision with cell borders	
 	for (let border=-1;border=1;border++){
@@ -106,9 +182,10 @@ Trace(r_parts:Array<Array<Number>>,v,a):Array<number>{
 	let ta:Array<number>=[]
 	ta.sort();let i=0
 	while(ta[i++]<0);
+
+
 	return ta[i]
 
- return [r,v]
 }
 
 PQ_equation(p,q):number{
