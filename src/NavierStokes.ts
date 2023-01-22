@@ -65,10 +65,10 @@ propagate(){ // todo: share interface with elecro static
 	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
 	for (let k = 0; k < str.length; k++) { 
 		
-	let a=0; //=this.lattice[this.t][y][x].n*field // acceleration due to electic field
-	// acceleration due to pressure gradient . Stagger?
-	a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
-	a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
+	// let a=0; //=this.lattice[this.t][y][x].n*field // acceleration due to electic field
+	// // acceleration due to pressure gradient . Stagger?
+	// a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
+	// a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
 	// viscosity . The electron gas flies freely over the bandgap / potential landscape
 	//let strain:number[][]
 
@@ -111,22 +111,19 @@ propagate(){ // todo: share interface with elecro static
 
 	// v+=a 
 	// the a from the fluid will be added onto allo parabolas in the electro static field
+	let a=this.lattice[this.t][y][x].a
 	let v=this.lattice[this.t][y][x].v
 	let n=this.lattice[this.t][y][x].n
-
 
 
 	let r:number[]
 	let derivatives:number[]
 	let vector_of_derivatives:number[][] =[[r[0],v[0],a[0]],[r[1],v[1],a[1]]]
 
-	let tm=0.0,r_parted:number[][]
+	let tm=0.0 // minimal point in time
+	let r_parted:number[][]
 	while( tm<1.0){
-		r_parted=r.map(dimension=>this.Div_Mod(dimension))
-
-		// bilinear interpolation conserves n
-		this.lattice[this.t^1][y][r_parted[0][0]].n+=n*v_x_f
-		this.lattice[this.t^1][y][x+v_x_i+1].n+=n*(1-v_x_f)		
+		r_parted=r.map(dimension=>this.Div_Mod(dimension)) // todo: for multiple steps make sure that we don't end up in the previous cell. ( this.t^1  divide in 4 triangles fuse with surround hmm, code dupe)
 
 		tm=this.Trace(r_parted,v,a); // a from the fluid, r and v from lattice 
 		vector_of_derivatives.forEach(d=>{
@@ -135,6 +132,11 @@ propagate(){ // todo: share interface with elecro static
 			d[0] += d[1]*tm
 			d[1] += d[2]*tm2
 		});
+
+		// distribute n: bilinear interpolation across target cells
+		this.lattice[this.t^1][y][r_parted[0][0]].n+=n*v_x_f
+		this.lattice[this.t^1][y][x+v_x_i+1].n+=n*(1-v_x_f)		
+
 	}
 
 	// collision with metal or boundary of the array ( made of metal )
@@ -156,13 +158,23 @@ Div_Mod(v_x:number):Array<number>{
 }
 
 // todo: write lots of test
-Trace(r_parts:Array<Array<Number>>,v,a):number{
-	let r=r_parts[1], tm=1 // timestep . Both location and time are discrete
-	let r_parted=r.map(this.Div_Mod)
-	// collision with cell borders	
-	for (let border=-1;border=1;border++){
-	let t=map (this.PQ_equation(v/a,r_parted[1]/a) )
-	if (t[0]>tm && t[0] < t[1] ) tm=t[0]
+// trace a path (  not trace the diagonal of a matrix )
+Trace(r_parts:Array<Array<number>>,v:Array<number>,a:Array<number>):number{
+	let tm=new Collision
+	tm.t=1
+	for (let dimension=0;dimension<2;dimension++){
+		let r_parted=r_parts[dimension] // timestep . Both location and time are discrete
+		let ad=a[dimension]
+		//let r_parted=r.map(this.Div_Mod)
+		// collision with cell borders	
+		for (let border=-1;border=1;border+=2){
+			let t=this.PQ_equation(v[dimension]/ad,r_parted[1]/ad) 
+			if (t<tm.t ) {
+				tm.t=t
+				tm.border=border
+				tm.dimension=dimension
+			}
+		}
 	}
 
 	// collision with diagonal to stay linear ( triangles with const field) 
@@ -177,7 +189,11 @@ Trace(r_parts:Array<Array<Number>>,v,a):number{
 	)
 
 	let t=map (this.PQ_equation(v/a,r_parted[1]/a) )
-	if (t[0]>tm && t[0] < t[1] ) tm=t[0]
+	if (t<tm.t ) {
+		tm.t=t
+		tm.border= // todo: from which side do I come from?
+		tm.dimension=0
+	}
 
 	let ta:Array<number>=[]
 	ta.sort();let i=0
@@ -185,10 +201,11 @@ Trace(r_parts:Array<Array<Number>>,v,a):number{
 
 
 	return ta[i]
-
 }
 
-PQ_equation(p,q):number{
+
+
+PQ_equation(p:number,q:number):number{
 	let f=p/(2*q)
 	let r=Math.sqrt(f^2-q)
 	let s= [f+r,f-r] // we are only 
@@ -264,4 +281,10 @@ var m:number;
 
 m+ nabla_cdot(v)*m =- nabla_cdot(p) +delta(add(v[y][x],)) 
 
+}
+
+class Collision{
+	t:number 
+	dimension:number
+	border:number // 0= diagonal
 }
