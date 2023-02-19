@@ -9,6 +9,42 @@
         </style>
     </head>
     <body>
+        <h2>write back register</h2>
+        <p>Write back is written to happen in the next cycle, but I think a detailed (8 phases) timing makes the process more clear.
+            I would rather like to have a multiplexer with two write-back registers or register renaming because the process looks so complicated otherwise.
+            But it works: Max dut cycle for the ALU and a multiplexer to route through a barrel shifter (ALU can only shift &gt;&gt;1 ).
+        </p>
+        <ol>
+            <li>register to ALU</li>
+            <li>ALU is working (3 phases)</li>
+            <li>ALU to write-back</li>
+            <li>isolate write-back register input </li>
+            <li>if the next instruction needs the write-back, send it to ALU (concurrently with the other source register)</li>
+            <li>write-back to register file while ALU is working</li>
+            <li>isolate register input and enable register to ALU</li>
+            <li>remove write back output from ALU</li>
+            <li>goto: ALU to write-back </li>
+        </ol>
+        <p> Since this is CMOS I'd like to reduce cross-over in multiplexers ( storage: feedback vs input value ). So power on one input is blocked, next phase: other input is enabled.
+            I mean, to discard the old value. To capture the new value in the D flip flop: feedback is turned on and input is removed in the next phase.
+        </p>
+        <p>
+            RISC-V does ALU flags to condition flag within one pipeline stage.
+            Now I don't want too much work in each state.
+            On the other hand I still need some usage for the second byte in 16 bit instructions.
+            Conditions need too much space. ARM has 32 bit words and can have them.
+            6502 has 8 Conditions+BRA, but x86 has 16 and they are needed for signed.
+            Though I would replace the two parity branches with branch always or something.
+            RISC-V has only comparison for branches. So to check for a negative number, you'd compare with zero.
+            RISC-V does not even have a dedicated zero register.
+            These are only needed if one operand flag setting is used for example in MIPS or with the 6502 load instruction:
+            Jump if sign, Jump if not sign.
+            RISC-V and MIPS have large enough registers. To keep with the 8 bit vibe, I need carry .. but why overflow?
+            Carry is need for example if I store a pixel address as memory address and have the x and y fractions in their own registers.
+            Why does x86 have: Jump if less or equal? This only makes sense if one of the operands is an immediate.
+            This is a bit like with sub, where we also like to have a bit to swap positions of the sourc reg with the immediate value.
+            Those bit and the less-or-equal should not be available if both sources are registers.
+        </p>
 		<h2>registers</h2>
 		<p>
 At least 4 phases per cycle are needed. I need to store values in each phase (for a static design). Storage is called register, latch or D-flip flop. It is all the same:
@@ -81,6 +117,9 @@ Hopefully the two register slow down the fast path to reduce some switching nois
     Double buffering is made possible by a counter to toggle between them. The instruction word is decoded by random logic for the ISA. The address is decoded already from the start
 because I only address 8 registers and this is just a byte. Writeback is decoded while ALU works.
 </p>
-
+<p>
+    With two cycles needed to read an instruction, one-cycle microcode to do multiplications, shifts, scan, and large integers sound attractive. Also addressing modes. Uh, CISC here I come.
+    Basically, this CPU needs a 16 bit wide code queue or cache. Nobody accepts that it runs at half its speed most of the time. Instead of REP and MUL, we have an 8 instruction cache with zero overhead loop.  
+</p>
 </body>
 </html>
