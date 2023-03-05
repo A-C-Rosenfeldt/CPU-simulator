@@ -9,7 +9,14 @@
         </style>
     </head>
     <body>
-        <h1>Back to 8008</h1>
+        <h1>Back to 8008 or is it 6809?</h1>
+        <p>
+            It seems that the Motorola 6809 has 5 16 bit registers : X,Y,U,S,DP,(A,B).
+            For Arithmetic or memcopy I either need 8 bit or 16 bit. Hence, the register pair A,B is okay.
+            And it has microcode for multiplication. Though there is no sign extension version or 16bit factors. 3 bits for MUL. Why no DIV though?
+            Or based on ASR? Would rather need an ADDsigned, where the lsb is shifted into carry, and the msb is calculated differently for signed and unsigned.
+            I just use little Endian from 8008 and 6502.
+        </p>
         <p>
         So looking at small code examples, I came to this system design.
         8 registers with nice SRAM and 3 busses to clearly show what is going on.
