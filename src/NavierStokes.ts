@@ -39,42 +39,49 @@ class Vector extends Array<number>{
 	}
 }
 
-class liquid_cell{
+class Liquid_Cell{
 	n : number //number_of_particles
 	v: number[] // velocity
-	a: Vector<number> // acceleration due to stain
+	a: Vector // acceleration due to stain
 }
 
-class liquid_lattice{
+class Liquid_Lattice{
 	mu=1 // viscosity needs to be tuned for a nice look 
-lattice:liquid_cell[][][] // t & 1 , y , x ( row major .. like I have row objects)
+lattice:Liquid_Cell[][][] // t & 1 , y , x ( row major .. like I have row objects)
 t=0
-propagate(){ // todo: share interface with elecro static 
-	// use n from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
+
+
+// I think in the electro static part, I am clever to read the map to optimize for memory and speed
+// Navier Stokes is too complicated for me and I also did try out those tricks.
+// So better be simple and switch to GPU later
+
+Navier_Stokes
+	V ->
+	strain
+	stress -> F
+
+Verlet: stress -> A -> V -> R -> density
+
+Vector_Maths
+
+Boundary_Conditions extend NavierStokes
+
+// boilerplate ( import? inherit )
+Buffer calls Navier_Stokes
+	clear
+	swap
+
+propagate(){ // todo: share interface with electro static 
+	// use n (density) from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
 	let x=1,y=1,pre_i=0
 
-	// clear
+	// clear ( half of the double) fluid buffer
 	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
-		for (let k = 0; k < str.length; k++) { 
-			
+		for (let k = 0; k < str.length; k++) { 			
 			this.lattice[this.t^1][y+1][x].a.fill(0)
-			}	
-		}
+		}	
+	}
 
-	// from FieldToDiagonalShapeToSparseMatrix
-	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
-	for (let k = 0; k < str.length; k++) { 
-		
-	// let a=0; //=this.lattice[this.t][y][x].n*field // acceleration due to electic field
-	// // acceleration due to pressure gradient . Stagger?
-	// a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
-	// a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
-	// viscosity . The electron gas flies freely over the bandgap / potential landscape
-	//let strain:number[][]
-
-
-	//strain[0][0]=this.lattice[this.t][y][x+1].v[0]-this.lattice[this.t][y][x-1].v[0]
-	// etc
 	var accumulator_vec = 0
 	const setCells: Array<Array<number>> = [] // This is not a map because I don't access randomly
 	//console.log(" push starting ")
@@ -85,10 +92,10 @@ propagate(){ // todo: share interface with elecro static
 		strain[Math.abs(si)].add(this.lattice[this.t][y+sk][x+si].v,si<0 || sk<0)  ;
 	}
 
-	// ignore rotation
+	// actively ignore rotation
 	const symmetric=(strain[1][0]+strain[0][1])/2
 	strain[1][0]=strain[0][1]=symmetric
-	// ignore change of pressure ( over time due to velocity ): Stokes conjecture
+	// actively ignore change of pressure ( over time due to velocity ): Stokes conjecture
 	const divergence=(strain[0][0]+strain[1][1])/2
 	strain[0][0]-=divergence
 	strain[1][1]-=divergence
@@ -147,8 +154,27 @@ propagate(){ // todo: share interface with elecro static
 
 
 
-	}}
+	}
+
+		Boundary_conditions(){// due to the solid
+	// from FieldToDiagonalShapeToSparseMatrix
+	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
+		for (let k = 0; k < str.length; k++) { 
+			
+		// let a=0; //=this.lattice[this.t][y][x].n*field // acceleration due to electic field
+		// // acceleration due to pressure gradient . Stagger?
+		// a+= this.lattice[this.t][y][x+1].n-this.lattice[this.t][y][x-1].n // rem todo a[0]
+		// a+= this.lattice[this.t][y+1][x].n-this.lattice[this.t][y-1][x].n // rem tood a[1]
+		// viscosity . The electron gas flies freely over the bandgap / potential landscape
+		//let strain:number[][]
+	
+	
+		//strain[0][0]=this.lattice[this.t][y][x+1].v[0]-this.lattice[this.t][y][x-1].v[0]
+		// etc
+		}}
+
 }
+
 
 Div_Mod(v_x:number):Array<number>{
 	// v+=a
