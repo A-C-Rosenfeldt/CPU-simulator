@@ -64,23 +64,47 @@ Verlet: stress -> A -> V -> R -> density
 
 Vector_Maths
 
-Boundary_Conditions extend NavierStokes
+Boundary(location,velocity, electric_field ){
+	if (metal){
+		if (electric_field>1) emission=electric_field-1 // work function on interface and Ohm because exp may destabilize the simulation (short time steps for space charge)
+	}
+	if(insulator){ 
+		// the definition of kinetic energy is valid in my simulation. Electrons already need a mass for Verlet
+		// so they can end up above the bandgap ( easily? considering the work function)
+		// Now I wonder I should include holes .. in the very next release. Totem Poles!!
+		// So I cannot use Verlet .. for the sharp steps of the surface I need collision and refraction
+		// .. I don't integrate over arbitrary fields. It is soft field and surfaces .. Specialize for this!
+	}
+}
 
 // boilerplate ( import? inherit )
 Buffer calls Navier_Stokes
 	clear
 	swap
 
-propagate(){ // todo: share interface with electro static 
+propagate(){
+	GetClearBuffer()	
+	Strain(velocity)
+	RemoveRotation() // viscosity does not feel rotation, only shear
+	RemoveDivergence() // Stokes noticed that the ideal gas only has a stationary equation. Pure expansion (strain) does not lead to pressure (stress). The elctrons are point like and not like polymers and look better if the behave the same.
+	Buffer.forEach( strain -> stress)
+	Location=Verlet(Stress) // flow
+	
+	Boundary()
+
+	// todo: share interface with electro static 
 	// use n (density) from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
 	let x=1,y=1,pre_i=0
+}
 
+Clear(){
 	// clear ( half of the double) fluid buffer
 	for (let i = 0, i_pre = 0; i < this.fieldInVarFloats.length; i++) {
 		for (let k = 0; k < str.length; k++) { 			
 			this.lattice[this.t^1][y+1][x].a.fill(0)
 		}	
 	}
+}
 
 	var accumulator_vec = 0
 	const setCells: Array<Array<number>> = [] // This is not a map because I don't access randomly
