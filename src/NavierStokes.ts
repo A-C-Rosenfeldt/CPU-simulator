@@ -74,6 +74,8 @@ Boundary(location,velocity, electric_field ){
 		// Now I wonder I should include holes .. in the very next release. Totem Poles!!
 		// So I cannot use Verlet .. for the sharp steps of the surface I need collision and refraction
 		// .. I don't integrate over arbitrary fields. It is soft field and surfaces .. Specialize for this!
+
+		// how do I work with the grid
 	}
 }
 
@@ -141,7 +143,22 @@ Clear(){
 
 
 	// v+=a 
-	// the a from the fluid will be added onto allo parabolas in the electro static field
+	// the a from the fluid will be added onto all parabolas in the electro static field
+	// center of the package
+	/* at ( surf- | inter- ) faces, the package is refracted ( and reflected??? )
+	// I need to split the package: Fast part outside ( coming in + reflection + diffusion = one), slow part inside
+	// so from the start of the parabola I have two parts and a flow between these.
+	Lateral the package moves.
+	I did choose the package to be indepentent of the grid velocity in free space.
+	Of course at surfaces, the normal velocity of the grid becomes important again,
+	even lateral motion is subject to friction ( in a real gas anyways, or in a Tube? )
+
+	what about corners ? Corners need full flow. I want to allow jagged diagonal edgeds ( for totem poles and organic wired-or Y junctions)
+
+	Flow mode to package mode transition? Packages are split into the grid after a time step.
+	Feels a bit like motion compensation in a movie where I would split it into segments of px resolution.
+
+	*/
 	let a=this.lattice[this.t][y][x].a
 	let v=this.lattice[this.t][y][x].v
 	let n=this.lattice[this.t][y][x].n
