@@ -158,6 +158,30 @@ Clear(){
 	Flow mode to package mode transition? Packages are split into the grid after a time step.
 	Feels a bit like motion compensation in a movie where I would split it into segments of px resolution.
 
+	Flow does not need to deal with parabolas.
+	Flow is the basis. Just like in accounting: Total number of electrons needs to stay fixed.
+	So then I rip the mesh apart where flow is > 0.4 ?
+	Then we follow the parabolas.
+	Then we slap the packages back onto the grid ( with area division which behaves similar to bilinear interpolation)
+	This allows us to have both: Fine time steps and fast beams ( beam pentode).
+	I can only have beams, if I don't introduce viscosity on surfaces .. see high electron mobility transistor.
+	So viscosity is only with other electrons. Impulse is transfered. Strain across .. don't allow electrons in insulator??
+	Low friction would be nice for MOS gate oxide. It hacks into the beam.
+	All gates are lattice aligned! The channel restriction is managed by the JFET ( no wet interface! ) . Constant very negativ charge. Mirror pattern allows two transistors in an NOR gate to share one charge.
+	Outside of the restrictions we don't need that high velocity and we also get out of the boundary layer. But, uh, we can have jaggy oxide on the gate side.
+	The whole logic gate ( same word sadly ) would be oriented along the channel
+	If the restriction is so narrow, is it visible for us?
+
+	Official viscosity just needs to be high enough to produce a boundary layer thicker than a few cells.
+	With long NANDs a lot of channels will dry up. It is part of the show how MOS logic works in contrast to ECL or SourceCoupledLogic. 
+	My simulation should work with both. Would ECL not feel like very leaky CMOS ? The source either runs left or right ( like CRT ) and current only flows if  .. ah all those resistors and voltage levels. Not good as symbols!
+
+	Space charge will always produce a hollow beam for a transistor in on state, but close to the transition.
+	Without a lens, beams ( beamline ) are difficult. Beams need 3 dimensions.
+	And cannot be gated, just deflected to avoid charge accumulation.
+	
+
+
 	*/
 	let a=this.lattice[this.t][y][x].a
 	let v=this.lattice[this.t][y][x].v
