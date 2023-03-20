@@ -144,25 +144,25 @@ Clear(){
 
 	// v+=a 
 	// the a from the fluid will be added onto all parabolas in the electro static field
-	// center of the package
-	/* at ( surf- | inter- ) faces, the package is refracted ( and reflected??? )
-	// I need to split the package: Fast part outside ( coming in + reflection + diffusion = one), slow part inside
+	// center of the particle
+	/* at ( surf- | inter- ) faces, the particle is refracted ( and reflected??? )
+	// I need to split the particle: Fast part outside ( coming in + reflection + diffusion = one), slow part inside
 	// so from the start of the parabola I have two parts and a flow between these.
-	Lateral the package moves.
-	I did choose the package to be indepentent of the grid velocity in free space.
+	Lateral the particle moves.
+	I did choose the particle to be indepentent of the grid velocity in free space.
 	Of course at surfaces, the normal velocity of the grid becomes important again,
 	even lateral motion is subject to friction ( in a real gas anyways, or in a Tube? )
 
 	what about corners ? Corners need full flow. I want to allow jagged diagonal edgeds ( for totem poles and organic wired-or Y junctions)
 
-	Flow mode to package mode transition? Packages are split into the grid after a time step.
+	Flow mode to particle mode transition? Packages are split into the grid after a time step.
 	Feels a bit like motion compensation in a movie where I would split it into segments of px resolution.
 
 	Flow does not need to deal with parabolas.
-	Flow is the basis. Just like in accounting: Total number of electrons needs to stay fixed.
+	Flow is the base. Just like in accounting: Total number of electrons needs to stay fixed.
 	So then I rip the mesh apart where flow is > 0.4 ?
 	Then we follow the parabolas.
-	Then we slap the packages back onto the grid ( with area division which behaves similar to bilinear interpolation)
+	Then we slap the particles back onto the grid ( with area division which behaves similar to bilinear interpolation)
 	This allows us to have both: Fine time steps and fast beams ( beam pentode).
 	I can only have beams, if I don't introduce viscosity on surfaces .. see high electron mobility transistor.
 	So viscosity is only with other electrons. Impulse is transfered. Strain across .. don't allow electrons in insulator??
@@ -181,7 +181,23 @@ Clear(){
 	And cannot be gated, just deflected to avoid charge accumulation.
 	
 
+	Code structure: grid is the base, particle extends. Agile coding order is the same.
+	What is the Verlet of the grid? Or is there?
+	Euler "Game loop" looks like:
+	propagate the flow -> (N,V)  // Verlet would talke the (N,V) from the previous frame. Do I need triple buffers for this?
+	(N,V) -> calculate electric field E
+	(NS(N,V),E) -> A
 
+	divergenz for our compressible fluid? No, the Nable means, that when I solve implicitely, I can read the divergence of the flow.
+	For my explicit solver ( up the the Verlet / parabola particle beam trick ), flow is the result.
+	I take the particle from the current cell and distribute its impulse over the cells given by v. Then sum up. That describes the left-hand side completely.
+
+	R,V=R', A=R"
+
+	So (V,N ) -> goes to the next cell . This is already present in the standard formulation ( while state equation is not ). But it should be separate ( at least in code ).
+		https://en.wikipedia.org/wiki/Material_derivative
+
+	dynamic viscosity is proportional to density ( viscosity due to diffusion )
 	*/
 	let a=this.lattice[this.t][y][x].a
 	let v=this.lattice[this.t][y][x].v
