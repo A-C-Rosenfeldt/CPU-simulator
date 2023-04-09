@@ -18,6 +18,33 @@
             I just use little Endian from 8008 and 6502.
         </p>
         <p>
+            SRAM even as a register file can be quite compact.
+            For rows I want to think of switchable power rails.
+            The input into the flip flop is either powered by internal feedback or by the write lines. So there are balanced power lines: On of it is on.
+            The output drives the NOT gate to the two read lines. Here again power is supplied from the outside ( address decoder, buffer).
+            The ALU bits are aligned to this as is the write back register ( and its short cut ).
+            Carry look ahead 4bit x 4blocks disturb this a bit.
+            But can do a hybrid. So for the 4 bits I check for carry (1 for next block), 1111 (1 for this), and the rest.
+            In the next layer the carry goes over the blocks and I get my flags for a branch.
+            Now if I don't mind a little extra storage, I could omit the final counter.
+            In the next add this leads to a full adder .. ah overful adder ( two carry bits going through everything).
+            Only the writeback short cut may feed its carry into the next add even for logic.
+            Still need this extra counter circuitry.
+            Don't forget the inverted adders to save one NOT in the carry path!
+        </p>
+        <p>
+            Outside of this the lines may need to be aggregated into a cable. Then I switch it to RAM and ROR ?
+            Sticking to 4 NANDs barrel rotation is quite clear: We could address decode all of the 16 rotations in one go.
+            Fanout is a bit high and transistor count. So lets divide into two rotation stages with 4 rotations each.
+            Rotation is input on rows (3 duplicates), exit on columns, and coupling on the diagonals. A single stage rotation would need 15 dupes total.
+        </p>
+        <p>
+            I got quite interested into RAM. There is this discrete computer with 64kiB made of discrete transistors.
+            Now I could reuse the way the register file works. Show the effect of larger fan-out. Of course there would only be one read line.
+            IMHO even DRAM ( capacitor is burried and just CU=Q ) with precharge should work.
+            I wonder if I could use banks to limit fan out or even have a CMOS address decoder ( router style ).
+        </p>
+        <p>
         So looking at small code examples, I came to this system design.
         8 registers with nice SRAM and 3 busses to clearly show what is going on.
         I like to reduce the noise due to the write back register. 
