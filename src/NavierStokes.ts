@@ -142,6 +142,33 @@ Clear(){
 	}	
 
 
+	/*
+	Gates will all consist of one long gate oxyde ( axis aligned )
+	No current flows in or out of the gate.
+	The JEFET repelling charges also don't come close to the electron flow.
+	Source and drain of course need to touch the flow.
+	The source ( Schottky diode) gets a simple function: current is on when voltage is above threshold.
+	The source is also flat. Emission is cut off by the repelling charge.
+	Now the interesting drain: The particles just shot into it. For the simulation the depth of the drain is endless.
+	Source and Drain touch the gate electrode. There is a corner.
+	I can assume doping ( depletion mode ) to get carriers from the source to the first gate
+	and also have low source gate capacity.
+	Alternatively the first gate is always on drain potential.
+	It would have a very slow / late turn on if it would run on logic input.
+
+	How doe wired or work? long drain with independent impact zones.
+	Do I allow beams? Charge in this simulation explodes if the confinement ends.
+	This already leads to a large spot on the drain ( if I want low gate-drain capacity).
+	As I wrote elsewhere, two NANDs can share the repelling charge. It would make sense if I pair them if they also share the drain.
+
+	Beams in 2d are difficult. Or are they? I can make a potential like a slide.
+	Then there are Y splits, where electrodes on both side steer the beam into either exit.
+	I can have a whole binary tree ( round like a real tree ). Then I collect all the anodes like in a truth table.
+	Somehow this breaks immersion. Though it gives analog dependency.
+	I could make it real nice with electrodes f lens f splitter.
+	The splitter would be metal. Also a strange object: where high potential with lots of doping in front of it: High field strength.
+	*/
+
 	// v+=a 
 	// the a from the fluid will be added onto all parabolas in the electro static field
 	// center of the particle
