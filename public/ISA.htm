@@ -29,8 +29,11 @@
             Now if I don't mind a little extra storage, I could omit the final counter.
             In the next add this leads to a full adder .. ah overful adder ( two carry bits going through everything).
             Only the writeback short cut may feed its carry into the next add even for logic.
-            Still need this extra counter circuitry.
+            Still need this extra counter circuitry. Still cheaper than book keeping.
             Don't forget the inverted adders to save one NOT in the carry path!
+
+            The program counter can be routed to the ALU for a branch.
+            Maybe the ALU can be used also for the next cycle while the two cycle latency / rythm ripple counter for all but the lsb can fills the second slow bit register.
         </p>
         <p>
             Outside of this the lines may need to be aggregated into a cable. Then I switch it to RAM and ROR ?

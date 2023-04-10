@@ -149,18 +149,26 @@ Clear(){
 	Source and drain of course need to touch the flow.
 	The source ( Schottky diode) gets a simple function: current is on when voltage is above threshold.
 	The source is also flat. Emission is cut off by the repelling charge.
+	Still the emission surface could be quite large? Forces between the carriers go down with the distance. We want space. Especially with thin stretched doping.
+	In a shared gate maybe the whole source emits and the repelling charge splits it up into left and right?
 	Now the interesting drain: The particles just shot into it. For the simulation the depth of the drain is endless.
 	Source and Drain touch the gate electrode. There is a corner.
 	I can assume doping ( depletion mode ) to get carriers from the source to the first gate
 	and also have low source gate capacity.
-	Alternatively the first gate is always on drain potential.
+	Alternatively the first gate is always on drain potential and overlaps the source.
 	It would have a very slow / late turn on if it would run on logic input.
+	So generally: How does charge jump from electrode to the other ( like in a charge coupled device )?
+	The repelling charge is a point and centered on the electrode. I need doping to give the channels some width ( depletion mode).
+	Only other way for wide channels would be the wavefunction in a high mobility transistor or carbon nano tube transistor.
 
-	How doe wired or work? long drain with independent impact zones.
-	Do I allow beams? Charge in this simulation explodes if the confinement ends.
+	How does wired or work? long drain with independent impact zones.
+
+	Charge in this simulation explodes if the confinement ends.
 	This already leads to a large spot on the drain ( if I want low gate-drain capacity).
 	As I wrote elsewhere, two NANDs can share the repelling charge. It would make sense if I pair them if they also share the drain.
 
+*/
+/*
 	Beams in 2d are difficult. Or are they? I can make a potential like a slide.
 	Then there are Y splits, where electrodes on both side steer the beam into either exit.
 	I can have a whole binary tree ( round like a real tree ). Then I collect all the anodes like in a truth table.
