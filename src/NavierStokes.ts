@@ -1,5 +1,14 @@
 import { field2Gl, SimpleImage } from './GL.js';
 /*
+
+So it seems that a MOFET with flat gate oxyte and body JFET looks best for a computer. CMOS is okay. FinFET is for NMOS : It shots a constant current onto the drain (used in 6502 ): No dynamic. Straight.
+I cannot avoid doping. I just pretend that is on a regular super lattice. With wave mechanics I could simulate a carbon nanotube, but then I have to use two electrodes and need bridges ( above in NMOS it is all integrated ).
+Beam pentodes and klystrons don't look good ( in 2d ). Bipolar devices would at least need a another color channel ( and I am already out of color channels ). Don't show the potential?
+Don't show the badgap? With nFEt I only care about the electron potential. With CMOS I have clearly separated areas for electrons and holes ( not with in a transistor, but with in a Gate:
+	Half of it is connected to Vdd and the other halft is connected to Vss. Gates can be huge ) . Bipolar does not need a metallic gate. So the bandgap is fixed. I can show the electric field for the channel,
+	The base looks quite boring. A strip. Either filled ( green  ) or empty ( black leading to a repulsive potential (blue) ). Then repulsive static charges around ( in reality SiOxide ).
+	Level shift? Resistors?? For a const current gun in a BJT I need a level shifter. Ah, this does no fly.
+
 {\displaystyle {\frac {\partial {\vec {m}}}{\partial t}}+\nabla \cdot ({\vec {v}}\otimes {\vec {m}})=-\nabla p+\mu \Delta {\vec {v}}+{\frac {\mu }{3}}\nabla (\nabla \cdot {\vec {v}})+{\vec {f}}.}
 
 Zustandsgleichung ( Ladungsdichte = pressure, but not temperature?)
