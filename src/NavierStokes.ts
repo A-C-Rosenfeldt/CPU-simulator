@@ -11,6 +11,34 @@ Don't show the badgap? With nFEt I only care about the electron potential. With 
 
 {\displaystyle {\frac {\partial {\vec {m}}}{\partial t}}+\nabla \cdot ({\vec {v}}\otimes {\vec {m}})=-\nabla p+\mu \Delta {\vec {v}}+{\frac {\mu }{3}}\nabla (\nabla \cdot {\vec {v}})+{\vec {f}}.}
 
+
+I could start from Navier-Stokes with ideal gas: PV=nkT . All units are dimensionless and so I guess I really only have one or two degrees of freedom to make it look good.
+So now in a containter the gas will evenly spread out.
+On two sides of the container we place opposing charges ( gate and body diode ).
+Now the user has to sliders to change the temperature and to change the charge.
+I mean really I would want to start of with uncharged gas as in this text.
+Then I fade in the charge ( in reality: come down from infinite temperature ) and the density gets hollows.
+Then I charge the side walls and density falls to one side.
+
+To get a nice switching point, I accept doping, but don't show the doping pattern or if doping is regular ( super lattice ) or whatever.
+I dial in the temperature so that we see a thick line in the on state.
+Due to doping, the off state has a bit of depletion mode and there will be a shallow channel in the center between gate and body diode.
+This depends a bit on the voltage of the rail ( interface charge of the gate ).
+We don't want the gate to do too much work. There should be some leakage current like 10% of the on state? So that we have a control signal.
+We don't care about heat. Rather, I may want to display some Source-Coupled Logic in the future so that I don't have to use the same "blue" for both charge carriers.
+How do I mark my N or P channels? I want black as base color. I looks like I have to mark my transistors.
+
+
+In reality I would aim for some carbon nanotube transistors in really good vacuum. Current transistors are protected by a cover.
+Free standing tubes would just have a space under the cover. I feel like the main problem with vacuum is that any leaked gas molecule then can reach so many places. So there needs to be a fuse system to contain leaaks in a tree like manner.
+Graphite is stable even in air just like silicon. So in UHV ( TV CRT ) it should last for a century. Now just spill in some reactive atoms to catch oxygen everywhere.
+The main problem is that this only looks good with a gate from both sides. More bridges. Hard to read.
+The other point is that to dial in the swichtig point I still need some kind of doping or level shift. So a floating ring with charge to define NPN and PNP of our CMOS.
+So the doping would sit around the tube like in a high mobility transistor. "Field effect doping". This field will help electrons to jump from the metal electrodes onto the tube.
+Oh this would be a MIM transistor. Around the emitting shottky contact we need a ring gate to create a source of either holes or electrons, which here depends on the rail the metal belongs to.
+Wavefunction simulation computional cost is similar to classic simulation. I mostly needs to look good.
+
+
 Zustandsgleichung ( Ladungsdichte = pressure, but not temperature?)
 
 einfach mal zum laufen bringen
@@ -21,6 +49,9 @@ play button, weil es nur als Film funktioniert (CSS animation ? )
 zustandslgleichung
 	keine inneren Freiheitsgrade
 	aber Ladungsträger
+
+
+
 
 
 1d fall -> bild malen . Flow through a tube
