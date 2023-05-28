@@ -50,6 +50,17 @@ For gates we can then add more field electrodes, but they need to overlap along 
 This can still be shown in 2d. How would a 3d see through ring electrode look like? The blue electron flow must not be obscured.
 Schrödinger equation has a phase, but we show probability, and that is what the user expects.
 
+CNT now convinced me to go without doping. With enough Schrödinger or temperature I can widen the channel. With a thin silicon slab, or thin CNT, the electrons can tunnel or drift to the other side.
+In enhancement mode I would have electrodes on both sides. Alternating. The field would fill the gap between them. Basically, this the space charge in the channel creates all the electric field.
+A single electron could fly right through (leakage). Multiple electrons block each other. The drain should be able to unblock the transistor.
+Electrodes connected to the opposite rail lure electrons in the semiconductor. Even with doping this is done by the field of the dopands in front of the interface. With electrondes the field just reaches a little from the side.
+Unlike vacuum electronics the dielectric constant, I mean the limited band gap of the semiconductor, keeps the energy of electrons below that of our SiO2 barrier. This makes the set-up even more real.
+At the metal-semiconductor interface I allow current to flow out of the metal when the electric field sucks. Current follows exp(T) which should match the channel widening T.
+Now what do I use for the channel. I cannot mix Navier Stokes with Schrödinger. NS looks pretty .. but not so much with charge. Electron gun .. hot, kinematic electrons to jump electrode gaps may help with high on-current. 
+
+NMOS and PMOS is shown by the electrode polarity: source rail color, "doping" ring and drain rail. Electrons are blue. Gates are green (bandgap)? Electrodes have no green. So red for electric field.
+Intrinsic semiconductors really help me to stay within my current color scheme.
+
 Zustandsgleichung ( Ladungsdichte = pressure, but not temperature?)
 
 einfach mal zum laufen bringen
