@@ -21,13 +21,19 @@ Then I fade in the charge ( in reality: come down from infinite temperature ) an
 Then I charge the side walls and density falls to one side.
 
 To get a nice switching point, I accept doping, but don't show the doping pattern or if doping is regular ( super lattice ) or whatever.
+Real Mosfets have a complicated doping pattern. In particular they are channel doped right under the gate.
+I did not see series MOSFETS, but I guess that they have a channel between all of their gaps.
+So it would be a little weird not to show this doping.
+A depletion mode gate in the body can work against a homogenous doping, but at low temperature, we get this ugly screening effect ( Debye length).
+That means that visually the gate side will switch, but the other side will just have homogenous charge carriers with a sharp border to the depletion zone.
+Uh, this maybe not so bad. I just have the depletion circle meet or touch the full enhencemant region created by temperature.
+
 I dial in the temperature so that we see a thick line in the on state.
 Due to doping, the off state has a bit of depletion mode and there will be a shallow channel in the center between gate and body diode.
 This depends a bit on the voltage of the rail ( interface charge of the gate ).
 We don't want the gate to do too much work. There should be some leakage current like 10% of the on state? So that we have a control signal.
 We don't care about heat. Rather, I may want to display some Source-Coupled Logic in the future so that I don't have to use the same "blue" for both charge carriers.
 How do I mark my N or P channels? I want black as base color. I looks like I have to mark my transistors.
-
 
 In reality I would aim for some carbon nanotube transistors in really good vacuum. Current transistors are protected by a cover.
 Free standing tubes would just have a space under the cover. I feel like the main problem with vacuum is that any leaked gas molecule then can reach so many places. So there needs to be a fuse system to contain leaaks in a tree like manner.
@@ -38,6 +44,11 @@ So the doping would sit around the tube like in a high mobility transistor. "Fie
 Oh this would be a MIM transistor. Around the emitting shottky contact we need a ring gate to create a source of either holes or electrons, which here depends on the rail the metal belongs to.
 Wavefunction simulation computional cost is similar to classic simulation. I mostly needs to look good.
 
+Real carbon nanotube transistors seem to use gates whose field reaches through the whole tube. Wave functions are calculated around the whole circumference.
+Hense, it is possible to avoid an ohmic contact this was: Tube touches metal on 3rd of its cirumference, field electrode at non-tunneling distance tip-effect sucks the electrons out of the metal.
+For gates we can then add more field electrodes, but they need to overlap along the tube to mimic the channel doping.
+This can still be shown in 2d. How would a 3d see through ring electrode look like? The blue electron flow must not be obscured.
+Schrödinger equation has a phase, but we show probability, and that is what the user expects.
 
 Zustandsgleichung ( Ladungsdichte = pressure, but not temperature?)
 
