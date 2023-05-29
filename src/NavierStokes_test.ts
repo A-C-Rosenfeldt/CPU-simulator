@@ -5,10 +5,16 @@ import { field2Gl, SimpleImage } from './GL.js';
 /* for the simulation we need to set up a lot of pysical parameters. I may make sense to find an order and also to align the unit tests to this. 
 
 liquid needs no temperature. Demo with colored probes? I think that one of these can be 1. Typically, you would stirr with the mouse
-	viscosity
-	density
+	has
+		viscosity
+		density
+	OOP
+		we don't call the state equation
+		how do I force div v = 0 
+			equation get simpler, but I cannot model the algebra. I can just as well multiply 0 in the full equation and hide bugs == focus on other bugs
+		
 
-I want this pixel look, so just ad hoc. How do I stirr this?
+I want this pixel look, so just ad hoc. How do I stirr this with the mouse to test the solver?
 	channel width
 	electrode width
 	gap width
