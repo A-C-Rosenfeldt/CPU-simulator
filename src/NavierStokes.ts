@@ -50,6 +50,9 @@ For gates we can then add more field electrodes, but they need to overlap along 
 This can still be shown in 2d. How would a 3d see through ring electrode look like? The blue electron flow must not be obscured.
 Schrödinger equation has a phase, but we show probability, and that is what the user expects.
 
+Schrödinger needs mean field to simulate any kind of space charge, which I would need for N-MOS. If a later gate blocks the flow, I get standing wave in a box with interference pattern.
+Also for discrete differences I need to have a grid fine enough to resolve the wave. I don't want wave optics here. So back to Navier Stokes?
+
 CNT now convinced me to go without doping. With enough Schrödinger or temperature I can widen the channel. With a thin silicon slab, or thin CNT, the electrons can tunnel or drift to the other side.
 In enhancement mode I would have electrodes on both sides. Alternating. The field would fill the gap between them. Basically, this the space charge in the channel creates all the electric field.
 A single electron could fly right through (leakage). Multiple electrons block each other. The drain should be able to unblock the transistor.
