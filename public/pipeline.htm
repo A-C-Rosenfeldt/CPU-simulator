@@ -9,6 +9,27 @@
         </style>
     </head>
     <body>
+        <h2>FlipFlop is two lateches in series</h2>
+        <p>How is this different compared to two latches (SRAM cells) on a bus? A latch (all for N-MOS) needs two transistors to gate the input. So we have two gates.
+        Each SRAM cell also has these gates on the input, but additionally we need to gates towards the bus to create a multiplexer.
+        When the clock switches, a FlipFlop opens the input gate of the second latch, while the multiplexer opens the output gate of one cell.
+        With a flip flop the signal then needs to propaget through the second latch. We can take this into account. I mean, the register read access is the most critical for timing, so registers reside in SRAM.
+        There is a bus anyway and it saves us latches times number of registers ( something lik 8). But for the write-back register, flip flops are good.
+        I mean, I could just place two write back registers on the register file. Then instruction decoding renames registers. So there is minimal latency at each ALU operation start.
+        Write back of course still happens behinde the scenes.
+        </p>
+        <p>
+            I can hardly justify not to use flip flops for the flags. Here the latency of the carry flag is matched by the speed of the buffer of the SRAM read out circuit.
+            Layout of a mini-bus is just so ugly. 4 phase 
+        </p>
+        <p>
+             Both need a balanced clock, or better let's say: 4 phases. A non-overlapping clock. As on 6502 a delayed clock is created on chip, by the same kind of transistors, same Vdd and temperature.
+            Just as timing is created in a lot of flip flops. AND between original and delayed clock gives us non-overlapping pulses.
+            Only the clock signal needs to be clean for this .. unlike for flip flops, where timing could mess up everywhere. People say that the circuit is static.
+            As long as the clock has sharp edges compared to delays in gates, all the other signals can change as gradually as they want.
+            I want to show the original sine (crystal) and cosine (LC matched to crystal) of the clock, but not simulate because it uses other physics.
+            The clockwork than works full quadrature (analog multiplication of complex numbers) to avoid flip flops with internal timing. Ah so, I lied, I don't use the physical dealy like in 6502.
+            </p>
         <h2>write back register</h2>
         <p>Write back is written to happen in the next cycle, but I think a detailed (8 phases) timing makes the process more clear.
             I would rather like to have a multiplexer with two write-back registers or register renaming because the process looks so complicated otherwise.
