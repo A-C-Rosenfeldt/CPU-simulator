@@ -1,6 +1,27 @@
 import { field2Gl, SimpleImage } from './GL.js';
 /*
 
+Channel width is created either by the Fermi-Sea over bands: E ~ density
+Almost the same effect is created by the ideal gas equation: p ~ density .  Though E would then rise the p^2 (adiabatic). So we claim isotherm: E=kinetic energy of particles.
+ ( absolute pressure is relevant because of the depletion region, so we cannnot linearize p^2).
+A single particle Schrödinger equation can also create some width, but I want space charge for n-Fet, and don't want standing waves in my 4-NAND gate.
+
+Real MOSFETs have a lot of doping around the electrodes and between multiple Gates ( important for NAND, which allow me to keep transistor count low ). All contancts are Ohmic.
+There is no field emission. Field emission would weird because the pulling electrode would really need to stress its insulator and then still: How to the electrons reach the channel from there?
+I see that doping under the electrode is not so important. I don't want to have holes. There is just the metallic substrate at negative potential Vss. You could imagine that it sucked away holes on power on.
+Without doping we have a clean, homogenous electric field in the semiconductor.
+Now without space charge, the electrons behave according to the atmosphere equation and form a channel. Can I define this as allowed leakage?
+Just as the gas equation gives us channel width, it also pushes some electrons out of the wells around the electrodes.
+So some electrons do reach the body electrode?
+With space charge, the channel narrows. So we want to turn it on slowly. Divide by number of total electrons in the simulatoion.
+As we rise the gate voltage, more electrons flow -- in a very narrow channel.
+We can adjust depletion and enhencement mode by doping the gate oxyde. Oh, I see. You don't want to mess with it in real life.
+Only dynamic methods would allow to remotly shift the voltage level. I want a fully static design. So dope the gate oxyde. It is for the looks. I want my homogenous field in the semiconductor.
+Pinch-off on both sides is already difficult enough to understand. Don't need (inhomogenous) doping.
+The doping around the electrons let me get away with a flat body electrode. No need for a highly negative point charge which runs of the scale.
+The doping profile can even just be rectangles, or linear ramps, or quadratic bi-splines. Or maybe: Half spheres with a quadratic splines on the radius. We calculate it only at start up. It has to look nice.
+Sphere look nice between gates. Real electrodes would want high doping. Thus expand the profile along them. Electrodes are small to reduce stray capacity. The body electrode really is the Matrix in which we live. It shields all signals.
+
 So it seems that a MOFET with flat gate oxyte and body JFET looks best for a computer. CMOS is okay. FinFET is for NMOS : It shots a constant current onto the drain (used in 6502 ): No dynamic. Straight.
 I cannot avoid doping. I just pretend that is on a regular super lattice. With wave mechanics I could simulate a carbon nanotube, but then I have to use two electrodes and need bridges ( above in NMOS it is all integrated ).
 Beam pentodes and klystrons don't look good ( in 2d ). Bipolar devices would at least need a another color channel ( and I am already out of color channels ). Don't show the potential?
