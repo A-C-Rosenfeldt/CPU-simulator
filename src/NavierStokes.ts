@@ -127,7 +127,7 @@ class Vector extends Array<number>{
 
 class Liquid_Cell{
 	n : number //number_of_particles
-	v: number[] // velocity
+	v: number[] // velocity, or impulse? -> interface
 	a: Vector // acceleration due to stain
 }
 
@@ -135,47 +135,106 @@ class Liquid_Lattice{
 	mu=1 // viscosity needs to be tuned for a nice look 
 lattice:Liquid_Cell[][][] // t & 1 , y , x ( row major .. like I have row objects)
 t=0
+}
 
+//class Vector{}
+
+// transpose of liquid lattice. interface vs imp
+// I could not find something in Typescript for this
+//class Filed_of_Vectors{}
 
 // I think in the electro static part, I am clever to read the map to optimize for memory and speed
 // Navier Stokes is too complicated for me and I also did try out those tricks.
 // So better be simple and switch to GPU later
 
-Navier_Stokes
-	V ->
-	strain
-	stress -> F
+class Navier_Stokes{
 
-Verlet: stress -> A -> V -> R -> density
-
-Vector_Maths
-
-Boundary(location,velocity, electric_field ){
-	if (metal){
-		if (electric_field>1) emission=electric_field-1 // work function on interface and Ohm because exp may destabilize the simulation (short time steps for space charge)
+	strain_to_stress(){ // hypothesis
+		this.RemoveRotation() // viscosity does not feel rotation, only shear
+		this.RemoveDivergence() // Stokes noticed that the ideal gas only has a stationary equation. Pure expansion (strain) does not lead to pressure (stress). The elctrons are point like and not like polymers and look better if the behave the same.
+	
 	}
-	if(insulator){ 
-		// the definition of kinetic energy is valid in my simulation. Electrons already need a mass for Verlet
-		// so they can end up above the bandgap ( easily? considering the work function)
-		// Now I wonder I should include holes .. in the very next release. Totem Poles!!
-		// So I cannot use Verlet .. for the sharp steps of the surface I need collision and refraction
-		// .. I don't integrate over arbitrary fields. It is soft field and surfaces .. Specialize for this!
+	RemoveRotation(){
+	// actively ignore rotation
+	const symmetric=(strain[1][0]+strain[0][1])/2
+	strain[1][0]=strain[0][1]=symmetric
+	}
 
-		// how do I work with the grid
+	// RemoveChangeOfCompressionOverTime
+	// stokes hypothesis . Divergence . This might be importance if I model heat transfer from electron gas to lattice "hot electrons". Isotherm should give good visuals, already.
+	// So going to a grid of cells, if I let them expand, the pressure on the surface depencds on the 
+	// So usually, the state equation would on compressible liquid would calculate the temperature. Also we would calculate the coupling to the bath represented by the lattice
+	RemoveDivergence(){
+	// actively ignore change of pressure ( over time due to velocity ): Stokes conjecture
+	const divergence=(strain[0][0]+strain[1][1])/2
+	strain[0][0]-=divergence
+	strain[1][1]-=divergence
+	}
+
+	/* 
+// Depending on the dynamic on the electrods (and in the future: wired-or), packages may collide
+// Colliding grids eat up all the speed adavantage they might have for beams.
+// So I sit on stationary grid cells. Still
+	apply_Verlet(force:number[],location:number[][]){ // there is no analoug "location" on a grid, but density and impulse carried by mass (not due to force)
+		so I got two frames of flown in impulse. I use the current impulse to derive velocity and strain and force.
+		I use the previous impulse and current velocity (force already applies) to derive the next impulse 
+		for(let component=0;component<3;component++){
+			velocity+=force * inv_mass
+			location[frame]=location[frame]+velocity
+			// stress -> A -> V -> R -> density
+		}
+	}
+	*/
+	state_equation:StateEquation // ideal gas
+
+
+// Vector_Maths
+
+	Boundary(location,velocity, electric_field ){
+		if (metal){ // bandgap = 0
+			// no impulse ( velocity=0 ) at the start of each step, pressure in the metal govern those in the max-doped semiconductor next to it. Only connect a single doping level to the electrode
+			// pressure difference will create velocity .. which unifies this for anode and cathode
+			//if (electric_field>1) emission=electric_field-1     old // work function on interface and Ohm because exp may destabilize the simulation (short time steps for space charge)
+			// velocity moves carriers
+			// density dictates the amount of current .. match with the speed inside the semiconductor for good visuals
+		}else{
+			if(insulator){ // badgap > 3   // SiC is an insulator IMHO
+				//New
+				// velocity=0 (not only as a starting condiction, but throughout (the step)) ; pressure undefined
+				// grid based NS has this faces between the cells. Just no flow through a face which is part of a semiconductor surface
+				//Old
+				// the definition of kinetic energy is valid in my simulation. Electrons already need a mass for Verlet
+				// so they can end up above the bandgap ( easily? considering the work function)
+				// Now I wonder I should include holes .. in the very next release. Totem Poles!!
+				// So I cannot use Verlet .. for the sharp steps of the surface I need collision and refraction
+				// .. I don't integrate over arbitrary fields. It is soft field and surfaces .. Specialize for this!
+
+				// how do I work with the grid
+			}else{
+				// semiconductor
+			}
+		}
 	}
 }
 
 // boilerplate ( import? inherit )
-Buffer calls Navier_Stokes
-	clear
-	swap
-
+class Buffer{
+	//clear
+	//swap
+grid=new Liquid_Lattice[2]
+NS=new Navier_Stokes()
 propagate(){
-	GetClearBuffer()	
-	Strain(velocity)
-	RemoveRotation() // viscosity does not feel rotation, only shear
-	RemoveDivergence() // Stokes noticed that the ideal gas only has a stationary equation. Pure expansion (strain) does not lead to pressure (stress). The elctrons are point like and not like polymers and look better if the behave the same.
-	Buffer.forEach( strain -> stress)
+	this.grid=[this.grid[1],this.grid[2],new Liquid_Lattice()] // swap .. I may want 3
+	//this.grid=[this.grid[1],this.grid[0]] // swap .. I may want 3
+	//GetClearBuffer()	// buffer .. to assert that everything is written to?
+
+
+	//NS
+	Strain(velocity)  
+	Buffer.forEach((strain)=>{
+		this.NS.strain_to_stress(strain)
+		
+})
 	Location=Verlet(Stress) // flow
 	
 	Boundary()
@@ -183,6 +242,15 @@ propagate(){
 	// todo: share interface with electro static 
 	// use n (density) from the old frame(t) I also need to use v at that place. Like verlet velocity. I cannot pull!
 	let x=1,y=1,pre_i=0
+}
+
+self_consistent_naive_direction(){
+	let velocity:number[][][]=[[[]]]  // rough -> name field vector -> fine  . Liquid_Lattice{x,y} but only velocity . component c
+	let strain=v_to_strain(velocity)  // variied along, force component  // for me variied along is close to location
+	let stress=this.NS.strain_to_stress(strain) // .. or directly force?
+	this.stressToForce() // differntation along location
+	forceToVelocity() // integration along time
+	flowImpulse( velocity /* two frames */, force)
 }
 
 Clear(){
@@ -204,13 +272,8 @@ Clear(){
 		strain[Math.abs(si)].add(this.lattice[this.t][y+sk][x+si].v,si<0 || sk<0)  ;
 	}
 
-	// actively ignore rotation
-	const symmetric=(strain[1][0]+strain[0][1])/2
-	strain[1][0]=strain[0][1]=symmetric
-	// actively ignore change of pressure ( over time due to velocity ): Stokes conjecture
-	const divergence=(strain[0][0]+strain[1][1])/2
-	strain[0][0]-=divergence
-	strain[1][1]-=divergence
+
+
 	//stress=this.mu*strain // now finally we can use apply unity as the stress<-strain tensor
 	const stress=strain.map(row=>row.map(cell =>this.mu*cell))	
 	stress.forEach(row=> { this.lattice[this.t][y][x+1].a.add(row) })

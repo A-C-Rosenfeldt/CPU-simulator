@@ -59,9 +59,10 @@
     <br/>    
 
     <p>
-        Going from left to right:
+        Going from right to left:
         Green starts occupied cells and reds starts a gap.
-        Already in a dense matrix algorithm we would not actually store the columns which just hold unity.
+        Already in a dense matrix algorithm we would not actually store the columns which just hold unity. Even with a threshold for charge changes, we don't win much.
+        Localization per gate/electrode is still the best bet. So a thin slab of silicon.
     </p>
     <canvas id="inverse" width="1900" height="300" style="border:1px solid #6e2480;"  class=""></canvas>
     <p>
@@ -107,7 +108,23 @@
         <script src="TestChargeOnMetal.js" type="module" ></script>      
     </div>    
 
-    <h2>Emission</h2>
+    <h2>Atmosphre</h2>
+    <p> Gas in gravity over a flat surface. Or electrons in an homogenous electric field over the gate oxyde.
+        Make this interactive
+    </p>
+    <canvas id="gas" width="300" height="360" style="border:1px solid #6e2480;"  class=""></canvas>
+    <!--script -src="NavierStokes.js" type="module" -->
+    <ol>
+        <li><button> with gas</button></li>
+        <li>then turn on gravity</li>
+        <li>n dope regions to puddle more gas there</li>
+        <li>gates</li>
+        <li>electrodes</li>
+        <li>charge influences electric field (see previous chapter)</li>
+    </ol>
+    <p> Do I simulate gate oxyde leakage and body diode current?</p>
+    <h2>Field-emission needs an extra anode and distracts from logic</h2>
+    <p>Beam forming might be interesting on its own. I imagine a kind of beam pentode which creates lots of rays from a single wire cathode. I could use those in some deflection plate logic.</p>
     <canvas id="EmissionFromMetal" width="400" height="360" style="border:1px solid #6e2480;"  class=""></canvas>
     <script src="EmissionFromMetal_Demo.js" type="module" ></script>    
     <h2>Roadmap</h2>
