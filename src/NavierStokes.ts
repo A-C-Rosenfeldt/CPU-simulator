@@ -154,6 +154,7 @@ class Navier_Stokes{
 		this.RemoveDivergence() // Stokes noticed that the ideal gas only has a stationary equation. Pure expansion (strain) does not lead to pressure (stress). The elctrons are point like and not like polymers and look better if the behave the same.
 	
 	}
+	// on staggered grid. First derivative
 	RemoveRotation(){
 	// actively ignore rotation
 	const symmetric=(strain[1][0]+strain[0][1])/2
@@ -231,11 +232,52 @@ propagate(){
 	// window for localized physics. We want 3 time frames ( one is empty at first)
 	// Jagged arrays like in JS or Java sadly don't reflect physics as well as those in C++ and C# ( and Rust ). Assert?
 	// fields.ts/Field.IterateOverAllCells
-    for (let i = 0; i < this.grid[1].length; i++) {
+    for (let i = 0; i < this.grid[1].length-1; i++) {
 		const str = this.grid[1][i]
+		for( let along=0;along<2;along++){
+			staggered[along]=[staggered[along][1],staggered[along][0]] // state is your enemy   vs   testablity and documentation. But do I really want to documentate vector fields. Uh yeah I want. Does not help with windowing. Nested synergy??
+		}
 		// JS is strange still. I need index:      for (let c of str) 
-		for (let k = 0; k < str.length; k++) {
-			let window=[[0,0,0],[0,0,0],[0,0,0]]  // Grid constructor?
+		for (let k = 0; k < str.length-1; k++) {
+			let window=[[0,0,0],[0,0,0],[0,0,0]]  // Grid constructor? . Does strain and stress need this? Need a staggered grid?
+
+			window=this.grid.slice(i-1,i+2) // from start to end (end not included) .. hm map
+
+			// derivative 1 
+			// on staggerd grid ( cell boundaries along=[x,y])
+			//for( let along=0;along<2;along++)
+			{
+				staggered_strain[0][i][k]=window[i+1][k]-window[i][k]  // [] vector components  ..   -   :  point to vector?
+				staggered_strain[1][i][k]=window[i][k+1]-window[i][k]
+			}
+
+
+
+
+			for( let along =0 ; along<2;along++){
+				let other=[0,0]
+				// I need the matrix at one location
+				for (var di = 0; di < 2; di++)for (var dk = 0; dk < 2; dk++) {
+					other+=staggered_strain[1-along][i+di][k+dk]
+
+				}
+				const quarter=1/4
+				strain=[staggered_strain[along][i][k], other*quarter]
+
+				stress=this.mu*this.NS.strain_to_stress(strain)
+			}
+
+
+
+			if (i>0 && k>0){  // i,k count backwards? void function with return or switch with break? JS like all the C lika languages has continue
+				//force
+				force=stress[i+1][k]-stress[i][k]+stress[i][k+1]-stress[i][k]  // I need stress on the same locations as the strain ( main component )
+				impulse+=force
+			}
+
+			flow
+			
+
 			window=[[0,0],[0,0],[0]] // 45° , center .. or flat?
 			window[3]=this.grid[1][i][k]
 			// No conversion to Matrix here, just values, still 45° trickery from fields.ts/Field2Diagonal.ShapeToSparseMatrix
