@@ -272,11 +272,22 @@ propagate(){
 			if (i>0 && k>0){  // i,k count backwards? void function with return or switch with break? JS like all the C lika languages has continue
 				//force
 				force=stress[i+1][k]-stress[i][k]+stress[i][k+1]-stress[i][k]  // I need stress on the same locations as the strain ( main component )
-				impulse+=force
+				impulse+=force // vector add
 			}
 
-			flow
-			
+			//map 
+			const divider=1/mass
+			let velocity=impulse[1]*divider // scalar product
+			if velocity<0 then step=-1
+			velocity=-Math.abs(velocity)
+			// conservation of mass. Clear frame before time-step
+			mass=mass[0,i,k] // verlet
+			for (var di = 0; di < 2; di++)for (var dk = 0; dk < 2; dk++) {
+				mass[2,i+di,k+dk]+=Math.abs((di+velocity[0])*(dk+velocity[1]))*mass 				
+			}
+
+
+			// old code
 
 			window=[[0,0],[0,0],[0]] // 45° , center .. or flat?
 			window[3]=this.grid[1][i][k]
