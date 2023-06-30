@@ -166,7 +166,7 @@ class Navier_Stokes{
 	// So usually, the state equation would on compressible liquid would calculate the temperature. Also we would calculate the coupling to the bath represented by the lattice
 	RemoveDivergence(){
 	// actively ignore change of pressure ( over time due to velocity ): Stokes conjecture
-	const divergence=(strain[0][0]+strain[1][1])/2
+	let divergence=(strain[0][0]+strain[1][1])/2  // shiftable format
 	strain[0][0]-=divergence
 	strain[1][1]-=divergence
 	}
@@ -221,17 +221,41 @@ class Navier_Stokes{
 class Buffer{
 	//clear
 	//swap
-grid=new Liquid_Lattice[2]
+grid=new Liquid_Lattice[2] // lattice (components) and buffer (localization .. see the slightly different fields.IterateOverAllCells)
 NS=new Navier_Stokes()
 propagate(){
 	this.grid=[this.grid[1],this.grid[2],new Liquid_Lattice()] // swap .. I may want 3
 	//this.grid=[this.grid[1],this.grid[0]] // swap .. I may want 3
 	//GetClearBuffer()	// buffer .. to assert that everything is written to?
 
+	// window for localized physics. We want 3 time frames ( one is empty at first)
+	// Jagged arrays like in JS or Java sadly don't reflect physics as well as those in C++ and C# ( and Rust ). Assert?
+	// fields.ts/Field.IterateOverAllCells
+    for (let i = 0; i < this.grid[1].length; i++) {
+		const str = this.grid[1][i]
+		// JS is strange still. I need index:      for (let c of str) 
+		for (let k = 0; k < str.length; k++) {
+			let window=[[0,0,0],[0,0,0],[0,0,0]]  // Grid constructor?
+			window=[[0,0],[0,0],[0]] // 45° , center .. or flat?
+			window[3]=this.grid[1][i][k]
+			// No conversion to Matrix here, just values, still 45° trickery from fields.ts/Field2Diagonal.ShapeToSparseMatrix
+			for (var di = 0; di < 2; di++)for (var dk = 0; dk < 2; dk++) {
+				const si = i - 1 + (di + dk) //  s=source=pull   // 00 01 10 11  monotonous increase
+				const sk = k - 0 + (di - dk)
+				if (si >= 0 && si < str.length) {
+					for(let t=0;t<3;t++){
+						window[t][di][dk]=this.grid[1][si][sk]  // check out if differential operators really like this format. Alternatively, bite the bullet once and have two loops for two directions
+					}
+				}
+			}
+
+			// todo: extract this out of this ugly nexted loop
+			Strain( window.forEach( w=> w.velocity)  )
+		}}
 
 	//NS
-	Strain(velocity)  
-	Buffer.forEach((strain)=>{
+	Strain( window.beforeEach( velocity)  
+	this.grid[2].forEach((strain)=>{
 		this.NS.strain_to_stress(strain)
 		
 })
@@ -272,7 +296,17 @@ Clear(){
 		strain[Math.abs(si)].add(this.lattice[this.t][y+sk][x+si].v,si<0 || sk<0)  ;
 	}
 
+	// new version on window
+	//  45°   .. todo: difficult sign convetion
+	// strain[0]=window[0][1]-window[1][0]
+	// strain[1]=window[1][1]-window[0][0]
+	// loop to emphasise consistency:
+	// hide components. We need both? Or not? I think we need both for flow
+	for(let d=0;d<2;d++){
+		strain[d]=window[2]-window[1][d]-window[1-d][0]
+	}
 
+	// directions
 
 	//stress=this.mu*strain // now finally we can use apply unity as the stress<-strain tensor
 	const stress=strain.map(row=>row.map(cell =>this.mu*cell))	
