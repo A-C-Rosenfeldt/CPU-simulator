@@ -9,6 +9,28 @@
         </style>
     </head>
     <body>
+        <h2>Speed!</h2>
+        <p>
+            Everything is a Multiplexer ( think: CMOS )
+            latch pushes through a feedback loop
+                jitter
+                need larger Multiplexer anyway ( 0, next operand )
+        carry look ahead
+            finish on write back
+            4+4+4 blocks so that the ALU can take in the half baked previous result
+                we need two carry bits
+                    maybe push it until they are really all used 0..3 ?
+            clearly don't reley on write back going through register file
+        barrel shifter ( and right and arithmetic right )
+            is slow, so its own instruction
+            runs in parallel with ALU
+            super-scalar? As needed for MUL and DIV ?
+            Hybrid, multi cycle to save transistors: 1bit, 4 bit . 0..3 cycles.
+                I want CX as parameter and a wide register
+                    µ-code? Bits fall out like with MUL and DIV?
+                        implied Carry-Collector -Register
+        
+        </p>
         <h2>SH2</h2>
         There is really not much to be gained from staying with 8bit granularity even on an 8bit data bus.
         SH2 instruction set has almost 1:1 replacement for a lot of commands
