@@ -9,6 +9,41 @@
         </style>
     </head>
     <body>
+        <h2> MUL DIV ROR BitScan</h2>
+        <p>
+            For MUL and DIV, the ALU and the ASR and SHR need to work together. This also shows why single shift is so much more important than arbitrary shift.
+            The encoding for the multi-cycle instruction should look like the four basic instruction stuck into 16 bit. All registers are implied, or mostly?
+            I need two shifts: The second shift register has a 1 which signals the end of the whole instruction. All other bits collect the result.
+            Bit scan only uses this register -> defines the opcode.
+            Looks like we have 4 opcodes in one. 4 bit opcodes are okay. I like how ASR and SHR become IMUL and MUL. Predicate for Add comes from the branch codes.
+            MUL could run with 2 bits per cycle because we don't need to fully progress the bits. The second half of the look ahead circtuit otherwise is only made of half adders and a bit of waste.
+            So I would need shift by two and two carry bits. This also gives us two register shift, where the second register is implied because our file can only be written to once per (final) cycle.
+            Multi cycle is okay here? So we could even have two register barrel shift working in two cycles. Working in one, writing in too. Feels out of scope. We don't barrel shift!!!           
+        </p>
+        <p>
+            The CPU should be able to jump and then advance to the next instruction. So we cannot apply a trick with some stored more signigiciant bits.
+            Rather the instruction pointer has a carry-look-ahead adder identical to the center part of the ALU ( after the bit operations, before the ShiftRight).
+            The instruction pointer can do its own relative jumps because a full adder does not add a lot and we save a round trip over a bus.
+            Jump to subroutine still needs a round trip. Anyway is good I guess. At least our relative branches don't stress the bus.
+            ALU is not idle if we do RISC_V, though, here it is clear: We have to first compare and then add the relative address to the pointer. Clearly, concurrency is not achieved.
+        </p>
+        <p>
+            Immediates are 8 bit ( our instructions are also 8 bit). This works well for signed jumps and adds (to replace inc and dec because it needs to work for 16 bit also?).
+            Large memory allocation is not fixed. So no immediate values here.
+            But for IO ranges, some magic numbers and bitfields, and line pitch in graphics mode it would be nice to load 16 bit values.
+            This will probably happen at the beginning of a procedure, so no branches over us.
+            So the idea (from ARM) is to load imm8,reg0 , and then set a counter to load n imm16 into the following registers. Or use the imm8 to point to a table somwhere where it does not hurt branches,
+            but these kind of optimizations usually work.
+        </p>
+        <p>
+            I need 16 bit alignment to double the branch range ( I also redefine values around 0). I also need it so that instruction pointer add is not the most expensive operatio in my processor.
+            I may include the loop and loopz instructions from 8086 because those are the only counter uses I really want to have optimized.
+            Yeah, like the RISC_V compare thise is a two cycle instruction .. but alignemnt is okay!
+            This would work together with Load and Store instructions which advance their pointers like in 68k. At least then I only once have this byte/word flag and am done.
+            Though the nice thing about add signed_imm8 is that it is so natural. For line drawings which pitch I only change to Add reg,reg . Pre, Post, mirror are all clearly shown.
+            You can have a stride. You don't pay if for example you filter your memory access for transparency.
+        </p>
+
         <h2>Speed!</h2>
         <p>
             Everything is a Multiplexer ( think: CMOS )
