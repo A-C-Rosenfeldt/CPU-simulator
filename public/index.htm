@@ -13,7 +13,38 @@
             color: white;
         }
     </style>
-
+    <h2>Transistor Technology</h2>
+    <p>So enhancement mode MOSFETs need a doping profile and their body diode. This is all nice and dany, but I run out of color channels.
+        So motivated by tubes and high electron mobility transistor, I think I will display a carbon nanotube transistor.
+        The tube is pure C. It has some radius and helix pattern (not shown) which makes it an undoped semiconductor.
+        It can carry negativ charge like an ion. Since we still assume multiple electrons (on the whole tube) there is space charge which tries to make all charge go away.
+        Even a single charge would have the tendency to be attracted by any opposite charge. Quantum mechanics tells us the energies of ionisation.
+        Ring shaped electrodes of repelling charge ( a lot of it ) confine the free charge axially like in a Paul trap.
+        I really should think about big tubes, or even films, to get the scales right.
+        Though a little bit it fits: Low number of charge on the tube, high number on the repelling rings, which are either made of a doped crystal ( easy to display ),
+        or a ferroelectric with negative charge inside ( more realisitc ).
+        Now the gate sits around the repelling charge. The charge floats, the gate has a voltage releative to the ground metal tube which surrounds the trapping area.
+        Fields add up, and the gate can open the trap. Multiple gates along the tube even without ground can implement a charge coupled device.         
+    </p>
+    <p>
+        Electrons are blue typically. For the voltage I could green. Then we have different levels of red for
+        insulator, semicdonductor, metal, and metal charged with the opposite charge.
+        I could also say that the green field is not shown inside metal.
+        Green needs to be the charge and blue the field. The field is also in the insulator and easy to see.
+        Basically, I don't want any field shown, where current flows. I am obsessed with linear scale ( gamma factor ) and small leakage current.
+        Ah, no, we need the field, the potential. Maybe in n-MOS we can make Vdd green. So the switching part is darker. Only the const current drain is green.
+        I mean, I like to show off the space charge there.
+        Anyway, we need a legend and probably a way to let the user (tester (me)) switch the colors.
+    </p>
+    <p>
+        Gates will always have a slightly opposite charge due to the floating ring. The drain will have this color. They should be close to each other.
+        The bandgap would dictate that the semiconductor gets the lighter red, but to show off the dynamic there, it gets red=0.
+        So we clearly need a legend which explains every red, not just the whole channel.
+    </p>
+    <p>
+        The poses no routing problem. When animation runs, the eye sees the synced operation of the opposite side of the ring.
+        I could draw a 3d ring, but it must never hide the carbon nanotube. Maybe half an electrode like in a normal MOSFET also works good enough? Can give me an OR gate.
+    </p>
     <h3>WebGl for printf</h3>
     Just setting RGB on a line of pixels and let the browser display a square canvas on screen. <br/>
     <!-- <canvas id="GlCanvas" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas> -->
