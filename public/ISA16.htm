@@ -21,6 +21,10 @@
             Multi cycle is okay here? So we could even have two register barrel shift working in two cycles. Working in one, writing in too. Feels out of scope. We don't barrel shift!!!           
         </p>
         <p>
+            Very long instruction words may make sense elsewhere. For exampe post-increment could be expressed in two MIPS instructions in one word.
+            Similarly, with MUL and DIV a limit on 4 registers could be declared in the header.
+        </p>
+        <p>
             The CPU should be able to jump and then advance to the next instruction. So we cannot apply a trick with some stored more signigiciant bits.
             Rather the instruction pointer has a carry-look-ahead adder identical to the center part of the ALU ( after the bit operations, before the ShiftRight).
             The instruction pointer can do its own relative jumps because a full adder does not add a lot and we save a round trip over a bus.
