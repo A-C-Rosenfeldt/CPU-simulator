@@ -100,6 +100,14 @@
                 I has some synergy with zig zag triangulation.
             </p>
             <p>
+                Const-z needs strips of finite width to look clean. Two affine triangles combined have this zizag problem which I feel is not optimal.
+                To keep it linear, I propose two skewed rectangles. One is a alined to the left edge and the other to the right.
+                So these extend over the opposite edges and should have zero influence there.
+                So we pull edge distances from Bresenham and mix the UV coordinates using these weights? Mul is fast. It does not need much precision here, because the parallelogram should mostly agree.
+                We need to scale the edge equation to reach zero at that upper, opposite vertex (once pre strip). The side edges will always be much smaller and thus the pure affine triangles corners also.
+                Ah, to avoid normalization I need one blend direction: Const-z it is.
+            </p>
+            <p>
                 So the big question is: Is there a way to blend over the affine texture mapping,
                 which is just so great for small triangles, to a large triangle with a tile filled interior?
                 Span based rendering is the contender.
