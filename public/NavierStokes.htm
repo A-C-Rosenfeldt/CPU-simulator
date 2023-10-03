@@ -9,6 +9,44 @@
         </style>
     </head>
     <body>
+		<h2>Walk the line<h2>
+			<p>
+			So we have charge on a line. They don't like each other so the pull to the borders. Diffusion, temperator and a gaussian potential (nuclei, core electrons) well fight these.
+			In the end there should at least no dip in the center ( first and second derivative should be zero.).
+			So charge cannot go anywhere else, so they spread along the wire.
+			A field be electrodes on the side will push them around, or even deplete a part.
+			The source is just so negative that it presses electrons into the wire.
+			I guess I don't use real metal, where electrons are shielded so well. It is hard to get them into the semiconductor.
+			Rather they just spawn in the semiconductor at a fixed rate if the field ( calculate as if the wire just extends through a hole of the source) pulls.
+			The rate is fixed like a hot cathode in a tube.
+			</p>
+			<p>
+				For n-mosFET to have a pulling fixed field I need doping. So ring with a fixed positive charge, before the electrons fall all the way to Vdd.
+				Maybe this symbol is so clear and isolated that I don't need to worry about the color ?
+			</p>
+			<p>NAND gate works great with a series of electrode. Very small space between them so that their field overlaps. Yeah, we want a perfect screen. I dunno, feedthroughs are feed throughs.
+				So: Long electrodes, small distance to the Carbon-Nanotube, even smaller distance between electrodes ?? Lools ugly.
+				So instead: fixed positive charge between the electrodes, which beats the image charge on the electrodes, and avoids carrier depletion between the electrodes.
+				Full on-state should have an even charge distribution along the tube.
+			</p>
+			<p>MOSFET based full-Adders seem to connect more than two transistors in nodes. Considering my problem with the depletion already on a realistic carbon Carbon-Nanotube,
+				it seems like I should better insert a drain and use metal wires.
+				Evenn in a vacuum tube it is difficult to let beams forget their origin. Wire-or needs a wire (and an entrophy bath).
+				I could imagine two bending magnets for a chickane ( S shaped ). This would shift cathod rays left or right into different channels.
+				This can be used for AND and OR .
+				Works even better in 2d. Full adder has 3 inputs. So both bending directions and multiple beams. Ah, we need bending before that to already shift the beam once. Analog add.
+				So in reality current signals in coils overlap their magnetic field. Uh, current.
+				I guess it could also work with electrodes? But it breaks symmetry.
+				It is difficult to visualize the oposite charge on both plates.
+				Also we need a grid anode to keep the outputs isolated (like color CRT). Or we even need multiple CRTs.
+				I don't want half adders. Better have overful. So 4 bits. 2 deflection directions and in each bits add (haha) up their deflection.
+				3 CRTs, where one only fires if all 4 bits are set. So maybe add 6 bits in a small angle tube.
+				So this sound all great, but is very 2d and not useful .. especially not to visualize a CPU.
+			</p>
+			<p>
+				Also this needs voltage stabilization for the high level. We can't let the anode in a CRT rise too high.
+				Usually, the impact energy is used for light. But here?
+			</p>
 		<h2> verlet vs grid</h2>
 		<p>
 			So it seems that with Navie Stokes the internal state equation brings me back to kineamtic gas theory ( Verlet ).

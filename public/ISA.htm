@@ -9,6 +9,33 @@
         </style>
     </head>
     <body>
+        <h1> Addresses want a 16 bit ALU. So we have 16 bit registers. </h1>
+            <p>Embedded applications seem to be pure boilerplate code?</p>
+            <p> Since the databus is 8bit and text need this, we have to support 8 and 16 bit memory access.
+                4 registers are needed for many code snippets. I simply keep the SP and PC extra.
+                X and Y share addressing modes with SP, but SP only supports TSA, TAS, add/sub frameSize.
+                I mean addressing modes which stream.
+                I don't want to force a memory access to have easy access to some functions.
+                I mean, there needs to be DEC, INC, and DEC2 and INC2. 1 byte opcode. Maybe: Add immediate sets bit 9 if one of the 5 small values is present? And Branch does this for 3 small values? 
+                Let's add a Counter register and a 0-register. So we have 8. Those 4 special purpose register may share operations?                
+            </p>
+            <p>
+                I already have a load/store architecture. So it is okay that half of the opcodes is used for this. You may imply an immediate offset for some combinations (0-register)? One may be absolute (PC)?
+                So 7 bit: width (sign extend for b), direction, increment (direction is implied by address register and direction), address register ( 2 bit ), value register (3 bit) .
+                Since we have 3 bits for registers here, I guess this is the place for a branch and jump. And stack.
+            </p>
+            <p>6 bit GPR 2 register operations. Source=target means immediate (8 for AB, 16 for XY) . Move, add (and for swapped operands(test on one)), or (xor) , sub (cmp on some, 3 register on another) </p>
+            <p>I think that 8-bit CPUs need flags. So everything stays like it is, but 9=unconditional relative, and 10 loopZ . And loop? </p>
+            <p>A 16 bit ALU supports 16 bit MUL if we allow ROR after ADD and then ROR this carry in another register (seems to be the cheapest way after all).
+                ROR on the other factor sets Carry for conditional add, but also Zero for early out. So small values in the second factor get finished faster.
+                We need to do something about the exponent. Either store it .. or I need a barrel shifter which pulls from two registers.
+            </p>
+            <p>
+                I can't remember the division without writeback algorithm. I think we don't need it here because write back only costs, and the reminder is weird.
+                Anyway, we need precondition sub ( in microcode ). Similar to MUL, the 16 bit ALU allows us 16 bit nominator and denominator.
+                An alternative result should be 16 bit mantissa and 4 bit exponent (bitscan). Or just a 16.16 fixed point result. Uh, so just divide the reminder again?
+                This would be great on the Jaguar, because it could run indepentently. It is not of much help in syncrounous operation.
+            </p>
         <h1>Back to 8008 or is it 6809?</h1>
         <p>
             It seems that the Motorola 6809 has 5 16 bit registers : X,Y,U,S,DP,(A,B).
