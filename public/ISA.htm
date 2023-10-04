@@ -36,6 +36,47 @@
                 An alternative result should be 16 bit mantissa and 4 bit exponent (bitscan). Or just a 16.16 fixed point result. Uh, so just divide the reminder again?
                 This would be great on the Jaguar, because it could run indepentently. It is not of much help in syncrounous operation.
             </p>
+            <p>
+                Time has shown that we want MUL,DIV and ROL, but not REP MOVS. Both are zero overhead loops.
+                For the Arithmetic functions I need a shift register ( two 8 bit register ), where one bit is pushed through by the clock.
+                I selects the bit in another register to exchange in this cycle, and it signals the end.
+            </p>
+            <p>
+                I one thought that there is a bus made of metal wires. But at a second inspection: Wordlines are very much like power lines. So this is the metal direction.
+                Cells are cannot be squeezed enough for a single transfer gate for a complete row to not look funny.
+                Also with registers I want directional (fast) memory. So read and write are separated and basically work by connecting inverts (per bit) to power ( per register).
+                There is a plug for read, write, and hold. To save energy there is no pre-charge in CMOS, but nothing stops me to cut power from a register the moment I know that the value will be overwritten.
+                State decays (simulated by diffusion along the wire?), and flip becomes faster.
+                In n-MOS the decay is easy. Oh, everything is just pulled up. So write is fast because it can aggressively pull down one side.
+                Weird that the bus is so sophisticated with timed pull up transistors, but not made of metal.
+            </p>
+            <p>
+                Maybe intel was right to place the traces outside of the ciruit. Then each circuit has to plug in and pass through a limited number of bitlines,
+                but the bus can be as long as we want. I decide to use a cross of two busses. I am fair and have some diagonal stripe pattern for metal and poly-Silicon layer.
+                At each of the four ends is important circuitry: ALU, program counter, second ALU for bookeeping of MUL, and the memory interface.
+                Two Registers live in each arm of the cross. So a signal my need to pass the control lines of 4 registers.
+                At 16 bit this seems okay. For a 8 bit demonstration ( pages of zp, stack, xyz space (display), code ), this may look excessive.
+                So one register per stub on a real bus? Have stubs left and right. ALU has its own stub and need not pass through.
+                ALU has two input busses to some of the registers. Other registers belong more to the other ciruitry.
+                So even for an 8 bit CPU, there would be 24 data lines at any crossing. 
+            </p>
+            <p>I really need two metal layers like on a two sided PCB. For some reason pure power doesn't seem to be a problem and the clock even less ( but check the 3 or 6 register control lines! ).
+                Still, for the look of it. I think that a cross almost degenerate into an L looks best and resembles the 6502. The crossing looks a bit big with nothing in it, but wide conductors and bridges.
+                I guess that it would confuse people if I put something in the cells.
+                For the low clock approach on MUL and DIV I want alternating write back registers. I always fear that capture into a latch fails. FlipFlops just have two catches per cycle,
+                while alternating register have one. The only cricital circuit is the clock divider. So yield and max clock do not depend on many single points of failure. I can place the clockwork at optimal position.
+                But for this write back needs to sit on the bus like every other register.
+                Oh, and it infects the design. It would mean that no instruction can write back to itself. It would mean that only the akkumulator can. It is the death of counter registers.
+                So a viable prototype would be flip flop based. Every ALU operation goes through the writeback register.
+                It is just so weird that MIPS 5-stage pipeline and JRISC clearly accept the write back register also as source for the next calculation.
+                Indeen they have a queue ( or seen 90° rotated: shift registers ) for write back. They do this to speed up timing. With lower clock rate, on high phase ALU works, on low phase value is written back.
+            </p>
+            <p>
+                The registers inside the arms have independent bits. I could place the address generator in the center, but I feel like the address lines need to be crossed then.
+                Also this does not help the bus. Control lines in the ALU and the clock in the shifter also cross all data lines. Though, the shifter has no output!
+                In contrast the ALU has the whole carry look ahaead and then a multiplexer which can activate ROR.
+            </p>
+            <p> Do I use knots, or do I use PCB backside with vias? The backside traces are greyed out ( flip like for visual amiga PCB online ). </p>
         <h1>Back to 8008 or is it 6809?</h1>
         <p>
             It seems that the Motorola 6809 has 5 16 bit registers : X,Y,U,S,DP,(A,B).
