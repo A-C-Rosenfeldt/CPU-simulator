@@ -1,6 +1,34 @@
 <html>
     <head>
         <title>6502 like layout ordered by significiance of bits</title>
+		<p>
+			I have a bit of a problem with SRAM. Word and bitlines cross a lot.
+			Shift registers are purely local and seem to be faster if we have a lot of words ( like the 40 character codes in C64, C16).
+			There is still the problem with the clock fan out.
+			A way to reduce this, to use a tree of multiplexers.
+			Clock and write data comes from the root, goes into the leafs, and returns with read data. So there is probably some latency, which is okay for MUL and sprites.
+			Do I need latches or flip flops? I really want this double data rate / half clock thing.
+			So I need the Original clock and two non overlaping phases alternating on the cycles.
+			Then each instruction would still need to remember on which clock it started. Weird. Kinda like register renaming.
+			Does each level in the tree need flip flops? Yes, for the clock. Routing is combinatoric logic.
+			So basically I have a counter like in a VICII sprite, not a one bit shifter like in the 6502 CPU for the PLA.
+		</p>
+		<p>
+			I want carry look ahead ( because it is cool). I also would like a multiplexer tree. Trees are cool. Trees minimize crossings and vias.
+			Latches win in this case because with them we basically move one multiplexer onto the other side.
+			Multiplexers are the reason we usually use flip flops. There is still this crossing timing line as in SRAM, but that is it.
+			Also we can detangle this: The high speed timing comes from input or output side in between the latch to latch transfer lines.
+			So a flip-flop really is the beginning a shift register. It tells us how to manufacture a short sampling at the input and a sharp edge at the output.
+			It seems that in this case the clock lines cross the latch to latch transfer. So there is more latency.
+			Latches on a bus don't have this transfer and hence less latency.
+			Now I really wonder about the MIPS 5-stage pipeline write back shift register. That are a lot of transfers of 32 bit.
+		</p>
+		<p>
+			Thanks to the zero register we only need 5 bits for register names. Renaming happens as data goes through the ALU.
+			Ah, the names then need to flow through the pipeline to tell the Load instruction where to load the value into.
+			So we have ring of 5 values for this. A 5 stage shifter to select one of this.
+			Ah I see, each stage needs access to its value, while there is only one ALU which wants all accesses. So just large shifters are the easiest way to implement this.
+		</p>
         <style>
 			.grid-container {
 			display: grid;
