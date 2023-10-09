@@ -11,6 +11,24 @@
     <body>
 		<h2>Walk the line<h2>
 			<p>
+				Along a line there is not much Navier Stokes. Across the line there is a quasi static distribution derived from space charge and diffusion and the static potential.
+				Poisson has an effect along the line, which will help with more density in the center of the wire I guess. Still quasi static.
+				Viscosity is just so high that any variance across the wire is damped to zero. Free length along the wire is also as short as a pixel.
+				So at each position along the wire there is only one density and one current.
+			</p><p>
+				Yeah, sad that we don't show the body diode.
+				But I still want to show the fields around the electrodes and the fixed (ring) charge.
+				This is interesting at the source and for the electron gun pull up transisor: Show how the drain field gets negative and how it stops the voltage at the correct level as hard as possible.
+			</p>
+			<p>
+				The electric field simulation ends in a constant field between the electrodes. It probably looks pretty to have the rings in full 3d.
+				I better avoid 2d nodes to allow me to stick to this simple simulation. You just has to belive me that metal can transfer the potential without and Schottky Diodes.
+				Or should ground already be present around the rings? I have the space. So I can attach coax lines right to it.
+				Without ground I would have unshielded wires and would need to triangulate all the space. Coax would start before a via .. kinda like the green tube in Super Mario  .
+				Also I may want to wrap multiple bits into a word line .. looks like a via? Sure as hell I need smooth curves to guide the eye into these.
+				Word high-ways are always straight.
+			</p>
+			<p>
 			So we have charge on a line. They don't like each other so the pull to the borders. Diffusion, temperator and a gaussian potential (nuclei, core electrons) well fight these.
 			In the end there should at least no dip in the center ( first and second derivative should be zero.).
 			So charge cannot go anywhere else, so they spread along the wire.

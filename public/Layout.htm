@@ -23,11 +23,27 @@
 			Latches on a bus don't have this transfer and hence less latency.
 			Now I really wonder about the MIPS 5-stage pipeline write back shift register. That are a lot of transfers of 32 bit.
 		</p>
+			Carry look-ahead adds a tree onto the bus. The tree meets in the center. Just no back and forth. Then it is ideal.
+			Problem is more that with 8 bit ( minimal viable prototype ), the best implementation has a hight nibble where we calculate with and without carry.
+			Then in the second phase there is just a multiplexer. For 16 bit I have much more crossings and would reduce the number of straight lines. This is all so random!
+		<p>
+		</p>
 		<p>
 			Thanks to the zero register we only need 5 bits for register names. Renaming happens as data goes through the ALU.
 			Ah, the names then need to flow through the pipeline to tell the Load instruction where to load the value into.
 			So we have ring of 5 values for this. A 5 stage shifter to select one of this.
 			Ah I see, each stage needs access to its value, while there is only one ALU which wants all accesses. So just large shifters are the easiest way to implement this.
+		</p>
+		<p>
+			I don't see that any tree help me with the bus. Or can you imagine the registers sitting in a 2d tree instead of the cross. Neither Arm nor 6502 has a cross.
+			A tree with 8 endpoints would have 3 multiplexer nodes. We decode the address on the fly. CMOS would like it.
+			So horizontal comming from the ALU. Then vertical. Then horizontal. Then vertical. Then all the load, store, and hold signals from the back.
+			I just feel that this needs much more address decoding transistors and it needs a lot of space at the crossing.
+		</p>
+		<p>
+			So the prototype will have no crossings and only ripple adder and 8 bit. The second ALU for MUL, DIV can be stacked onto this.
+			Single write back latch can later be exapnded to register renaming.
+			Load store blocks the CPU as on 6502 and Z80. Pipeline may come later. Though I am still not sure if it isn't easier to have two write back lines and three load lines over a write back file.
 		</p>
         <style>
 			.grid-container {
