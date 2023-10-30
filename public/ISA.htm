@@ -9,6 +9,14 @@
         </style>
     </head>
     <body>
+        <h1>Pipeline stages</h1>
+            <p>Branches dictate the critical path. No good way to pipeline these. Only write back can utilize a stage. See how MIPS 5 stage has a whole "write back" queue which carry register names with them.
+                Finding a register in the queue is not really difficult. Parallel AND. Do this in the decoding stage.
+                This pipleline stages have their individual backdoors to Load and Store. With only a few registers as in 8-bit CPUs, directly reading from the file is not more expensive.
+                So we may need 3 read lines and 2 write lines, or accept collisions as in JRISC.
+                I don't even know how JRISC keeps multiple LOADs in flight. I almost assume that it can only have one SRAM and one DRAM keep in flight.
+                Stil need the write-back register for faster clock. This still needs to influence the decoder.
+            </p>
         <h1> Addresses want a 16 bit ALU. So we have 16 bit registers. </h1>
             <p>Embedded applications seem to be pure boilerplate code?</p>
             <p> Since the databus is 8bit and text need this, we have to support 8 and 16 bit memory access.
