@@ -16,6 +16,12 @@
                 So we may need 3 read lines and 2 write lines, or accept collisions as in JRISC.
                 I don't even know how JRISC keeps multiple LOADs in flight. I almost assume that it can only have one SRAM and one DRAM keep in flight.
                 Stil need the write-back register for faster clock. This still needs to influence the decoder.
+                We need a write-back latch to avoid transparency. We need a register to capture ALU output and flags the very moment the ALU is done for max clock and ALU utilization.
+                The flags may be used by the next ALU instruction or a Branch. The value may be used by the next ALU instruction, while it also is written back into the file.
+                Only reg-reg instructions run in a (3-stage) pipeline. These "bursts" are terminated by a jump which always has an immediate value, or does it?
+                How about RTI, RET or generally jump reg ? Ah, we just instruct the coder not to run out of their segment. Duplicate the instruction or whatever.
+                Maybe a zero-overhead loop for shift, Mul, Div, Movsb would be better than all those opcodes. Predicates for some instructions because we only have two loop registers (start and end).
+                It is not really zero overhead because the condition is read and evaluated as usual. Only the fetch prefers the loop. Fetch is discarded inversly ( when loop is not taken).
             </p>
         <h1> Addresses want a 16 bit ALU. So we have 16 bit registers. </h1>
             <p>Embedded applications seem to be pure boilerplate code?</p>
@@ -26,6 +32,21 @@
                 I don't want to force a memory access to have easy access to some functions.
                 I mean, there needs to be DEC, INC, and DEC2 and INC2. 1 byte opcode. Maybe: Add immediate sets bit 9 if one of the 5 small values is present? And Branch does this for 3 small values? 
                 Let's add a Counter register and a 0-register. So we have 8. Those 4 special purpose register may share operations?                
+            </p>
+            <p>
+                With 16 bits, it becomes unwieldly to access bits in the middle. We need a shift by CX instruction. Actually I also want to avoid 16 bit masks. So many identical bits.
+                I want a shift operand for multiplication and division for integer vs fixed-point vs float. Ah, so many opcodes, or an implied shift count register (non RISC!).
+                Shift is useful to pack data; usually from two sources into one target. At least there is the border inside the target. So we have 3 source registers. RISC does not like it, but we do.
+                The source registers may need trimming. So we would want 3 register format shift instruction. We only need two possible targets: Reflect, or paired register.
+                At least then the fusion needs one register less: Shift into by n-bits it is. Very similar to ROR with carry. Also would want copy into n-bits form the left.
+                The nice thing is that we avoid addressing modes across the register file. We may dedicate different fields in the shift-counter register to different operations.
+                So maybe one load (imm16??) sets up all 3 shifts? Last field for final ror without carry?
+            </p>
+            <p>
+                Predicate and two register pair branch prediction sounds nice. The latter is not part of the ISA. For MUL and DIV I would need instruction pairs.
+                Instead of prefixes on the opcodes, I guess a config register is allowed. Feels like I should try if I could tame the zoo of IMUL and MUL?
+                So I already have SAR and SHR. Fixed point and floating point mostly involve some comparison upfront and some shifting without comparison.
+                So it really seems to be a good idea to use RISC for this. Bitscan then is also included. For pairing I still need the second register bus to the ALU.
             </p>
             <p>
                 I already have a load/store architecture. So it is okay that half of the opcodes is used for this. You may imply an immediate offset for some combinations (0-register)? One may be absolute (PC)?

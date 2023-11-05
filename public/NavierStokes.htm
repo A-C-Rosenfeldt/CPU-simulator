@@ -22,6 +22,22 @@
 			A transfer MOSFET would have these one both sides.
 		</p>
 		<p>
+			Source emission is line-sat. Like cold metal (although our semiconductor has a temperatur). I need to match the amount ( the gradient ) to the self-space charge and the geometry (of my transistor).
+			Basically, I deal with a dynamic system .. differential equations. I don't want oscilation or stutter. So binary emission is not good.
+			Transistor seen as a gate: The more I open the gate, the more current flows (faster carriers, need more voltage for acceleration ) and the higher the voltage pulling at the metal.
+		</p>
+		<p>
+			Friction with substrate and what happens when I switch a gate to negative? I probably get waves! Is it bad? Is diffusion good enough to dampen this?
+			I don't have too many gates. Only probablem would be three gates where the outer ones capture the charge. I want to support 4 NAND in CMOS someday. I like totem poles.
+			Friction with the substrate adds another parameter. So it comes later. The constraints on the boundary are not problem. Transversal speed is below one cell per tick.
+			Longitudinal current may smash in the terminal electrodes, but is just absorbed there over the whole depth. Longitudinal velocity needs to stay below gate width.
+			I don't get how people can live purely on a grid. My code started with forward projection of the grid cells. This way I can integrate over the potential created by the gates.
+			As noted in videos, the distribution onto cells at the target leads to diffusion. The very reason we use NS instead of Schrödinger is diffusion. Just keep this noisy diffusion small.
+			Noisy is, like it varries on how we hit the grid. So I could use some compensation blurr (bi-cubic interpolation), but later. Hard to prove isotropy.
+		</p>
+		<p> Funny example would be compression of charge in a transfer gate. So have source/drain fully negative and the 5 gate fully positve. Then make the outer gates also negative.
+			I guess that electrons will flow over the gates.</p>
+		<p>
 			It feels weird and is not very useful for example in a full adder, but pairs of two transistors is what is easy to draw. Y or + node purely made of semiconductors
 			speak more of my hate about that I don't understand Ohmic contacts really. Or I should say, are more a thing for vacuum tubes. And then there it is really a matter of beams. TWT. CRT. Cyclotron.
 		</p>
