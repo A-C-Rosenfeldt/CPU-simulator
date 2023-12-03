@@ -17,6 +17,8 @@
 		So I won't keep velocities from frame to frame. Less chance for funny errors.
 		Charge redistribution uses the electric field and then places all the charge into the field sinks. And I steal the Deby Huckle equation to soften the distribution.
 		This should still lead to some nice shaping from the electrodes.
+		So the problem is that I could not find a good algorithm for the static solver. I is still iterative, it adds more code than the 2d vector code. Diffusion is just convolution anyways.
+		Debye lenght is the radius where the electrical potential dropped by e (Euler) due do screening. We don't have screening because we have only electrons. 
 	</p><p>
 		The Velocity along the channel should stay dynamic because I want to see electrons bouncing around when one of the gates closes.
 	</p>

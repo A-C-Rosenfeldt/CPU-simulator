@@ -23,6 +23,14 @@
                 Maybe a zero-overhead loop for shift, Mul, Div, Movsb would be better than all those opcodes. Predicates for some instructions because we only have two loop registers (start and end).
                 It is not really zero overhead because the condition is read and evaluated as usual. Only the fetch prefers the loop. Fetch is discarded inversly ( when loop is not taken).
             </p>
+            <p>
+                I learned that i386 has 4 phases. 2*2. Complementary * non-overlapping. I want two non-overlapping .. like every CPU. I dunno who even uses flip-flops.
+                If the write-back register is really made of latches, it cannot be used as a source for the next instruction.
+                I need to scale down my ambitions to 4 GP register (+stack,+instruciton pointer,+flags). So going over the register file should not add too much latency.
+                Though I need a full flip-flop for the flags ( at least the carry ). I could widen the registers for the carry and use MIPS/RISCV flag-less-
+                Ah, don't .. no register renmaing or windowing in the MVP! This kinda also rules out a full flip-flop based write back register for the values.
+                It can comeback in later. Full rename, with flags stored on registers ( like the sign flag). 
+            </p>
         <h1> Addresses want a 16 bit ALU. So we have 16 bit registers. </h1>
             <p>Embedded applications seem to be pure boilerplate code?</p>
             <p> Since the databus is 8bit and text need this, we have to support 8 and 16 bit memory access.
