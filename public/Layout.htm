@@ -1,6 +1,35 @@
 <html>
     <head>
         <title>6502 like layout ordered by significiance of bits</title>
+		<h2>Visible flow</h2>
+		<p>
+			The data flows along the bit lines. I don't plan a symbol to collect data lines anymore. I fully expose a Matrix structure and the viewer can decide on the number of bits for ALU=address and for memory ( sign extend like branch in 6502 and load in SH2 or MIPS).
+			On the edge there is the carry look ahead tree or any other structure which pushes data cross the lanes. On the other end sits memory? I still need to place shift right somewhere.
+			I guess it needs to sit just next to carry because I need it for MUL and probably even an extra shift left ( instead of add a,a) for DIV. 
+		</p>
+		<p> Ben Eater has a strange way to splatter instruction stuff all over the layout. I rather like the Intel or Atari Jaguar apporach with the instruction stream.</p>
+		<p>The instruction register and the pointer have the default access to memory, data should live in the register file mostly (kinda Harvard).</p>
+		<p>Cross overs are the exception. In a Branch we takte the flags from the ALU and the ALU calculates the new address. Load Store run micro code from ROM, while the register File (data) and the  ALU (addressing modes) has access to RAM.
+			Immediate data is needed for branch and add and load. So here the ALU has read access to data, but the instruction pointer keeps the address bus.
+			So it is not very exceptionial. I should even allow for multi byte Immediate data load into register. One instruction because I got burned by code size bloat in i386 and 68516.
+			So the instruction stuff sits close to the RAM and microcode ROM ( no data constants in my ISA ), and passes stuff through to the ALU-file pair.
+			Do they keep a shared buffer? I guess that in a real world I would implement those to tidy up all signals going on and off the chip.
+		</p>
+		<p>
+			I had an idea about the microcode where the number of leading zeros represents the number of micro instructions. Micro instructions contain all those tedious control lines for the ALU.
+			and all the multiplexers and hence are longer than normal instructions. The single cylce instructions feed through 2 GP register names.
+			I check order of those and finnally derive a 4 bit opcode. Instead of funny random logic or PLA optimizations no one understands I may just stick with a ROM?
+			Two cylce instructions include byte load and store. These still use two register names. Somehow I don't see a use for the direction flag anymore. Maybe I used it for the stack?
+			mov GP,Instruction Pointer may take 2 cylces. Now I don't know how I can do branch in two cycles? At least when I take the branch, I need 3.
+			3 cycle instruction would be load store of two bytes.
+			The rest are just a few random instructions where the first microcode contains an extra field where to jump to so that I can compact storage of variable lenght routines?
+		</p>
+		<p>
+			I really got into fixed point math. Signed, floats. Maybe instead of DIV and MUL it really is better to have zero and sign extending single cylce instructions and then let the dev decice on the point?
+			This would also keep loops out of microcode. These math functions don't need access to RAM anyway.
+		</p>
+		<h2>2 metal layers</h2>
+		<p>. VIAs like on the schematic of Ben Eater as disks. I don't think that 3d bridges are really visible. Vias should be the exception .. so big disks. Think two sided PCB.</p>
 		<p>
 			I have a bit of a problem with SRAM. Word and bitlines cross a lot.
 			Shift registers are purely local and seem to be faster if we have a lot of words ( like the 40 character codes in C64, C16).
