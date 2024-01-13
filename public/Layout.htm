@@ -43,6 +43,32 @@
 			I really got into fixed point math. Signed, floats. Maybe instead of DIV and MUL it really is better to have zero and sign extending single cylce instructions and then let the dev decice on the point?
 			This would also keep loops out of microcode. These math functions don't need access to RAM anyway.
 		</p>
+		<p>I don't like magic numbers and code and no PLA. And I don't need to. Register names are straight forward. Branching in 6502 is flag name and value.
+			ADD vs ADC is one NAND. SUB instead of ADD is one ADD. Shifting is a multiplexer. Shift sits at the ALU for MUL and DIV. No barrel-shift.
+			A fixed instruction length with opcode, immediate could simplify instructions. Immediate value is sign extended and add to GP-register or instruction pointer as default.
+			The same counter is used for zero overhead loops? So no push inside these loops.
+			Then some opcodes can use other ALU operations.
+			I guess I need inc and dec for push and pop. Push flags is a mix of branch and push register and 8 bits. Push instruction pointer is 16 bit. Looks like I need a loop counter ( b/w flag ) in the opcode.
+			MIPS always has an add before memory access in order not to disturb the pipeline. Also the address bus is connected to the write-back register, but not the bus. Zero-Register physically has to sit in the file.
+			We can use zero register + carry for push and pop. We can write back the address while the new data is loads.
+			Post-Increment needs access to the file. Oh this hurts. I could use 16 bit load and store, or even immediate offset to store multiple values and then one ADD for the SP. So like MIPS. No push, pop.
+			So all 16-bit reads and writes add the byte counter to the address. So 16bit reads cannot use immedediates? Ah, no they can. All first add register and immediate and then count up.
+			Still, in my design the result of the immediate calculate is only available after the next instruction is read. Branches already know if the jump. So this is always valid.
+		</p>
+		<p>
+			Since every instruction loads the next one based on microcode, then I should decode it immediatly, and just need a decoded output register.
+			Often immediates are read going with the flow, but I say that add is one cycle ( even for 8 bit) and so there is one cycle to read the next instruction while basically returning value on address.
+			Values come and go to the register file. Is it available at the start of the next instruction? Should I not rather load the instruction then?
+			At least it needs to go straight through the file on the write-back line and one source line.
+			I don't like. Maybe I just insert wait states for immedediate address load store and for branch.
+			Jaguar load takes 3 cycles. Maybe I could just block the next instruction if it uses the data of the current Load.
+			On the other hand: for absolute address the CPU should be able to just act as a flip-flip and return value to address in the next cycle.
+			RAM gets a new address every cycle. Would be weird if the values comes back after more than 1 cycle latency.
+			Async DRAM returns stuff within the same cycle. Only the address out latch and the data input latch make it look like 1 cycle.
+			Oh wait. One latch too much. Looks like two cycles delay meant for base+offset. 1 cycle latency needs to put the register on the address bus directly.
+			Looks like we don't latch the data address. Rather every other cycle is used by the instruction pointer anyway.
+			Word burst for data. Reg-Reg instructions burst the memory pointer.
+		</p>
 		<h2>2 metal layers</h2>
 		<p>. VIAs like on the schematic of Ben Eater as disks. I don't think that 3d bridges are really visible. Vias should be the exception .. so big disks. Think two sided PCB.</p>
 		<p>
