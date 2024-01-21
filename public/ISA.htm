@@ -30,6 +30,25 @@
                 Though I need a full flip-flop for the flags ( at least the carry ). I could widen the registers for the carry and use MIPS/RISCV flag-less-
                 Ah, don't .. no register renmaing or windowing in the MVP! This kinda also rules out a full flip-flop based write back register for the values.
                 It can comeback in later. Full rename, with flags stored on registers ( like the sign flag). 
+                I like ADC for graphics stuff: Multiple pixels in one word. Bilinear interpolation vs loading new pixel data. Navigation within a tile, vs migrating to the next tile.
+                One flag feels so lonely, lets have the full set.
+                I would need to read busses on the file if I want ADC with carry stored on a register. Though two register barrelshift would be nice anyway.
+                I don't have encoding space to pull in flags from a specific register.
+                Pentium is super-scalar with flags.
+                RISC-V and MIPS have this pipeline going on. So the comparison within the branch instruction is basically free.
+                I don't want to use a pipeline because the display is confusing. So I simply use the flags of the 6502, but with correct overflow, ADC, ADD, SBC, which adheres to carry normally zero standard.
+            </p>
+            <p>
+                RISC-V and MIPS use this Add-stage for address calculation. Without a pipeline, I can use the contents of a register directly.
+                This just is a cylce faster ( I dunno where MIPS hides this, in the memory latency?) and it may be the usual case because immediate address is costly in 8 bit encoding.
+                Considering memCopy, I wonder why RISC-V has both: mandatory ADD in the address and mandatory SUB in the branch.
+                So what do I use? Add in the addressing mode with 16 bit bases and one offset-counter which triggers a flag?
+                Or do I have a post-increment addressing mode and a counter? I have a stack. I have no congestion because the increment is already in the write-back register
+                .. ah I would need to make memory lookup take two cycles. This is just not period correct.
+                So the call stack (register) is special and has its own write-back register. Can't use that for memcopy, though some DOS games did it by loading weird values into Stack Segment.
+                On the other hand, already with an 8 bit value loaded, memory needs two cylces. So I have two cycles to write stuff back. A data latch, and the write back, while I fetch the next instruction.
+                Interestingly, pre-decrement then takes the same time.
+                6502 mini-pipeline.
             </p>
         <h1> Addresses want a 16 bit ALU. So we have 16 bit registers. </h1>
             <p>Embedded applications seem to be pure boilerplate code?</p>
