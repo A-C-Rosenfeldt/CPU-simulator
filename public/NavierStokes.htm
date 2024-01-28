@@ -24,6 +24,20 @@
 			I am okay with a linear relation-ship.
 		</p>
 		<p>
+			A realistic MOSFET is ohmic. Carrier velocity is given per electric field strenght. This is no tube. Navier-Stokes is more asthetic, but I want to explore the 6502 and Z80 way.
+			So for the current "source" for pull up, doping ( or my special dielectic chemistry ) create a homogenous field.
+			A FinFET connected to the output of the gate shields the channel from the rails almost like the Whenelt cylinder in an electron gun.
+			The dielectric needs a gradient. The drain needs to sit within the screen and the dielectric, which also covers the "upper" side of the gate. 
+		</p>
+		<p>
+			Do I even need a polarized dielectric for the normal gates? Like when the input is at rail level, then the channel-gate capacitor is not charged at all (space charge).
+			I even accept a small leakage to give me more rounded signals. When the mosfet conducts, the output will approach the (negative) rail.
+			So my signal level is close to the negative rail. I cannot even prevent that gates will approach .. ah I have the constant current from the pull up.
+			The gate conductance will be reduced. So unlike CMOS, I will not reach rail values in the signal. So I need "doping" or polarisation to create slightly "enhancement" transistors.
+			I already need the colors for pull up. So either a more complicated dielectric for n-MOS or two kinds of channels for CMOS.
+			With CMOS I could show the gate as a semiconductor with opposite doping. Ah problem is the color on the wires. I don't want a break there and surely no polarized dielectric. 
+		</p>
+		<p>
 		The full NS equation with density is not even discussed by many. So much state!
 		So with a FET we talk about a channel. So not only don't we need different velocities at one location ( particles or QM), we also can use average velocity cross the channel.
 		Velocities perpendicular will be so low that we can use a static calculation to distribute the charge.
