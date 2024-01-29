@@ -28,6 +28,17 @@
 			So for the current "source" for pull up, doping ( or my special dielectic chemistry ) create a homogenous field.
 			A FinFET connected to the output of the gate shields the channel from the rails almost like the Whenelt cylinder in an electron gun.
 			The dielectric needs a gradient. The drain needs to sit within the screen and the dielectric, which also covers the "upper" side of the gate. 
+			This has the same function here as the frozen static charge to let carriers hop from gate to gate. Also this charge prevents carriers of opposite charge to enter the channel --
+			in conjunction with a bandgap. I ditched 2d fluid sim, but keep the electro-static field.
+			The width of the bandgap does not become apparent because I don't even deplete the channel completely for my rounded curves,
+			but I need it to explain why my gates, which I want to display as "channels" of opposite carrier polarity, exist.
+			CMOS may be easier because the roles or source and drain are allowed to switch. Though still only channel carriers are allowed. The strongly doped N regions
+			isolate the channel from the metal and make sure that only the correct carriers can enter. The channel itself is close to the gate and dielectric and will always be slightly charged in the correct way.
+			I say this because in a very long channel evan a small derivative of the electric field may let it drift all the way through the bandgap.
+			This is already confusing if it happens locally on one of the 4 gates of the 4-NANDs I want to have.
+			The carriers in the channel only feel the force along the channel. So even if the gate is positive ( relative to the rails?). Uh should I introduce a (Vdd+Vss)/2 for schields?
+			Ah, no shield is positve ( Vss ) to favour electron carriers at source and drain.
+			With the constant current source the drain is not allowed to inject carriers. I needs to behave like an anode in a tube ( where all carriers are negative). 
 		</p>
 		<p>
 			Do I even need a polarized dielectric for the normal gates? Like when the input is at rail level, then the channel-gate capacitor is not charged at all (space charge).
