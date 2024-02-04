@@ -18,6 +18,30 @@
 			For signals, a single line is usual. So even in the cables the charge needs to be shown.
 		</p>
 		<p>
+			I ran out of colors and looked back at the symobs. So I don't show wires in the same way as the transistor. Wires have field + charge combined as cyan running through a black tube between boring antracite filler.
+			The interface to the transistor color scheme is a 90° bend like on the symbols. Gates are drawn as semiconductors, but I show carrier density, not charge density.
+			Doping is essential for a transistor and my interests: Why is it different than a tube, why do we have enhancement and depletion mode?
+			But inspired by level shifters and HEMT, I don't actually dope, but show polarisation on insulators as a black-red pattern.
+			So insulators have a pattern? Can I show different patterns?
+			For clarity and to match the symbol, only the constant current pull up is a finfet. For the 4-NAND / CCD tyoe of transistor I use the body diode to show the electric potential.
+			I think that these are enhancement transistors. They work like capacitors. Metal gate and intrinsic channel connected to n doped region at negative electrode ( and vide versa in CMOS).
+			No polarisation here. A far away, p+ doped region is enough to form a body diode. The diode exists as long as the negative doping of the signal electrodes reach into the channel .. ah they do,
+			I don't go into saturation and so even in reality, no latch up would occur.
+			I mean, I could probably use my color channels and overlay the field onto the gate and the channel.
+			Just how do I not waste too much space for the body diode. Back diode as interface to wire-land? Even an insulator will finally end up on some metal screen in a good design.
+		</p>
+		<p>
+			After paint, it looks like the only channels I overlap will be : 
+		</p>
+		<ul>
+			<li>mobile carrier density (blue) and electric potential in the channel.</li>
+			<li>static doping (red) and electric potential in the gate dielectric and the depletion zone of the body diode.</li>
+		</ul>
+		<p>So metal should use all three color channels, like grey or brown. But as written above, the gates are shown as semiconductors .. no they are metal in n-mos. 
+			I mean dead end semiconductor will work, floating instead of pull-up. But it is a fab detail. Does not explain operation, certainly no MVP.
+			
+		</p>
+		<p>
 			The pull up transistor as a current limiter still works. I guess that the single dimension charge killed the quare law for FETs. Square law is a temperature effect just like the exp() in a diode.
 			Temperator diffuses the charge carriers. Opposite carriers on both sides of a thin ( relative to diffusion length ) dielectric pull on each other.
 			Carriers come closer and the capacity increases.
