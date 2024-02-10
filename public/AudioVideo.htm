@@ -143,6 +143,50 @@
                 Per triangle there is one division ( the determinant ) (we have some cheap multiplications due to the 16 directions), but for a zig or zag we need to calculate the intersection .. again, one division.
                 So two division per triangle is not worse than the remainder span. Though, ah we need perspective correction at the cutting point.
             </p>
+            <p>
+                The main reason for 8x8 blocks is cache memory. I can easily throw transistors at the algorithmic side, but communication transisor needs tend to grow with a square law.
+                So small triangles and slithers are rendered line by line and a small cache suffices. Slithers are slow on any system. So lets concentrate on triangles which should be easy and have a good fill rate.
+                For a 8x8 block I calculate the deltas and choose a MIP level (mandatory) where I jump max to the next phrase (64 bit Jaguar DRAM word width).
+                Each time a new word is needed I add its address to a buffer with capacity 64. The pixel points to this.
+                The jump to the next line can also change the word address. Zigag meander if you don't want to remember the start. 
+                The sign can change from line to line in bilinear interpolation. In N64 quad split into triangles interpolation both tris can have a different sign. I don't see why I would do the triangles individually. Does not seem to make a difference.
+                This way we can trace the previous line and check if any phrase address is already in the buffer.
+                This only works if we load a dense line, like slightly bigger than a hairline, more like the rays in ray-casting of Wolfenstein3d.
+                Then I could also just back project the square onto the texture.
+                Notice how worst case we load 64 phrases = 256 bytes which is still smaller than 4kB of cache in the N64. Maybe 4x4 is the sweet spot?
+                Now I have got all phrases, but in a linearized storage. So each pixel needs to find its phrase. I think delta walking works here. I have a list of line starts.
+                Interesting how backproject can create a slither in UV coordinates. Still thanks to our delta limit, there cannot be more than 8 lines.
+                Backprojection is kinda expensive. Sort vertices by U. Ah, maybe here actually just running over 8x8 phrases and checking 4 inequalities is faster.
+                Then again thanks to the dense lines I can finde dupes by 8(4) comparisons per pixel and only need to check 6 address bits. So 48(24) xor bits and I get the pointers into the cache in one step.
+                I feel like I can weaken the constraint and allow anisotrophic scaling .. Ah there is no proof for a dense line. Just when I space along the line &lt; px aka half a phrase in 16 bit mode,
+                then I need to space &gt; sqrt(2) along the other direction. Seems like I need to maintain a dense line separately from the sample positions, just as if I would cache for whole scanlines.
+                Or I need to check back two previous lines or just all? So the constraints don't help much?
+                Relax constraints a bit and have 4+4=8 bit word addresses. 4x4 px in framebuffer give 16 * 8 bit data to compare. I don't see a way to utilize the triangular shape.
+                So it is basically 15*8 bit compares, which can run in sync with address generation. The fractional address is regenerated or uhm, for nearest pixel and minimu 16 colors these are only 4 bits.
+            </p><p>
+                Triangles up to 16 pixels are drawn using the same hardware. Most triangles to fill up the margin around the 4x4 blocky part fit into this.
+                With slopes near the axes, the triangles need to also be split into blocks along with the bulk area.
+            </p><p>
+                Can I reuse values from the previous block in a brute force fashion? New address must take precedence. Basically, I can only use the used capacity of the buffer and only if the move wasn't too large.
+                Otherwise I would need to copy values and also not reach all of them. Also think about the increase in cases for the automated tests.
+                If I draw block on block the last values should match the first in the next block. So I need an offset into the cache with wrap around. I think this is okay if I have two bits per entry:
+                value is valid, address is in queue. And values from the last block still need to be copied. This is a least-recently-used cache implementation where the 64bit value is almost as cheap to copy as the address.
+                Also the addresses are only valid in a window. Now how do I know which addresses run out of the window? Do I rather have full 32bit (24bit) addresses? Or 16 bit.
+                I think that on 2 MB RAM hardware we can insist on a max texture size of 512kB. 
+                This is interesting when zooming into the high detail mip map level. Full meander?
+            </p><p>
+                    With affine triangle halves I know if x or y direction on screen is shorter in UV coordinates. So I could go along the short axis and be sure that the long axis only needs to check the last line.
+                    This affects the memory buffer if I do it full polygon, but can be hidden if done inside blocks.
+                    8x8 blocks and each triangle starts at one of the corners. 4x4 block has a diagonal which certainly should be communicated from the first half to the second.
+                    So here is asymmetry. Then I can also start one triangle at the wide side including the diagonal and the other on the corner. 8bits to check if diagonal value is valid.                            
+            </p><p>
+                Bilinear interpolation is cheap because I just resuse the already cached pixels.
+                I can see how N64 rather used explicit TextureMemmory. If I allow 16 color format with palette, 4k is plenty. Demos show how the cartridge is the limit.
+                Or just go along the line and check address changes and cache the output as the Jaguar can do almost well. 
+            </p><p>
+                It now seems clar to me that 8bi hardware can only draw affine sprites. Already the C64 liked to zoom into sprites. So we cache the source.
+                Thanks to affinity, the lines always point in the same direction and we set up the buffer accordingly. Lines hava a slope %lt; 45° and are 2words high to encompas the actual scanline.
+            </p>
         <h2>Video</h2>
         <p> 320x240px.
             DAC: RGB 444 ( period correct for CGA sort of )
