@@ -9,6 +9,13 @@
         </style>
     </head>
     <body>
+        <h1>Cacheless operation on shared memory</h1>
+        <p>8 bit CPUs decoding the instruction and fetching the register values takes as long as the full stages for a branch instruction. So a branch can skip to load the immediate address if not taken.
+        Actually, the 6502 implementation failed to do this, but maybe the Z80 did this.
+        I cannot find any other reason to load instructions byte by byte. Rather I'd like to jump somewhere and get all the sources in two consecutive memory fetches.
+        Though a 6502 has a lot of one byte instructions. So after a jump these can be executed immediately.
+        Then again of these instructions I only like the shift instructions and INC is at the end of the loop.    
+        </p>
         <h1>Pipeline stages</h1>
             <p>Branches dictate the critical path. No good way to pipeline these. Only write back can utilize a stage. See how MIPS 5 stage has a whole "write back" queue which carry register names with them.
                 Finding a register in the queue is not really difficult. Parallel AND. Do this in the decoding stage.
