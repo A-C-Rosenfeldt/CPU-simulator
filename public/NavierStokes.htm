@@ -78,6 +78,23 @@
 			With CMOS I could show the gate as a semiconductor with opposite doping. Ah problem is the color on the wires. I don't want a break there and surely no polarized dielectric. 
 		</p>
 		<p>
+			One dimensional simulation of compressible fluid still can be either on grid or go with the flow. The latter may allow me fast edges in my gates with maybe less aliasing effects.
+			So each cell has its density and velocity. Force ignores velocity because the equations give us force per particle.
+			So we use acceleration to propagate veleocity and position and map these new positions onto the static (relative to the electrodes) grid. We split the particle count based on overlap range.
+			We do likewise with the momentum. Now it might be interesting to stagger here. Density affects the field on the cells. The momentum affects the velocity on the borders.
+			The gradiant of the field of the border accelereates the velocity. Drain just means cutting out all electrons which overlap metal after propagation.
+			The source / emitter still should emit based on field strength. So for a pulling field the surface boundary is accelerated from a stand still. The void is filled with a configurable density.
+			I want to show space charge for the pull up and the pinch off effect. These aren't even transient effects. So I basically need to check that the emitter is just not limiting by operation.
+			Too much emittance leads to back flow and oscillation, same as in more dimensions.
+		</p>
+		<p>
+			I don't use verlet integration because it would have to include the electo static calculation also.
+			So it is a cross-cutting concern which needs some advanced coding technique to be implmented in a clean way.
+			It would take the whole state and all deltas ( potential change of the electric field). We have more variables because we have the current position to calculate force.
+			We use this to accelerate the current velocity, but add this veleocity to the old state, which we still need to keep.
+			Also it would be very interesting to have a life switch to see its effect.
+		</p>
+		<p>
 		The full NS equation with density is not even discussed by many. So much state!
 		So with a FET we talk about a channel. So not only don't we need different velocities at one location ( particles or QM), we also can use average velocity cross the channel.
 		Velocities perpendicular will be so low that we can use a static calculation to distribute the charge.
