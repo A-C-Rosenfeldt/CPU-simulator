@@ -62,6 +62,12 @@
         </p>
         <p>
             Only bad thing is that this multiplier like the shifter will not fit on screen. Dedicated counter for DIV .. uh just as JRISC is. No problem.
+            Barrel shifter could probably run within a booth multiplier with all those shifts and preprocessing of the other factor.
+            Division doint two bits at once can postpone carry ripple a bit. Unrolling two bits does not give me 5 cases as needed for large divisions. So there is one off at the first stage.
+            Ah I see, the order is reversed. We do the fine grained subtraction first.
+            Division does a lot of adds. We should reduce transistors per add, just as in MUL. But not a lot is added together. Rather we end up with 5 values where the carry was partially processed.
+            This really does not look better than just using the standard ALU and producing one bit per cycle.
+            Maby I can interlace the carry tree? So 5 generate and propagate bits bubble up?
         </p>
         <h2>Speed!</h2>
         <p>
