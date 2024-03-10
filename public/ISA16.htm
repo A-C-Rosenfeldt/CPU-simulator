@@ -68,6 +68,11 @@
             Division does a lot of adds. We should reduce transistors per add, just as in MUL. But not a lot is added together. Rather we end up with 5 values where the carry was partially processed.
             This really does not look better than just using the standard ALU and producing one bit per cycle.
             Maby I can interlace the carry tree? So 5 generate and propagate bits bubble up?
+            But the 5 cases were meant to use only 8 bit adds for 32 bit math ( uh, so more for 3d math ).
+            So a 32 bit ALU would be split up for Vec4. The low bit, the extra, the high bit two times.
+            In the next iteration the lower 24 bit from the divisor multiplied with the 2 bits just retrieved need to be added. The carry goes into the aforementioned adds. Looks like a two cycle algorithm to me.
+            Maybe it is okay to add the carries with one cycle delay (if we start with 8 bits ). Needs a lot of silicon and power.
+            Just weird that x86 allows to divide by 16 bit .. ah not so weird. This algorithm seems to be useful when we start to divide by 32 bit. 
         </p>
         <h2>Speed!</h2>
         <p>
