@@ -47,7 +47,22 @@
             Though the nice thing about add signed_imm8 is that it is so natural. For line drawings which pitch I only change to Add reg,reg . Pre, Post, mirror are all clearly shown.
             You can have a stride. You don't pay if for example you filter your memory access for transparency.
         </p>
-
+        <p>
+            I now understood Dadda and Wallace trees and a bit of booth. So the idea seems to be that I should utilize a full adder per pipeline stage working on signals witht the same signal delay from the register.
+            A full adder is faster than a cycle. So I run two stages in one cycle. Another idea is that multipelexers use less energy than an adder. So small shifts may be cheaper.
+            Booth needs an xor gate, or shifting of a balanced signal. Yeah, that makes sense. The unbalanced inverting trick only works for shift 1. So for skips I can just as well have a balanced signal
+            which I feed through NANDs and NORs. So booth is possible. The instruction would pull in bits from the second factor and try to encode them as add, sub, and shifts.
+            This seems so complicated that I may need a look-up table? There seems to be an algorithm which takes two bits from the factor and uses a look up table
+            to execute shift-1 and NOTs before or after the ADD. Most of these case indeed use the Add. So a Wallace or Dadda tree could sit on top of these.
+            If I iterate I need to keep two bits per bit. To not dominate the cycle by carrying over the data from the last cycle, I really want a Dadda tree, so 4 adds.
+            With booth thise means 8 bits. So this is a hardware MAC for 8 bits . Like GBA ARM or Motorla 6809.
+            Dadda seems to be a hybrid between simple matrix and Wallace. Wallace has sompletely balanced singal run times, which is great for my dispaly and to save power.
+            Dadda saves some transistors to allow unalinged bits to skip a pipeline stage and skew the timing.
+            This probalby is not a too bad idea because the final add will have some skew built in. So just use the other skew to compensate from the back.
+        </p>
+        <p>
+            Only bad thing is that this multiplier like the shifter will not fit on screen. Dedicated counter for DIV .. uh just as JRISC is. No problem.
+        </p>
         <h2>Speed!</h2>
         <p>
             Everything is a Multiplexer ( think: CMOS )
