@@ -74,6 +74,10 @@
             Maybe it is okay to add the carries with one cycle delay (if we start with 8 bits ). Needs a lot of silicon and power.
             Just weird that x86 allows to divide by 16 bit .. ah not so weird. This algorithm seems to be useful when we start to divide by 32 bit. 
         </p>
+        <p>
+            DIV needs a floating point divisor and a floating dividend speeds things up. So it starts with bitscan. This explains, why the floating point unit got this algorithm, while the integer unit did not in the pentium.
+            Might lead to a fun picture if the ALU can reroute all its 4 bit adders and shifters and scanners for all the different instructions, but right now it bores me out.
+        </p>
         <h2>Speed!</h2>
         <p>
             Everything is a Multiplexer ( think: CMOS )

@@ -18,7 +18,7 @@
         </p>
         <h1>Pipeline stages</h1>
             <p>Branches dictate the critical path. No good way to pipeline these. Only write back can utilize a stage. See how MIPS 5 stage has a whole "write back" queue which carry register names with them.
-                Finding a register in the queue is not really difficult. Parallel AND. Do this in the decoding stage.
+                Finding a register in the queue is not really difficult. Parallel AND. Do this in the decoding stage and have a register to latch this right in front of the regisrer file.
                 This pipleline stages have their individual backdoors to Load and Store. With only a few registers as in 8-bit CPUs, directly reading from the file is not more expensive.
                 So we may need 3 read lines and 2 write lines, or accept collisions as in JRISC.
                 I don't even know how JRISC keeps multiple LOADs in flight. I almost assume that it can only have one SRAM and one DRAM keep in flight.
@@ -185,6 +185,14 @@
         Instead I want to use 4 of the physical registers and register renaming to have 3 read-write registers: Accu, Count, Stackpointer.
         Result of Add can be used as address: Source+Count for example.
         4 registers can only occur as read or write in the instruction.
+        There seem to be 3 special purpose registers in every CPU: (SP, SP+1), (IP,IP+256), and flags. The other registers are pretty arbitray and general purpose,
+        and hence renaming should not confuse anyone. We save the transistors for  the write back register and the register name for the write back address and don't need to check if last output is current input for maximum speed.
+        This is almost as much as the duplicated renaming table. I need to zero-register to keep track of "free memory". So a 5x5 matrix = 25 bit.
+        With an address decoder for logical names and physical names this goes down to 5x3 = 15 bits.
+        When I don't want to use dedicate circuitry for the stack, it becomes GP registers. Confusing. Then the post and pre thing can be implemented by a single SP pointing into emptyness and a TopOfStack register.
+        So push would write to [SP] and top of stack and write back SP++. POP would copy TopOfStack and at the same time SP-- and the load TopOfStack.
+        Looks like congestion. This extra copy from and to TopOfStack stresses the register file.
+        Does not work. Lets just not use a special counter register. I mean, a loop could use an implied register, but it would not have special circuitry. 
         </p>
         <p>
             I only show 256 bytes of RAM and ripple carry is fast enough for this.

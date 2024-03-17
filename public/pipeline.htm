@@ -30,6 +30,23 @@
             I want to show the original sine (crystal) and cosine (LC matched to crystal) of the clock, but not simulate because it uses other physics.
             The clockwork than works full quadrature (analog multiplication of complex numbers) to avoid flip flops with internal timing. Ah so, I lied, I don't use the physical dealy like in 6502.
             </p>
+            <p>
+                Clocks in ICs don't work like in physics. The oscillator only senses voltage (no current or whatever). It then directs current "up the hill". The input capacity of the sensing mosfets reduces the frequency, but does not lead to a phase shift.
+                The clockwork does not operate on sine waves. Signals are not small, but huge.
+                The second phase is just produced by a delay line. We don't even care for 90° phase. We just care for a delay which works with the integrated transistors ( "the process technology" of the IC).
+                Just to avoid more of these delay chains, the clockwork not onyl accepts two phases, it also sends two phases to the next stage.
+                For maximum frequeny (of the first stage actually), I don't attempt to AND away overlap.
+                Instead 4 RS latches ( and an inverter) are arranged in a square. Horizontal transmission is enabled by one phase ( and inverted). Vertical by the other. The whole square is not transparent unless we feed it with a sine and 
+                transparency reaches below 0 for some volts. The two phases are derived from one Horizontal and one vertical edge. And inverter is on one of the 4 edges. We don't care about the asymmetry.
+                RS-latches are balanced. The next stage needs the signal and the inverted signal. So this matches. Because all stages are next to each other, 4 traces don't hurt anyone.
+                The first two stages simulate the real CPUs of the day which used off-the-shelf TV crystals, but were not fast enough throughout. Still a simple clock divider circuit could deal with the full 15 MHz.
+                At half the clock hand tuned video ciruits worked. At quarter the Z80 ran. And my design needs the next divider to flip direction between both instances of IP and SP. Though I forgot why I cannot use two RS-latches in series here.
+                Only the the GP register file is large enough to save a lot transistors by sharing one write-back register / register renaming. Renaming could use a series of RS-latches, or toggle.
+                It kinda feels like waste to juggle values between the instance while nothing happens (no stack operation, no code fetch (but data), no renaming (move, load, store, branch), no flag change). So series is it.
+                Why don't they have a nice name? Who cares about toggle flip flops? Why is an RS latch already called a "flip flop" ??
+                Anyway, I cannot do without a stack in the 8 bit ISA because I need to free register for the inner loop. And my inner loops need already 4 registers. With source and target this is the operand nibble in the opcode.
+                Orthogonal operation - operand is just easier for the compiler. I may allow an offset = Peek instruction on the stack. And TAS, TSA . All 4 registers can hold an address ( then full 16 bit). Weird to use the lower 8 bits for logic.
+            </p>
         <h2>write back register</h2>
         <p>Write back is written to happen in the next cycle, but I think a detailed (8 phases) timing makes the process more clear.
             I would rather like to have a multiplexer with two write-back registers or register renaming because the process looks so complicated otherwise.
