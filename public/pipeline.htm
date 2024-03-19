@@ -47,6 +47,25 @@
                 Anyway, I cannot do without a stack in the 8 bit ISA because I need to free register for the inner loop. And my inner loops need already 4 registers. With source and target this is the operand nibble in the opcode.
                 Orthogonal operation - operand is just easier for the compiler. I may allow an offset = Peek instruction on the stack. And TAS, TSA . All 4 registers can hold an address ( then full 16 bit). Weird to use the lower 8 bits for logic.
             </p>
+        <p>
+            So I like those series NANDs and CMOS multiplexers and how the clock on the 6502 can be used to get it off the bus. I like energy saving and I want to silence the chip.
+            I guess that two non-overlapping phases close to each other don't confuse anyone. This still are only two gates to block them. For flags I might just run them through every cycle,
+            but then again some instructions or cycles don't even use the ALU. After a jump the CPU waits for the fetch and decode and awakes again.
+            So looks like I should gate the flag clock at least indirectly. Or do I need this anyway to avoid clear carry due to addressing modes?
+            Gates introduce clock delay. To avoid skew, all clocks need to be gated and all by a register ( probably the instruction register).
+            The instruction pointer has to halt while we access memory for data. So cut off the clock!
+            The stack pointer goes in two directions. When we halt it using the clock, we still save one bit line. We only need a direction=sign bit. No +1 and -1 line.
+            The register file is async. Though, I wanted to clock the address lines. So I should make sure that I don't clock zero registers for instructions which don't use all ports.
+            I may not need a counter register, but a counting instruction would be nice because it only uses one read port and is silent.
+            NEG and NOT could work on 16 bit registers, while immediates values are 8 bit in my ISA. Still I wonder if I could not use a source register for variable shift (none, direction, 8 byte swap).
+            CMP and TST don't write back. Since addressing already has it, what about AddT and SubT ? These all eat up encoding space, but may be used as fillers if I base encoding on clock gates.
+            Outside of Load Store the address register ( to hold the EffectiveAddress for immediate based addressing modes) is not powered as is its bus driver on the address bus.
+        </p>
+        <p>
+            With 16 bit registers it might be interesing to use 4 phases to control all 4 power connections in the RS flip-flop series. Turn this on together with the clock cycle and tinker with max frequency and power consumption.
+            Precharging happens here. I wonder if I could use the bus value of the last cycle to drive a compensating charger. So I would not strive for full logic levels. Then I need a blanced signal line an pre-amps.
+            Do I need a charge pump to bias the gate of a precharge? So a capacitor simulator. Then first precharge the transistor to almost open, close, and then over the capcitor send a bleep.
+        </p>
         <h2>write back register</h2>
         <p>Write back is written to happen in the next cycle, but I think a detailed (8 phases) timing makes the process more clear.
             I would rather like to have a multiplexer with two write-back registers or register renaming because the process looks so complicated otherwise.
