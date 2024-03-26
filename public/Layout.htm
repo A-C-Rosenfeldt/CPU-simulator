@@ -115,6 +115,68 @@
 			Single write back latch can later be exapnded to register renaming.
 			Load store blocks the CPU as on 6502 and Z80. Pipeline may come later. Though I am still not sure if it isn't easier to have two write back lines and three load lines over a write back file.
 		</p>
+		<h2>All the parts, not only the core, for 8 bit data bus</h2>
+		<p>
+			Register sit on the Data bus and the address bus. The 16 bit addressbus covers much of one side of the DIP and grows from the lower edege of the die into the sides.
+			Data bus goes up and crosses the control logic. This may seem and ugly cut, but control logic fetches its instructions from there. I may go in a slight circle.
+			Actually, I don't execute instructions in a pipeline. Only the data flows ins pipelines.
+			So there is only one instruction register ( still more than a latch because fetch and decode do run a pipeline as in a lot of 8-bits).
+			For a small number of microcode steps, a shift register seems to be simpler than a counter with decoder.
+			I cannot help, but think of microcode as something in ROM. Space savings come from dedicated bits in the instruction and instruction formats.
+			For example, all branch instructions execute the same microcode. Reg-Reg instructions don't execute, but just have a single translation to the control lines.
+			Load store may want to share microcode between the 8 bit and 16 bit versions. 8 bit skips some instructions and basically reroutes the shift register output (and test bit for END).
+			Shift register looks quiet. Yeah, lots of clock, but the noise ends there.
+			A general count donw register might be fun because it has no problem with ripple and can do barrel shift or even large MUL and DIV.
+			Though I feel like I still need the micro-code counter.
+		</p>
+		<h2>No races: Carry Look ahead  and  write back register </h2>
+		<p>
+			Both ALU and program pointer seem to need a fast adder (program pointer needs it after a jump even if it can use the ALU for the jump).
+			As a design I decide on a 16 bit bus with both of these adders on its end, to clearly show the 4bit Adders - 4 bit adder hirarchy.
+			I either need 4 bit adders in the write back path, or just speculatively and fairly calculate the 4 bit results for both values of carry in. So the latter it is.
+			I store both. And additionally this works as a pipline. So one of stored value of the last cycles is written back. 16*4 bit storage + 4 bit to govern the multiplexer.
+			Multiplexers looks great in totem mole MOSFET and espcially CMOS.
+			This is barely in balance with the total number of bits in my state. The program pointer lives in these 16*4 bits. Though I feel like I could do away with many inputs.
+			For a counter, most of the time nothing will change. I need write access to them all, but not necessarily add. So half adders for the carry ripple are enough.
+			No race because there is no input. Just the carry over versions are already available and generated as the target jump address is written into the programm pointer.
+			Looks like for silence I should do the relative branch in this ALU. I could even use a full multiplexer in the center to send relative jump addresses to the PP to keep silence.
+		</p>
+		<h3>skew </h3>
+		<p>
+			stage 1 has 4 bit adders ( delay 0..3) .
+			stage 2 has one 4 bit adder  ( delay 0..3 + 0..3 = 0..6) . 7 clock lines to kick of stuff from the register file .. and consequently also from the writeback register and the bus registers .. seems overkill.
+			Maybe a full tree helps? Or I just slow down the edges enough. The address out Register would need to be made of 3 latches ( and not in series ) to jump the timing domains. 
+		</p>
+		<p> With n-FET and when you remember that p channel is slower in CMOS, there is not really a symmetry between inverted carry. So don't stress it.
+			We don't lose much with a full binary adder tree, but we gain full equal run length. Need to capture state at every node.
+			Yeah, sorry, addressing mode is still slow. But reg-reg instructions run like a charme if I capture two states per node, just as outlines for the two stage version.
+			So reg-reg instructions run silently and fast (still limited by memory bandwidth), but all others take a lot of wait states.
+			I am here for the silence. This still uses less transistors than a fat register file with skewed address lines.
+			Skewed address lines reduce the fanout on the row line. So 2 stage carry look-ahead might be better here?
+			But fanout is a big problem for addressing mode. I guess I may need more input registers to fetch far jumps completely before execution. So  immeditat16 for data is natural?
+			With more registers I could run Load Store in parallel with reg-reg instructions. Just as with MIPS pipeline hazards/stall and JRISC scoreboards: Block access to the register.
+			With MIPS all stages in the pipeline can be read to gather values. But I prefer the reg-reg instruction as the norm and scoreboard to block this.
+			MIPS instruction decode still needs to know if a register is flowing through the pipe. So how? Compare with two names?
+		</p>
+		<h3>Stack</h3>
+		<p>
+			With this writeback, It looks like the stack pointer losts its special role. With the many cycles it takes to Load / Store, I can easily squeeze in the write-back instructions for the stack pointer.
+			Pre-increment or decrement takes a cycle though. Ah, just have to pointers despite the write-back logic. Cycle their naming within the decoding stage.
+			With 8-bit instructions I can only encode 4 GP-registers in addtion to PP and SP. I have tried. I is ugly that these only make up a small fraction of my state -- just like in 6502.
+			This is really a big reason to go to 16 bit instructions. 16 registers and 16 cached instructions (plus address of sliding window and dirty flags, both as full registers with twice the register count ).
+		</p>
+		<p>
+			A crossing between the data registers and the programm pointer is used to either multiplex data address or code address onto the address pins.
+			This large crossing with its diagonal structure is also used to multiplex the 8 bit data bus (either input or output register) on either the low or hi byte of the 16 bit data bus
+			(register write (Load) or one of the register read lines, respectively (Store, or as feed through: addressing mode)).
+			And we should take adavantage of it to swap bytes. I don't like this odd instruction, but maybe I can use it to implement shift cx.
+			Silence loves mulitplexers.
+		</p>
+		<p>
+			The addressing mode "displacement"/"offset" is fankly quite slow. Each sentence is a cycle. Read immedediate8 (into input register (pipeline! no just a latch as in shared memory 6502 mode(or should I?))).
+			Add im8 to register. Write sum to address out register. While memory does its thing, set carry for the ADD and write to address register. Read low and write Programm Pointer to address register.
+			Read hi. Read next instruction. I really want to show off register-register operation and accept this timing.
+		</p>
         <style>
 			.grid-container {
 			display: grid;
