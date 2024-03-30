@@ -170,12 +170,19 @@
 			This large crossing with its diagonal structure is also used to multiplex the 8 bit data bus (either input or output register) on either the low or hi byte of the 16 bit data bus
 			(register write (Load) or one of the register read lines, respectively (Store, or as feed through: addressing mode)).
 			And we should take adavantage of it to swap bytes. I don't like this odd instruction, but maybe I can use it to implement shift cx.
-			Silence loves mulitplexers.
+			Silence loves mulitplexers. MIPS only involves the ALU in addressing because of the pipeline. ARM and others stress how complicated the ALU is. Sending register contents to address bus is silent.
+			Two stack pointers are symmetric, although I hat the additional state. Register renaming needs large registers to look good. The ALU also needs big registers.
+			A template should probably switch when the bit-parameter goes above 8? So indeed the SAP-1, the minimal viable prototype does not have carry look-ahead and probably not even a stack.
+			Just 5 GP-registers. I really would script the page to add bits and grow some complexity to reach beyond 6502.
+		</p>
+		<p>
+			A global renaming register would probably still use two flip flops. I could purify the desing using the clock divider. Renaming for flags (no write and no change if no ALU (STA,JMP) or transparent)
+			and programm pointer ( no renaming on data fetches).
 		</p>
 		<p>
 			The addressing mode "displacement"/"offset" is fankly quite slow. Each sentence is a cycle. Read immedediate8 (into input register (pipeline! no just a latch as in shared memory 6502 mode(or should I?))).
 			Add im8 to register. Write sum to address out register. While memory does its thing, set carry for the ADD and write to address register. Read low and write Programm Pointer to address register.
-			Read hi. Read next instruction. I really want to show off register-register operation and accept this timing.
+			Read hi. Read next instruction. I really want to show-off register-register operation and accept this timing. With stack I could grow in interrupt above 24 bit.
 		</p>
         <style>
 			.grid-container {
