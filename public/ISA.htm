@@ -17,6 +17,18 @@
         Then again of these instructions I only like the shift instructions and INC is at the end of the loop.    
         </p>
         <h1>Pipeline stages</h1>
+        <p>
+            If I want to go for ultra-low energy and silence, it seems that I need two stages for decoding ( like I need two stages for carry look-ahead ALU).
+            The first stage checks for instruction format. This is quite simple and probably does not fill a whole stage? Maybe incorporate into load.
+            The nice thing is that I can load the second byte of the instruction already know the format.
+            The format check looks at the first 4 bits. 0000 is Jump-Format, with conditions in the next bits and leap in the next byte.
+            Then I have Immediate-Format: Operation : Operand . And Register-Format : operation:reg, reg:reg. And Memory format: load store width , reg reg.
+            RISV has different types for load and store. Feels weird because of the width of memory. I want to keep it at one place. Then again, immedediates also have width.
+            In the 8bit ISA varialbe length immediates are just a loop counter.
+            Arm and SH2 have so many addressing modes. In an 8 bit CPU addressing is done using microcode. It will use the ALU in some steps. Microcode instructions may go through the same decoder or be extra wide.
+            Jump instructions don't touch the register file. With a fat instruction pointer I can even keep the ALU silent and don't need to block flags?? If I don't have a stack, I mean.
+            Register addressing and immedediate loads don't fire up the ALU. Immediate addressing does not fire up any output address lines on the register file.
+        </p>
             <p>Branches dictate the critical path. No good way to pipeline these. Only write back can utilize a stage. See how MIPS 5 stage has a whole "write back" queue which carry register names with them.
                 Finding a register in the queue is not really difficult. Parallel AND. Do this in the decoding stage and have a register to latch this right in front of the regisrer file.
                 This pipleline stages have their individual backdoors to Load and Store. With only a few registers as in 8-bit CPUs, directly reading from the file is not more expensive.

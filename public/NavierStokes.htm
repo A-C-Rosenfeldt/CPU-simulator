@@ -95,6 +95,13 @@
 			Too much emittance leads to back flow and oscillation, same as in more dimensions.
 		</p>
 		<p>
+			I now don't like the undefined wide space of the body diode anymore. So back to finfet, but with implict connection between both sides.
+			For pinch-off I only need poisson on a line. Conductivity is proportional to carrier density. This gives a curved line. This also works for transfer gates.
+			The elctric field is solved in slices spanning from electrode to electrode, then along the line. I only need real solvers to show the parasitic capacity between electrodes.
+			Source and drain should stay clear to -uh- clearly show the electric field pulling on the metal-semiconductor interface.
+			Pinch-off also describes the const current pull-up in nMOSfet. Nothing is special here anymore. I will not beautify the geometry (in the MVP).
+		</p>
+		<p>
 			I don't use verlet integration because it would have to include the electo static calculation also.
 			So it is a cross-cutting concern which needs some advanced coding technique to be implmented in a clean way.
 			It would take the whole state and all deltas ( potential change of the electric field). We have more variables because we have the current position to calculate force.
