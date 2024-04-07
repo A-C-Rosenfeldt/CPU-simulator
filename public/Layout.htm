@@ -7,7 +7,12 @@
 			I fully expose a Matrix structure and the viewer can decide on the number of bits for ALU=address and for memory ( sign extend like branch in 6502 and load in SH2 or MIPS).
 			On the edge there is the carry look ahead tree or any other structure which pushes data cross the lanes. Information goes to the tree root and back to the leafs. Carry goes around ( copies to both sides).
 			For MUL (with single cycle per result bit) a right shift may be needed just before the write-back register.
-			The connection to the rest of the computer can extend the sign on read and or (de)serialize words to bytes. Oh I may need the latter to have its own read and write port to the bus
+			The connection to the rest of the computer can extend the sign on read and or (de)serialize words to bytes.
+			To load multiple byte data, I want a counter loop in microcode. For the small version I don't need it. For 16 bit on 8 bytes, it only counts 0 to 1. It can switch Endianness.
+			But let's look at later application of 8 bit CPUs. Thoses needed 24 address lines. This is the nail in the coffin to support up to 3 reads, or even 4 with 32 bits or register pairs.
+			This counter may also be used for shifts (rotate left or right up to 4 times. Then rotate bytes left or right) or multiplication AMDTDMI7 style. Though I still don't get the timing.
+			Would MUL not always be Dadda-Tree -> two register and then ADD. Slowest MUL (8x16) is two cycles. If I output to 16 bit register, I really need a shift parameter.
+			Oh I may need the latter to have its own read and write port to the bus
 			for absolute jumps. So like the memory controler in Jaguar, for 16 bit immedediates made of low byte and high byte,
 			the deserialize circuit needs a 8 bit register. Ah, need big endian. Load the hi byte into register and in the next cycle output it onto the hi byte of the internal data bus.
 			Or maybe I have a swap in the instruction register read line .. but branch? Seems like carry look-ahead leads to big endian?

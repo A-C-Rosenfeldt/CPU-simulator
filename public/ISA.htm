@@ -43,6 +43,38 @@
                 It is not really zero overhead because the condition is read and evaluated as usual. Only the fetch prefers the loop. Fetch is discarded inversly ( when loop is not taken).
             </p>
             <p>
+                Branches run on the ALU while propagation runs on a dedicated counter. The ALU carry look ahead calculates the result for both incoming carry cases. This makes everything symmetric.
+                This creates the byte granular addresses for words to read, but also the first two instruction bytes after a jump.
+                So I can accept a 2 cycle delay within the actual counter.
+                The counter consists of two register which are loaded up with the ALU results as they appear on the bus for the Fetch.
+                A small counter is toggled by the fetch enable line gating the clock. For silence reason I don't toggle premptively, right? For small incarnations of this CPU again, ripple carry alone would be it. But this is so boring that I don't want to publish it.
+                So how does 2 cycle latency increment work?
+                If the ALU results are have 0 and 1 in the lsb, the upper bits are identical and end up in the current instruction pointer. The other has 2 cycles to increment.
+                For 1,0 the ALU results end up in both instruction pointers.
+                Since the lsb is extra, the increment for the signficiant bits has two cycles time for increment. Just have a multiplexer and a half adder. Back and force. Needs extra ports for the skew.
+                Speaking of multiplexers: I could use the ALU to calculate the significiant bits and have extra circuitry for the low bit.
+                Then I always can use both ALU results in the next 3 to 4 instructions. So I can have a longer queue of skewed instruction pointers.
+                I know that carry flags have a cost, but I would look fun to skew over 4 clocks. The carry flag really is an RS latch pair. Or not a pair.
+                Ripple is the only information flowing. No transient glitches. So I could use odd and even latches on clock high and low. Odd an even blocks 8 bits at a time, but moves 4 per half cycle.
+                There would be up to 3 simultanous adds going on. As mentioned, the ALU prefers aligned addresses. So 4 pointers is good. One is the current, and 3 others are in the process of being generated?
+                Uh, what happend. My circuit now is twice as fast as needed. Could do 24 bit. At least it is quite silent. Only noise is from the 4 lsbs which are connected to the muliplexer control lines.
+                Noise then ends mostly because not much changes between the registers. It hurst to update significiant bits in all registers.
+                Ah, load all at once using ALU with the full carry alternatives! Needs two ports and the third (write back) for the resolved value for the first address.
+                The program pointer thus consists of 4 bit counters who are multiplexed down by the next less significiant bit. Multiplexing is fast enough because it leaps?
+                Counters look simple, but the clock is noise. Frequency dividers use the carry as a clock instead. Can the look ahead temporary value set up those dividers far enough in the future
+                so that we don't need to deskew? Like compare the less significiant counter not with 1111, but 0111? Deskew needs a clock!
+                I could give 2 cycles to deskew. So it leap-ripples through and then a clock puts the result on an RS latch. I only need to have a special circuit in the low 4 bit adder: Start ripple at overflow.
+                Like, you know, have a second 4 bit couter which I NOT bit 3 on load. Ah, I see, it is just balanced. Two carries. One for the divider and one for the latch.
+                Selecting a register is by definition fast, I mean, I use it in many places. So slight skew due to multiplexing and leap ripple is done within one cycle and can be synced using a Register
+                ( pair of RS latches). So ripple counter is actually smaller because I utilise one of the latches as source. Only the other is skewed. No additional state. Less multiplexers.
+                No backdoor to ALU, just uh. I still need a control line for the ALU to hold the write-back data, while I switch the carry which goes to the root of the tree.
+                This is like starting an engine. ALU puts the first two instruction addresses on the bus. The third one can be calculated from the first, or is the same as the second. This gets the counter running.
+                Pipeline makes it so that only at the third cycle actual data is written back.
+                The instruction pointer would need to sit on the back of the ALU to have access to the carry look ahead temporary register.
+                Transistor count seems to be larger than just to use two adders. I could enforce aligned instruction words, but jmp abs or load imm16 is too useful in an 8 bit ISA.
+                16 bit ISA still wants to increment once per cycle.
+            </p>
+            <p>
                 I learned that i386 has 4 phases. 2*2. Complementary * non-overlapping. I want two non-overlapping .. like every CPU. I dunno who even uses flip-flops.
                 If the write-back register is really made of latches, it cannot be used as a source for the next instruction.
                 I need to scale down my ambitions to 4 GP register (+stack,+instruciton pointer,+flags). So going over the register file should not add too much latency.
@@ -152,6 +184,20 @@
                 In contrast the ALU has the whole carry look ahaead and then a multiplexer which can activate ROR.
             </p>
             <p> Do I use knots, or do I use PCB backside with vias? The backside traces are greyed out ( flip like for visual amiga PCB online ). </p>
+            <p>
+
+            </p>
+        <h2>
+            cache leads to ISA16
+        </h2>
+        <p>
+            16 bit ISA would use 16 registers of 16 bit ( like RCA1802). So code cache should be of similar size. Data write also end up in the code cache.
+            8080 has an instruction queue already. I expand on it: Sliding window useful for loops. On could even write the next cached address in 4 extra bits for branch prediciton within the cache(secret);
+            and branch condition: 3 bits .. actually 4 to include unconditional. Detect DEC/INC , branch pairs which jump back/up.
+            So it is: start address, 16 dirty flags, 4 bit start address in file, 16 data.
+            Logic for short jumps. Reads from cache don't move the window. Instruction pointer could be 4 bit. The full 16 bit pointer has two cycles to change.
+            Obviously, the cache is an expansion. I should start with the 8bit ISA. Only when I used up all 4 registers, I should not do silly things. Just add the cache. 
+        </p>
         <h1>Back to 8008 or is it 6809?</h1>
         <p>
             It seems that the Motorola 6809 has 5 16 bit registers : X,Y,U,S,DP,(A,B).
