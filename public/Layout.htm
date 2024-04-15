@@ -189,6 +189,18 @@
 			Add im8 to register. Write sum to address out register. While memory does its thing, set carry for the ADD and write to address register. Read low and write Programm Pointer to address register.
 			Read hi. Read next instruction. I really want to show-off register-register operation and accept this timing. With stack I could grow in interrupt above 24 bit.
 		</p>
+		<p>
+			With a bus the signal flows in both directions. I have no use for two recipients. So this is confusing to the eye. I cannot justify directed shots. I propose to keep bus short (fan out low).
+			I love my three way connections between ALU and register file. The instruction pointer and stack be separated. I want a dedicated counter for mulit-byte data ( in addition to the microcode counter).
+			Both of these sit somewhere else. The SP can count for multi byte data .. but would probably use the ALU as in the 6502. So this is true for all addressing modes. So at least the address latch sits on the bus
+			and there is no compelling reason so separate. It has a spacial backdoor, but it is filled with immediates or ALU results like any other register.
+		</p>
+		<p>
+			I have ssen a logic circuit of an ALU and it looked complicated. I feel like they mangled the look-ahead into the vector stuff.
+			So rule for a nice ALU is: Balanced signals come out of the file ( do they? need more transistors). Then I create two NAND combinations in one stage.
+			Wired-or already gives XOR, I think. But I need the output for other stuff. So an isolating inverter comes next, or two for a balanced signal. I hate skew, but the write back register is right there
+			and I feel like the control lines will pick only one of the paths. I really need precision timing for these control lines.
+		</p>
         <style>
 			.grid-container {
 			display: grid;
