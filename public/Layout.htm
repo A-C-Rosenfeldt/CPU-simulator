@@ -201,6 +201,42 @@
 			Wired-or already gives XOR, I think. But I need the output for other stuff. So an isolating inverter comes next, or two for a balanced signal. I hate skew, but the write back register is right there
 			and I feel like the control lines will pick only one of the paths. I really need precision timing for these control lines.
 		</p>
+		<p>
+			Balanced lines look bad when squinting. The fan-out only introduces a slight asymmetr to the read-out. There are two read ports. Writing on the other hand works by have a set or reset signal.
+			No signal means no write. A data flip flop would add a lot of circuitry. I don't do this over-power thing like in real SRAM, but still need balanced lines, it seems. Only one write-port.
+			So I need to gate two lines on write. Even with local inverter I need two gates .. ah I gate the inverter .. uh still need two gates to get a balanced signal from single sided. I mean I can indeed gate both to save on charge.
+			The ALU then would start with: NAND A B  NAND A 1  NAND B 1 . A NAND in the next stage gives me OR. NAND 1 gives me AND. For XOR I would need a truth table.
+			So it is kinda ugly to have inverters next to the binary operation. The critical path to XOR still needs both: NAND and NOR. Yeah, maybe later check transit times.
+		</p>
+		<p>
+			All the helper registers use this flip-flop sequence, but the register file does not. I am thinking about the write-enable in async RAM. To me it looks like a register after the address decoder will transit
+			from one register to the next without spurious activation on other registers. The only thing is that I want the non-overlapping clock cycle property here. (I mean in conjuncton with the read ports).
+			To avoid transparency. With flip-flip sequence, all edges follow only one of the clock edges. There is no small shift to avoid overlap.
+			I can flip the timing signal, can I ? But this would wreck havoc on the control registers itself. The pragmatic solution would be to have another gate coming from the timing circuit to prevent transparency.
+			Yeah, it needs to be even later than the closing edge on the first flip-flop. So have 3 flip-flops in series? Third one uses what?
+			A third clock signal is the silent solution. I guess that this is not the solution in the i386. I don't know what the problem is.
+			Even with my crude transistor simulation I can delay a signal and make multiple edges out of one. No need for a PLL. I guess that balancing is the problem, but is it.
+			I don't want overlap. So I don't want exact balance. So I don't have a problem with inverter delay. I have pull up resistors and could model some ECL stuff for balance.
+			I could even model a PLL with the only purpose the keep a synced and balanced signal alive. Yeah, no. This is CMOS static to any clock. PLL needs to resync on every clock, which is a gamble.
+			So each edge of the input clock kicks of an balanced oscilator and on the next edge I put out the synced signal? Probalby needs to oscilators for the full duty cycle.
+			And after all this beautiful circtuitry I only use it at one place, the sample for the hold in the register file?
+			Maybe I can give the instruction and data/address register the silent treatment. For example some instructions take multiple cycles.
+			On instruction fetch the address and data register do nothing. Same for reg-reg instructions.
+			I have the feeling that small versions of my CPU should use the two read ports of the register file to write data into memory. Where do I store immediate values?
+			In addition to reg-reg, push, pop, and string instructions would not use immediate values. Jump and branch don't use the data register. Date reg is 8 bit, while immediate is 16. Or is it one register?
+			Just when I read in address (immediate) and then write to that address, ah, I should read immediate directly into address register.
+			If I try to have a clean interface to the outside, data and code would multiplex into a single address register. Also you could not write into it directly because the read would then crash.
+			This would again mean that this reg is very busy as is the data input register. Of course the data output register cannot be hidden electrically.
+		</p>
+		<p>
+			Or does a file really implement the odd-even flip flop way? The write-back register (and address generator) is one flip flop and the register file is another. There is not transparency.
+			The register file receives a combinatorical result of address and write back value. Each register is clocked every cycle .. uh, that is noisy.
+		</p>
+		<p>
+			So as a fan of register renaming I could of course keep the noise naming register, but then add a whole cycle of safety distance to the reassignment.
+			To justify two unused slots I need a lot of registers and include the SP. I cannot include the instruction pointer, but this is no problem. It is noise most of the time anyway. So it just uses flip flops.
+			My default version has 16 bit registers and a SP and 5 GP regs. So 5+1+2 = 8 . So 8 physical registers, 3 bits to address these. 18 bits in the naming register. 
+		</p>
         <style>
 			.grid-container {
 			display: grid;
