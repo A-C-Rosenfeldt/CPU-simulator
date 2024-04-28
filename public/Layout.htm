@@ -228,6 +228,26 @@
 			If I try to have a clean interface to the outside, data and code would multiplex into a single address register. Also you could not write into it directly because the read would then crash.
 			This would again mean that this reg is very busy as is the data input register. Of course the data output register cannot be hidden electrically.
 		</p>
+		<p>Registers need to conform to the flip-flop sequence timing. So there is this catching edge when the first flip flop multiplexes to loop ( and I like multiplexer for their silence and ripple free operation).
+			Then there is the opening edge into the second flip-flop. There is some delay as the signal crawls through the second flip-flip, which nicely compensates our delay through the a gate which gates the clock signal.
+			But we do need an advanced signal for the capture to compensate that gate. If I delay the captured signal instead .. uh that will be hard to comprehend for the spectators.
+			I already use internal delay lines to produce the edges. I cannot use a PLL because I want to follow CMOS convention of single step operation. The delay through gates adapts itself to supply voltage.
+			Single step operation typically happens at a frequency, where supply voltage is dictated by signal to noise ratio, not switching speed. I also only need two edges, maybe three.
+			If I have a write-back register, I may allow special timing. Write back is a rather simple operation. And I can allocate a high power amp to fight the fan out.
+			The register in the file are basically the second flip flops. So there is crawling when the next instruction uses the result from the previous one ( and I don't use a short-cut).
+			So either use short-cut (akkumulator) or advance the timing of the store into register.
+			The write-back latch blasts its signal over the whole file. transparency is achived because the input to the write-back latch is not open while any register input is open.
+			Delay helps us and works against transparency. Does it, on both edges? I almost want to return to latch based design as in intel, just to make this timing more official.
+			So the only thing that hurts us, is the delay through the bus? If I advance the timing, I need extra simple logic, the address generator, to be faster than other calculations.
+		</p>
+		<p>
+			To bridge timing delays, I need RAM .. a file .. to queue through. This also can do any kind of odd cycle delays. So I need RAM to use RAM?
+			Or is register renaming similar to a queue. With one or two spaces, I can catch all timing? Then I definitively need the short-cut through a synced flip-flip sequence.
+			The register file acts as a configurator, PLA. In combination with the AddressGenerator it forms a combinatorical logic unit.
+			Writes from the previous, previous cycle are certainly in the file. Writes from the previous cycle may or may not overwrite a register.
+			If we use them, control unit fetches the value from the short cut. If we don't use them, the write at least does not affect any other register we may read from.
+			To really show off this ( and any timing circuit) I need to ramp up the clock at show when it fails. I guess I should include tooling to check which voltage traces deviate exponentially as I ramp up.
+		</p>
 		<p>
 			Or does a file really implement the odd-even flip flop way? The write-back register (and address generator) is one flip flop and the register file is another. There is not transparency.
 			The register file receives a combinatorical result of address and write back value. Each register is clocked every cycle .. uh, that is noisy.
