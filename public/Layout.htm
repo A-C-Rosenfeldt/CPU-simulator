@@ -1,7 +1,46 @@
 <html>
     <head>
         <title>6502 like layout ordered by significiance of bits</title>
+		<h2>Gate delay</h2>
+		<p>So I read that clock is 20 to 50 times the gate delay ( Atari Panther: 100 ). I want to show it, manage it.
+			The best solution now seems to use carry look ahaead, and latch all the ahead results (1 word) and the per bit data (1 word). Or have 2 bit adders. Just important: Balance the number of latches!
+			The half of the latches will just follow the even (1..2 gates delta) flow of logic.
+			There would be a second XOR gate without synergy, but combinatorical is cheaper to reason than state.
+			After that the ROR can take place for MUL. And write back. So there is no compellig reason to leak xor operands.
+		</p>
+		<p>
+			Metal lines do not need a delay. It is even better to have sync timing for all bitlines. For the visual data flow, lines and gates should form nice chains.
+			The register file should not be have many registers and needs gates on both sides.
+			Per bitline there is a race track? This is probalby okay for small number exapmles.
+			The file has no race. Just long metal wires flickering. Still the read out lines would .. we only have 3 lines, so each line touches each other line.
+			The hub can have race. Like the lines going to the left and the ones to the right might be out of sync.
+			The ALU is usually depicted as going left to right. Race-track would mean that the pipeline latch is the turning point.
+			Then the second xor from the carry look ahead and the possible rotations through carry 
+			(right for MUL with current carry and lsb into special, left with carry from special register for DIV) happen on the way back. 
+			Just the carry look ahead logic needs to go to the side. It crosses a lot of wires already, so no big deal.
+			Maybe I should turn like the look-ahead tree for more balance and alignment of traces.
+			So the ALU is higher than the file. Registers would probably interleave vertically (mirror symmetry). Dense address generator. Not possible. 
+		</p>
+		<p>
+			ALU chips have no state, but in an 8 bit CPU we have flags. I also use up a lot of latches ( odd and even like in 386 ) to syncronise the signal flow.
+			So to reuse the last result, I need it in a latch. No addressing timing delay. No branching. Just a pipeline rolled up.
+			This may silence the large register file a bit. At least the program pointer is behind transceivers. Silence and latency matching is king, and hence the program pointer increments using a copy of the ALU.
+			Just the look ahead logic sits on the same input all the time. There is no add, only inc. So most leafs just fill the propagation bit (zero flag). Only bit 0 has an adder.
+			Sounds like indeed, the xor happens on the other side of the latch. One full adder with those many funny 3 gate gates as seen in CMOS.
+			For the value loop I just need to compare the write back address with the current opcode. Ah, this then still runs over the address generator. I don't gain much.
+			How do I match file registers to the overlapping odd even gating? I once hand waved it. It seems to just work, but it means that read and write address signals are out of sync.
+		</p>
 		<h2>Visible flow</h2>
+		<p>
+			The register file has no flow. Date between ALU and program pointer should not flow through it because it flickers and means parasitic capacity.
+			Rather I guess I want a fabric of tranceivers. A hub with 4 sites. ALU, Pointer, File, memory ( data and immediate).
+			A write back short-cut would relief this hub of flicker.
+			There was not supposed to be a read out stage in the pipeline. Also I have two read-out lines from the register file. So there is not transceiver;
+			the huge square hub is a bit of a waste of space. But then again flicker in the dense (transistors and state) file hurts more.
+			I should put the hub for programm pointer and instruction register (memory) above this. So data crosses code to reach memory.
+			This is to explain CPU operation with reg-reg instructions first. Also this is the only parallel operation possibility: Code operates on RAM, data on file.
+			When data needs to access RAM, for immediates the instruction register is idle, and for load store the programm counter is idle, too.
+		</p>
 		<p>
 			The data flows along the bit lines of the SRAM register file. I don't plan a symbol to collect data lines anymore.
 			I fully expose a Matrix structure and the viewer can decide on the number of bits for ALU=address and for memory ( sign extend like branch in 6502 and load in SH2 or MIPS).
