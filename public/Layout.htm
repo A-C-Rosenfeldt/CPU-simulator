@@ -30,6 +30,11 @@
 			For the value loop I just need to compare the write back address with the current opcode. Ah, this then still runs over the address generator. I don't gain much.
 			How do I match file registers to the overlapping odd even gating? I once hand waved it. It seems to just work, but it means that read and write address signals are out of sync.
 		</p>
+		<p>
+			The ALU, flag, write-back register use discrete latches. The address buffer for the file uses a latch pair to never leak premature addressing. There is no real compatibility issue,
+			just maybe timing needs to be adjusted / we leave some speed on the way. But speed is most important for the ALU cycle. Second important for branches. Yeah,
+			may want to look into the path: opcode{operand} -> address, especially if I don't want to speculate.
+		</p>
 		<h2>Visible flow</h2>
 		<p>
 			The register file has no flow. Date between ALU and program pointer should not flow through it because it flickers and means parasitic capacity.

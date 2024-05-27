@@ -9,6 +9,26 @@
         </style>
     </head>
     <body>
+		<h2>Aparently, I only use a simple geometry</h2>
+		<p>So it is a wire between thin dielectric between metal electrodes with small gaps.
+			So as Green function I only need the overlap between the electrodes on the gap, and the electric field of a charge carrier between electrods. This is short range due to the shielding.
+			I may have to add one or two charge carrier-on-corner fields (mirror symmetry).
+			How do I correct errors in this approximation? The usual way is to accep the boundary, and correct internal.
+			But what if errors are interally because I cut off Greens function? I can only correct per cell because it does not have internal errors.
+			Still seems to be okay for a prototype.
+			Only charge changes are calculate from frame to frame. So the cut-off error is only due to changes, while the correction worker keeps correcting on.
+		</p>
+		<p>
+			Electrons can move as particles if I spread their charge to fill out the range between them.
+			When electrons move away from the source, the void is filled with 50% -- 90% electron density (try it out) because this is just the on-state.
+			For my style, electrons are not allowed to pass through each other. There is some not-so-physical strong friction between them.
+			This is another factor, but uh, I just want velocity above one cell per frame. Cells should smooth out the field, but not slow down the simulation.
+			Still any electron needs to respect the field ( but not influence it ) as it goes over the cells. This is kinda cheap and current often flows in a steady state.
+			I only need the speed for fast reaction on voltage changes, though. I feel like I should stick with flow per cell and derive the fill factor from the void theory.
+		</p>
+		<p>With 3 gates I can construct a charge pump. My gate dielectric is strong, and no body diode exists, so no latch up effect can happen.
+			The planar gate geometry works for emitters, collectors, and the pull up transistor. It might not be ideal, but ideal needs vectors and is really not MVP.
+		</p>
 		<h2>Degrees of Freedom: Cut down on the velocity state!</h2>
 		<p>
 			I have decided to only allow current on wires. So for the FET there is the channel. I don't care about cross section. I just draw a bold line which gets more blue with more charge.
