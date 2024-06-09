@@ -71,6 +71,44 @@
 			Ah, ALU-File parts writes the address and stack stores. This would be a two cycle instruction. Not so nice. So SP sits in the register file at 4 -- beyond the address range in the RISC set.
 			The bus sits at 5.
 		</p>
+		<h2>size of the components</h2>
+		<p>
+			So the ALU needs a lot of space per bit. Also I now plan to have forward and backward path contained per bit. This fits to the carry look-ahead tree on the back-side.
+			Signal goes through the array like ALU, up the tree towards the root. At every node there is a latch. Going from root to leaves a delay line fires the clock to go back through the ALU.
+			For MUL and DIV a shift may happen here.
+		</p>
+		<p>
+			To make the register file BlinkenLichts readable, it should not be stretched as much in one direction. I should not be stretched in both to keep it realistic.
+			The multiplexer towards programm pointer and memory is also small. Minimal area is wasted by an S shaped bus: Alu connectors go out horizontally, wide spacing.
+			Bend up 90° to narrow spacing. So in a height over the ALU sit the other items on the bus. Bottom to top: Register file, instruction pointer, memory interface.
+			Now, what do I do with the space? The decoding pipeline and microcode don't belong here.
+			The instruction pointer will not blink as much, but also be quite tall and include latches, which are even more important here to block flicker.
+			The instruction pointer is not part of a file. It can be spread. Latch dublets. Maybe for every second bit the latches in the look-ahead tree already prevent transparency.
+			Looks like I should align these ALUs.
+			I have a lot of crossings. No need to avoid vias as on a PCB. So I could have one L up and one L down as upper, lower triangles.
+			On the diagonal there sits a bus transceiver, but where sits the memory interface?
+			PCB like lines coming from the space between the ALUs. 2 more parallel connections: data and address. .. and instruction register.
+			I could have a large fabric to switch those. The register file then actually sits below the ALU. This hurts. What about the 3 ports?
+			I need two ports (tranceivers) towards the instruction pointer. Same with memory.
+			Neither instruction pointer nor memory transceiver are more important. A cross with input from one side, and (gatable) output to three sides looks natural.
+			There would be multiple mini routers which work like a crossing in a road. Left right, or 90° turns. So the diagonal is very fat. I can trady clarity with compactness by interleaving the vertical bit lines.
+			A fat multiplexer would fit nicely between the ALUs. The second read port into the file would be bent up. Register file sits above its ALU. The instruction register sits below the pointer.
+			Memory interface is a the bottom. In this way pointer and instruction can connect to the bottom, while the ALU connects 3-way to the top with the file.
+			For immediates, data flows up to the ALU, while the pointer flows down. For a branch data then flows from the ALU to the pointer. Do I need a hidden register in the file? Or more instruction registers
+			to collect all bytes of a larger integer? The ALU could use OR to collect bytes.
+			To avoid blinking the fat ALU, and in accordance with 8bit opcodes and opposed to the MIPS pipeline, it is poosible to route register to address directly.
+		</p>
+		<p>
+			Blinking would be reduced if the pointer could do its own branches and its own collection of the bytes of an absolute address.
+			The register file can only be writte fully. So I need an immediate register. So the pointer may still add this value, but it is delivered over the multiplexer.
+			Yeah, it really hurts to let go little Endian add as you go. I see how the chip may be more compact if instead I put the pointer close the address bus and use A_low and A_high as in 6502.
+			Switching between low and high makes the bus blink. Not good for my purpose. Rather I would demonstrate with on 8 bit addresses.
+			Blinking opens up the path to weird stuff. ALU and pointer would share one cictuit with more stages. In the core the carry triggers the second run through the ALU. 2 port register file
+			and A B register in front of the ALU for serialisation ( +pointer = 3 16 bit registers direct without a full fabric. Just a 3:1 multiplexer).
+			No one will follow this.
+		</p>
+		</p>
+		<p>I now can see how a single accumulator at the ALU looks more natural. Like in JRISC. The rest of the world only has two ports.</p>
 		<p> Ben Eater has a strange way to splatter instruction stuff all over the layout. I rather like the Intel or Atari Jaguar apporach with the instruction stream.</p>
 		<p>The instruction register and the pointer have the default access to memory, data should live in the register file mostly (kinda Harvard).</p>
 		<p>Cross overs are the exception. In a Branch we takte the flags from the ALU and the ALU calculates the new address. Load Store run micro code from ROM, while the register File (data) and the  ALU (addressing modes) has access to RAM.
