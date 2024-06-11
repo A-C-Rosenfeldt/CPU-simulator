@@ -78,6 +78,28 @@
 			For MUL and DIV a shift may happen here.
 		</p>
 		<p>
+			A 3 port register file with multiplexers for speed has quite big bits. I may add blinkenlights. The 4 way router between ALU and file also has quite high elements.
+			Maybe a JRISC like distant register file can be compact, but ere I don't really feel it.
+			The instruction counter looks similar, but I place it below the ALU. Connection happens over the system bus.
+			Even further below sits the memory interface. I may want to target memory where the address is wider than the data bus.
+			For this there would be a register right on the outside. I has a bit to toggle hi and lo. The system bus is strictly parallel for easy understanding and micro-code.
+			The instruction register sits next to it and also has a bit, to tell if we read an instruction or something else. Maybe the bit from the hi low collector can form a shift register with this.
+			There is router to connect the databus to either the instruction register (most of the time) or the collector. Ah the collector. The system bus is not blinking on opcode read!
+			The collector could have point to point connections to ALU and counter. This blink prevention gets out of hand. In real life there would just be a bus.
+			So on a jump the bus blinks all the way up to the ALU. Maybe I could say that lines are gated on the start of the signal. But then register file content would blink "upstream" to the collector.
+			Registers can read and write data bus width or address bus width. Absolute jumps read the whole address and then slap it into the instruction pointer in one cycle.
+			Relative jumps set the data bus wide offset onto the system bus and the counter logic adds this sign extended.
+			As with counting, most bit states in the look ahead tree should just stay. Near jumps occur much more often.
+			This reduction in blinking is the main reason to not use the ALU for this.
+			I don't actually see how I could implement parallel operation of ALU and instruction pointer in a low number of transistors.
+			At least I need a bit in the opcode for flag write access. Then the ALU can process some instructions from a queue, while the branch is done in parallel.
+			Of course RISCV tells us that instead the branch instruction should name one or two registers. Just, even with 16 bit opcodes this is too big.
+			Branches are already 16 bit. I don't want to waste more of the opcode space for things I don't like that much because they will always be slow.
+			Also: ADC and rotate through carry. Two sets of carry would be interesting later for serial processing of large integers and floats. ADC would mostly be consumed by ADC.
+			CMP would mostly consumed by a branch. There would be a queue of instructions which also acts as a sliding window cache.
+			Multicycle processing of large adds, multi-bit shifts, MUL, and DIV would lag behind.
+		</p>
+		<p>
 			To make the register file BlinkenLichts readable, it should not be stretched as much in one direction. I should not be stretched in both to keep it realistic.
 			The multiplexer towards programm pointer and memory is also small. Minimal area is wasted by an S shaped bus: Alu connectors go out horizontally, wide spacing.
 			Bend up 90° to narrow spacing. So in a height over the ALU sit the other items on the bus. Bottom to top: Register file, instruction pointer, memory interface.
