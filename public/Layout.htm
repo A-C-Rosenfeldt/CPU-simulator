@@ -97,7 +97,8 @@
 			Branches are already 16 bit. I don't want to waste more of the opcode space for things I don't like that much because they will always be slow.
 			Also: ADC and rotate through carry. Two sets of carry would be interesting later for serial processing of large integers and floats. ADC would mostly be consumed by ADC.
 			CMP would mostly consumed by a branch. There would be a queue of instructions which also acts as a sliding window cache.
-			Multicycle processing of large adds, multi-bit shifts, MUL, and DIV would lag behind.
+			Multicycle processing of large adds, multi-bit shifts, MUL, and DIV would lag behind. Input registers at the ALU. All input needs to pass through these. Lots of flicker.
+			Conditionional high byte as on 6502 is a problem even here because of the lag. 2 port register file.
 		</p>
 		<p>
 			To make the register file BlinkenLichts readable, it should not be stretched as much in one direction. I should not be stretched in both to keep it realistic.
