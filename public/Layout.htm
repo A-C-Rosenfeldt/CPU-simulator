@@ -362,6 +362,22 @@
 			To justify two unused slots I need a lot of registers and include the SP. I cannot include the instruction pointer, but this is no problem. It is noise most of the time anyway. So it just uses flip flops.
 			My default version has 16 bit registers and a SP and 5 GP regs. So 5+1+2 = 8 . So 8 physical registers, 3 bits to address these. 18 bits in the naming register. 
 		</p>
+		<h2>Control lines</h2>
+		<p>
+		When I stack the two adders, I have more justification for the delay line for the clock signals. Clock comes fromt the outside. The other clock gates the write address on the register file.
+		These gates sit outside. Clock comming from the right. So there would be a clock ring all around? Maybe I should registers from below where the IO port sits. Then register names don't have to travel too far.
+		The clock could cross the big data hub?
+		</p>
+		<p>
+			Control lines for the adders could also come from the center or a ring outside. All the counters sit in the lower right. There is basically only one microcode lookup on the way.
+			Should I simulate delay in cables to show the flow? I feel like, the hub solution is more natural, just needs a gap towards the data lines.
+			The control lines don't cut between ALU and file. We just control both from below.
+			The distance to IO grows a little bit. But after all, IO is said to be slow. The critical path is the compare regs; branch instruction of RISCV, even if it is two instructions in 6502 assembly.
+			Jump from anywhere to CMP; BNE and this should be fast.
+		</p>
+		<p>
+			Actually, the mips pipeline implements a special reuse path. This is the register in stage 4 of the pipeline. So the register file in MIPS does not need to be .
+		</p>
         <style>
 			.grid-container {
 			display: grid;
