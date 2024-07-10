@@ -2,6 +2,35 @@
     <head>
         <title>6502 like layout ordered by significiance of bits</title>
 		<h2>Gate delay</h2>
+		<p>
+			Do I want delay between registers and ALU? MIPS spirit is that the register value reach the ALU as fast as possible.
+			In JRISC there would at least be the hidden register. At least the register should reach the input without a transceiver. Just passive wire and separate IO Port power.
+			So I understand why MIPS has not address registers without offset.
+			ALU Output has the tranceivers for registers, vs data, vs address, but I still need a transceiver for data.
+			Anyway, this would be a pass through register file. It puts emphasis on reg-reg instructions and should work great for MUL and DIV.
+			The SP is part of this file. So I need at least 5 regs.
+			Other values would be buffered in this short file. So traffice would not pass through, but live there similar to input registers in 6502 or even the SAP-1.
+			So immedediate values are either buffered in the instruction register or in this short file. The short file should sit close to Data-IO. Almost feels like I should use a data IO buffer.
+			It feels like over-buffering, but I could use overlapping phases just for this. A register is alone. So the data input could be a latch. Just capture the values at the optimal time, but don't care about transparency.
+			In a way the reflection in the carry look-ahead is also done by latches. Block the flicker, and then kick off the reflection so that all come together at the correct time.
+			Transparency is avoided in conjunction with the register.
+			For logic functions then latches are also needed. This would be just the latches of the first stage. A second set is distributed towards root.
+			But this makes no sense for the instruction pointer. Ah, another reason to only transfere it for Jumps [reg] ( and link). Everything else is solved in the dedicated Adder.
+			The only sane way to expand this, is to have a second file and register renaming. The write back register becomes part of the short file because this is already a shortcut.
+			So 8 short registers with 5 bit names. 31 long registers, where 32 is the zero register, which also marks an empty slot in the short file. Ah stupid. I have an empty bit,
+			and a circuit to give the next empty slot. Priority as for sprites.
+			The long file has only a single read port. Logic functions end up in the target register early to emphasis the vector nature. Carry is deactivated.
+			For add, Carry look-ahead needs the other phase of the cylcle for the return phase and 1 bit shift.
+		</p>
+		<p>If I use register renaming, how do I write back? Through feels noisy and is not possible due to 3 sources. As with any cache, a strategy is needed. The priority circuit is proven and simple,
+			and would discard low IDs first. There would be a second bit to mark registers which act as a target in the current cycle. </p>
+		<p>
+			If IO becomes notable slower than reg-reg, I need instruction read ahead queue. And I need to block access to just loaded registers. I don't really see a difference between MIPS-5 stage pipeline and a scoreboard.
+			Just with MIPS the empty receptable register value travels through the pipeline, and its name, and access to this register needs to check 3 stages for the name.
+			A scoreboard with a bit per register seems simple in comparison. At least for max 8 regs in the short list .. Ah I see, my short-list with renaming is the same as the MIPS pipeline.
+			Just my names don't scroll. I only need latches for these registers. But I need three write ports so that IO can write, and ALU, and load from the long file.
+			And as with the pipeline I have no reall binary address generator, but a name lookup.
+		</p>
 		<p>So I read that clock is 20 to 50 times the gate delay ( Atari Panther: 100 ). I want to show it, manage it.
 			The best solution now seems to use carry look ahaead, and latch all the ahead results (1 word) and the per bit data (1 word). Or have 2 bit adders. Just important: Balance the number of latches!
 			The half of the latches will just follow the even (1..2 gates delta) flow of logic.

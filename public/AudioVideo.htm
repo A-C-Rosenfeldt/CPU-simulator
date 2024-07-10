@@ -379,6 +379,22 @@
             perspective correct texture mapping. Final calculation of values from edge positions is quite expensive, but only needs to be done with zero overdraw.
             Also texels are already dissolved, no shader need to be loaded and the workload is steady. Hardware support comes in form of low precision mul and div combined with cheap branching in hyperthreading CPU core. 
         </p>
+        <p>
+            I tried to understand mip-mapping. But there does not seem to be a secret. When you look at trilinear mip maps on real hardware, everything gets really blurry at an angle.
+            It almost looks like they took the derivative along steepest descent. Then ln2 it. Integer part selects mip maps and fraction blends them.
+            There is no synergy with blocks. In case of the N64 TMEM has all mipmaps and it doesn't care if we jump between them.
+            With a cache we would need to place adjacent maps in such a way that they don't fight for the same cache lines. So the layout changes in memory. Need to tell the intend on load.
+        </p>
+        <p>
+            Using 1-complement to linearly interpolate isn't so bad after all. We just need to duplicate bit 1 to reach up to 256. Wallace Tree or Dada then work great on the matrix output.
+            Bilinear interpolation in a minimal transistor set-up might want to reuse this circuit? But this becomes noise on zoom in.
+            Just, skew might be allowed. But then again the texture edge anti aliasing only uses 4 bits. Okay, 5 to reach 16.
+            We would need 3 pipeline register to delay on of the nibbles, while the other is processed.
+            With low precision U and V fraction, but 24 RGB or even 32bit RGBA colors, I could understand why the N64 would rather mix 3 RGB values in one step.
+            The intermediate step of bilinear produces 12 bits per color channel!
+            With a hybrid linear interpolaton / nearest pixel algorithm, a texel has a flat center part, 4 linear edges, and 8 triangles in the corners.
+            Looks like DSP code with MAC would solve this. Just needs a queue do to the jitter.
+        </p>
         <h2>Audio</h2>
         floating point matrix rotation for sine tones. The floating point is implemented
         by only acting every 1,2,4,8 cycle.

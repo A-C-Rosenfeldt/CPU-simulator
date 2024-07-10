@@ -9,6 +9,34 @@
         </style>
     </head>
     <body>
+		<h2>After all, is it even possible to show physics in the same picture as logic?</h2>
+		<p>
+			I still like nmos with its wired-or, but no one will value a pull-up transistor.
+			Analog switching and wire signal velocity is important for the eye, but long wires need more speed.
+			We need to display many frames per cycle to get this look. This is just a variable to tinker with.
+			I would love to include capacity to simulate speed. For this I need to store electrons in the gate. I am still interested in connecting critical inputs to gates near the drain.
+			But I can have a rough gate with only a few cells. To no show jaggies, the channel is straigt, and the cells aligned to it.
+			When the channel for whatever reason should go along a diagonal direction, I rotate the whole channel and the cells with it.
+			Color coding becomes less important. The transistors are the only capacitors. They look almost like the MOSFET symbol, just that source and drain are in line.
+			Lines carry charge. So to look like log-sim, primarly charge is displayed, but not so much the electric field of the coax lines.
+			The gate dielectric is too thin anyway, and the body diode is part of physics. MOSFETs can have a geometry without a body. You would not see a difference when you measure through a device.
+		</p>
+		<p>
+			With only like 8 cells per gate, the simulation is fast. Charge leads to a field ( mostly outside of the gate which has a screening effect). Field leads to force. Leads to acceleration per cell.
+			Leads to velocity. Lets charge flow to the next cell. The body diode (like the dielectic) may be used to show charge.
+			I don't show doping. I just secretly add it to cell between electrodes.
+			Velocity out of the source is accelration. I may need to fine tune this parameter. But 1 is a good start because accelerate from a stand still.
+		</p>
+		<p>Greens functions work for this. 8 source positions of charge and 8 cells for the electric potential are just 64 values. So I invert one matrix at the start of the program. Or up to 4 gates? 32x32=1024!
+		Do I need 4 gates? I could address 16 registers in a power efficient way. I could speed up ADD, but is it worth it? Arithmetic should sit behind the logic part.
+		Now carry look-ahead could produce generate (carry) and propagete (zero) for 4 bits. This leads to an explosion of gates. It would be fastest to have dedicate Add.
+		The register values would go in as balanced signals. Than a PLA made of these gates triggers on all combinations. With 4 arithmetic values (0,1,2,3) we have 4 combinations which trigger the zero flag.
+			We have a triangle of 3+2+1=6 values which create a carry. This sounds like a second system. Rather draw a tree structure for the binary address generator because there are no current peaks.
+			Actually, the field should reach through coax just as it does to the next lateral gate. I should stick with the iterative solution for multiple gates. So one 8x8=64 Matrix it is.
+			The boundary condidition is the electric potential just outside your 8 cells. Charge density is given. We start with a constant field to connect the outside potentials.
+			Then we add the fields of our charges to bend up peaks (Greens functions were solved for boundary condition: Potential=0).
+			To avoid an orphan between the gates, it is clear that a cell boundary sits between gates and also sits on the surface of the electrodes ( source and drain ).
+		</p>
 		<h2>Aparently, I only use a simple geometry</h2>
 		<p>So it is a wire between thin dielectric between metal electrodes with small gaps.
 			So as Green function I only need the overlap between the electrodes on the gap, and the electric field of a charge carrier between electrods. This is short range due to the shielding.
