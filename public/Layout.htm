@@ -208,6 +208,56 @@
 			Looks like we don't latch the data address. Rather every other cycle is used by the instruction pointer anyway.
 			Word burst for data. Reg-Reg instructions burst the memory pointer.
 		</p>
+		<h2>ALU - file distance </h2>
+		<p>
+			A bridge to the IO bus is not such a problem for fan out. We have data connecting to reg out and reg in. The 8 bit bus can connect to all bytes of the 32 bit register,
+			but per bit line it only counts as a single parasisic capacity. Since I want at least 8 registers (8080), this is okay (keep the balance!).
+			ALU needs a separate out-register / write back register? Or more fan out from write. Or is there an IO latch? ALU spits out the address after adding the displacement. In the next clock the memory value is stored in the register.
+			The IO data latch prevents latency ( because memory does not, only almost, but for testing they did not implement it fully in async DRAM for CAS).
+			So I guess the question is: Do I have a pipeline? Can there be a store from the last instruction. Then the ALU needs to be able to disconnet its output from the file. So: later.
+		</p>
+		<p>
+			MUL and DIV need a bit shifter after arithmetic, need to keep the write-back data private (not write back). They need to pull in something to add.
+			Actually, we have two lines free to pull in and spit out one register from the file. We take the bit to fill as LSB in DIV or as a predicate for ADD in MUL, and write out
+			the quotient bit of DIV or the LSB of MUL and write it back. Because the write-back register is used as accumulator .. ah we need two register for an accumulator.
+			So no matter what we keep in the file, we need one hidden register. We can trash one register in the file where we later output the reminder / high word.
+			A non-transparent write back register can be usefull for multi shifting. Do I have a counter?
+			Originally, I thought that MUL and DIV have a dedicated output register with a stop bit. I diteched that. So I am back at the dedicated counter register for loops within microcode.
+			Of course, micro-code also as a program pointer for set-up, loop, and tear down. It is used for IO. The counter is also used in IO to load multiple bytes into a single register.
+		</p>
+		<p>
+			For floats I learned about the bitscan instruction. This is a dedicated ciruit which counts leading zeros in a single step. Actually, I'd rather keep it fully floating.
+			So a floating point library would do this. For add: separate mantissa and exponent (multi-regiser shift). Compare. Branch. Shift again. ADD. Shift until leading 1 and count (multiy cylce is okay).
+			Normalization and underflow probably need one more branch. Somehow floating is expensive in RISC. I would need to split the ALU to process mantissa and exponent at the same time and without shift.
+			So the exponent part would do the comparison, difference stored. Then the mantissa is shifted (by sign) to bring the difference to zero. Select the correct register (may be implied).
+			Add and maybe shift again. So FaDD are 4 cycles. To use the full 32 bit of the ALU it makes sense to keep the exponent in a different register. LoadF would load 40byte floats?
+		</p>
+		<p>		
+			History skipped 16bit CPUs, but for the odd 8086. Maybe, it was clear that pointers need 32 bit as do floats (in Cray).
+			How can I squeeze 32 data bit in 6000 transistors?
+			MUL and DIV only need 3 registers in the file because I want to keep one factor/the divisor and not overwrite it with the remainder. Context is stored in No. 3 (0..3) .
+			I don't know why I suppport 32x32->64 bit. Ah, I do because the ALU can.
+			I will start with showing only 8 bits, but 32 is the final goal. Once I drop the 32bit ALU with its zero cost zero processing in CMOS, I need zero flags on the registers and microcode to only load non-zero bytes.
+			Also a 16 bit ALU kinda lies in the gray area between ripple and look-ahead. In 8 bit add, the carry latency is smaller than all the other stuff in my shallow pipeline.
+			I then invest transistors into an instruction queue read ahead of 4 bytes. This hurts a bit because on 6502 immediates are processed like all other data, while only instructions end up in the
+			read-ahead register. So the read ahead needs to decode a bit and jump over immediates.
+			This does not work. When I give memeory a cycle to answer that means that I need a cache.
+			The cache then answers within a physical cycle. It would also be nice if it had one port for (long) immediates and one port to decode the next instruction.
+			Even a read ahead queue needs a full memory pointer due to page boundaries. It needs two pointers of dirty flags for reload after jump.
+			Maybe I have a status bit where the coder tells us if they want to self modify their code?
+			With a cache a loop my land within. Even though MUL and DIV are better implemented as microcode because there are single best implementations,
+			memory string instructions better be RISC in a cache. So make sure that SCANS and MOVS fit into it.
+			4 registers actually are a problem here. So we have the X and Y counter. The SP context. And one value. But what about CX and the comparison Value DX? AX is temp.
+			So feels like I need a special command to load and store into AL without trashing higher ups. But instead do a comparison with AH and have a counter in EAX top 16?
+			Or load temporary Data into the shadow register used for MUL and DIV. DIV only has a 5 bit counter, but expand it to 32. I trash it for DIV, so it cannot sit in the file.
+			So the file is already too small for the parameters. Ah it is not. SCANF has no DI. MOVS has no DX. So the counter can stay in the register file.
+			Instead move can use the small counter to work on 4 aligned bytes in one go. 
+			If the IO bus is latched, I can use it to shift multi-register bytes (words) for fixed point. As outlined above, MUL naturally outputs the result in two registers.
+			32 bit also means 32 tranceivers to the 8 bit IO bus. Carry look ahead doubles the number of transistors. No adavantage to look ahead if we only have 8 bits.
+			Adress register need to connect directly to the address bus .. oh I want highZ for DMA. But that is it. Memory bus uses transfer gates.
+		</p><p>
+			32 bit for addressing would be nice. It would also be nice for maths. With ALU and file close to each other, maybe only these have 32 bit? I can only have 8 registers due to trans .. ah scrap it. I will not show 32 Bit . Just as an advance outlook. I stick with a square file. Adress = value. 
+		</p>
 		<h2>2 metal layers</h2>
 		<p>. VIAs like on the schematic of Ben Eater as disks. I don't think that 3d bridges are really visible. Vias should be the exception .. so big disks. Think two sided PCB.</p>
 		<p>

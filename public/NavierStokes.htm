@@ -11,6 +11,25 @@
     <body>
 		<h2>After all, is it even possible to show physics in the same picture as logic?</h2>
 		<p>
+			React looks a lot like HTML and puts emphasis on the XML attributes just like HTML. When I used React, the CSS wyas the same. Maybe we should change HTML to JSON, so that we don’t need to learn a second syntax with all those escape sequences. 
+			
+			
+			Poisson in one dimension is easy to go back and forth over the gates. Analog simulation (with optional noise) is important to see the non-overlapping pulse effect. Also I want to see how the leading edge creeps ahead due to RC, but is blocked due to saturation: how does latency matched overclocking look! 
+			
+			Write enable on SRAM needs its own edge. I guess that logsim can have this edge, too, but I could insert an inverter delay line, which then has the same number of gates in the path as the address generator. Maybe use the output from the carry look ahead ALU .
+			
+			Does log sim show the race on screen? Does it show how endangered SRAM content is by spuriously activated word lines?
+						
+			Write to register file: binary address decoder is in a previous pipeline stage . So there is a latch in between which blends from one target register to the next. Just it has to do it before the value blends to capture the old value. So load the address latch in phase 0. Load value into file in phase 1. Non-overlapping. But clearly the paired latches of modern Verilog don’t cut it. Need odd and even. 
+			
+			In 1 Dimension the 2d Matrix does not feel weird anymore. Do I still have two kinds of cells? What was the other: floating metal. I decided not to solve them using a Matrix because usually I need complex wiring. Already keeping some gates in a row is hard to lay out.
+			
+			So all inner cells are: charge given. Boundary is potential. Poisson in one direction gives us the field. We use a linear function to match the boundaries. So this is not even an inversion? In a previous step some charge is compensated by the capacity of the gate cell. Oh, this depends on the field. So we have 3 boundary conditions. From field to charge is a simple matrix: Poisson and the open ended version: q=cu
+			Split is sum of boundary and inner (square), invert.
+			
+			The linear matching function pulls in a linear charge distribution from capacitor. I guess that I ran out of luck here. Between gates: no capacity, just doping (on channel).			
+		</p>
+		<p>
 			I still like nmos with its wired-or, but no one will value a pull-up transistor.
 			Analog switching and wire signal velocity is important for the eye, but long wires need more speed.
 			We need to display many frames per cycle to get this look. This is just a variable to tinker with.
