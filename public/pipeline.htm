@@ -9,6 +9,59 @@
         </style>
     </head>
     <body>
+        <h2> Deep Pipeline to save registers on the ALU (68k Z80 style)</h2>
+        <p>
+            For ripple carry, I could use a set, clear carry. So there is not one line and a skewed clock,
+            but two identical lines. One stands for carry and the other for not carry. Multiplexers at each bit let them change positions.
+            Ah, this does not work. We have propagate and generate. So generate maps both paths on the set path. Propagate lets them go straigth through.
+            And zero sets them both to clear. The xor of the inputs flips this set, clear signal before it reaches a latch which then flips or not.
+            So there are no transisents. The output switches from the old result to the new one. This is even better for CMOS.
+        </p>
+        <p> This latch in combinatio with a simple latch based register is enough to prevent transparecy. Typical reflective 6502 instructions like INC is possible.
+            Also let logic go through this to allow ORA . But I could also think of the carry cycle. So currently everything goes through the carry flag,
+            but I could split in in odd and even and have two 4 bit adders for optimal speed.
+            Now 10 gates per cycle is very low. I don't get how Z80 came up with 4 bits per cycle ( and not phase ), that is just very low.
+            There is a latch for the word lines in the file to preven spurous writes. Actually, I would not need this for reads!
+            Just for maximum speed, lets assume a shift register on the word line. Later I may want to shift through immedieates, too.
+            Due to the fan out, it may be wise to latch before the ALU? 6502 does this. Ah, no, we have a dedicate short bus.
+            For logic I envision that I duplicate the signal and invert it (balanced). Both parts go through NAND.
+            So for XOR I would like to eat the skew between the balanced parts. The latter needs two latches. So somewhere after invert and before XOR there should be a latch.
+            Sadly, I need it for 16 bits. And this latch needs to skew the bits by significancy, so it needs to be cascade: 32 latches! 
+            For deskew after carry I need another latch. So, 16 latches after carry. And 10 gates per cycle. So it fits.
+        </p>
+        <p>
+            Skew is very expensive. Goes from one write-back latch for silence to 6. The register file already needs balanced write.
+            SRAM has balanced read. Two read ports, but maybe I only have 4 registers? This would avoid skew and the need for a latch.
+            Only one of the 4 read-out lines connects to the IO bus though.
+            Carry-look ahead still has this write back latch after the carry circuitry and it needs to latch more per bit.
+            I mean, the carry is running towards the leaves. so there will be a final XOR and we need to latch the half adder on the leaves (8 latches)
+            in addtion to the carry on the root and the propagate on the other nodes ( also 8). 
+        </p>
+        <p>It seems like the 68k did it best already. So have 16 bit looks ahead with no significancy skew and a latch after the balancer.
+            Latency is over a cycle, but cadence is scalar. Interestingly, after the adder .. ah the latch is balanced.
+            There could be a short cut to the front-end of the ALU for a scalar ISA. Actually, 32 bit pointers arithmetic is not my goal.
+            Max RAM was 64k. The upper word exists only to mark ROM or VRAM. Nothing is carried over.
+            Arithmetic is interesting for maths. But also not used often. I can accept a 2 cycle instruction.
+            I mean, I can accept it really because instruction read needs two cycles on an 8 bit bus. Up to now ALU always beats this.
+        </p>
+        <p>
+            How many latches does my program counter need? If I mirror the ALU, I double the number of transistors. Only the logic part is removed.
+            Branches on the pointer mean full blown add. How much simpler is INC? I just occured to me that we mostly need to know the lowest zero.
+            So counting will set this to 1 and everything below to zero. So is here somehow less to latch for running than for branching?
+            Only count to zero would need less because we only care for the carry ( count to -1 really, but compensate on write or in specs ).
+            I could see that memory runs slower by factor of two. Counting does not produce transients. Two byte aligned instructions reduce the counting speed even more.
+            So branching is an addressing mode and goes through the ALU? We need all the speed we can get here.
+            Just how do I route 16 bit. So there is one bus which connects the address latch with Instruction Pointer and ALU out (addressing modes).
+            Okay, there needs to be a way for a register to the instruction pointer. This is again the same bus with zero add in ALU? Or a transceiver, hmm.
+            At least it should be possible to peek the address while the relative branch is read. The latter (then) also goes to the ALU.
+            Input register on the ALU would allow to use the same bus. But 16+8 is not too bad. Result comes back through the 16 bit address bus.
+        </p>
+        <p>
+            For register I can store a zero flag and skew the address lines so that I read the zero flag of the next byte with the bits of the current byte.
+            This data then meets with the carry right after it went through all bits.
+            Following my deep design this is still a latency of one cycle. Could just as well store the zero with its own bits.
+            And then there is the cost of writing back initialisation like XOR EAX,EAX on 386.
+        </p>
         <h2>FlipFlop is two latches in series</h2>
         <p>How is this different compared to two latches (SRAM cells) on a bus? A latch (all for N-MOS) needs two transistors to gate the input. So we have two gates.
         Each SRAM cell also has these gates on the input, but additionally we need to gates towards the bus to create a multiplexer.
