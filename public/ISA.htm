@@ -10,6 +10,24 @@
     </head>
     <body>
         <h1>Cacheless operation on shared memory</h1>
+        <p>Seems like 4 registers are enough for MUL, DIV, and all string operations. So X Y A SP . I rather want 4 faster register, wide and balanced, than slow ones.
+            I may later use register renaming, not to avoid transparecy because the carry needs a pipeline register anyway, but to have a slow (1 port blanced, plus maybe on unblanced read) SRAM file for a lot of registers in ISA16.
+            So indeed one nibble is used for register names. I guess I cannot have 3 reg instructions.
+            Anyway, SourceIndex and DestinationIndex make clear that the X and Y register imply load and store. SP is the stack. All of them can do bytes and words. Accumulator means an immediate address or value to load.
+            Regarding Load-Store: X and Y can count up and down, do nothing, or accept an immediate8 offset. SP can count up and down. Obviously, here are some unused combinations, but roughly 3 bits are needed for instructions.
+            Register-Register has the logic instructions: copy, OR, AND, XOR. We have arithmetic ADD, ADC, SBC ,CMP, Test fill CMP with self (4) and shifts t . So again 3 bits.
+            Need to hide branches somewhere. Condition needs 3 bits, but we don't need registers. Can even have the branch always and other jumps all stored in the register name bits. So only one instruction.
+            With CMP packed with Test, I need addtional conditions like negative or zero. Branch on greater zero. This is ugly. I like that addreass of flag, value of flag method and the matching set and clear commands.
+            MUL,iMul, DIV, iDiv, and multi register shift all use implied registers.
+            XOR or SUB on self can be used to clear a register. Add on self is shift left.
+            XOR on self could be defined as NOT. 6502 has no NEG, which would be based on SUB, or immedieate reverse sub.
+            I could use OR for NOT and AND for ROR (through carry). Copy on self is arithmetic shift right. 
+            I would like to hide counters in store reg, reg where reg=reg. With counters being 8bit, I could drop immediate8 for all but branches?
+            Somehow I want to use implied register for weird instructions like shift left or SBC. But then again they only use a single register field. And some make no sense on SP. So I put MUL there.
+        </p>
+        <p>
+            Three register may be cool for FFT or stuff, but make this look complicated. There is no space. Free space could be used for swap with shadow registers (shadow for each)?
+        </p>
         <p>8 bit CPUs decoding the instruction and fetching the register values takes as long as the full stages for a branch instruction. So a branch can skip to load the immediate address if not taken.
         Actually, the 6502 implementation failed to do this, but maybe the Z80 did this.
         I cannot find any other reason to load instructions byte by byte. Rather I'd like to jump somewhere and get all the sources in two consecutive memory fetches.
