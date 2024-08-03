@@ -257,6 +257,17 @@
 			Adress register need to connect directly to the address bus .. oh I want highZ for DMA. But that is it. Memory bus uses transfer gates.
 		</p><p>
 			32 bit for addressing would be nice. It would also be nice for maths. With ALU and file close to each other, maybe only these have 32 bit? I can only have 8 registers due to trans .. ah scrap it. I will not show 32 Bit . Just as an advance outlook. I stick with a square file. Adress = value. 
+			pcEngine and SNES 65816 toggle between code and data and affect 24 bit (just as 68k and  uh x86 affects only 20 bits).
+			So while I could limit the ALU to 16 bit, the internal address bus is also 24 bit. I need all those transceivers.
+			Microcode generally has this carry set add one cycle logic. So it is no big deal like in 6502.
+			But how do I calculate an offset? Seems to need a temporary register. So: No offset over 64k boundaries.
+			Carry look ahaed creates a lot of transients already inside the nodes. No need to insert pipeline stages on the tree.
+			Really, only after the ALU is a good place to latch the balanced signal. Uh, but now we are in the register file.
+			So after all, one cycle ALU with register renaming might make sens? So I have 4 close registers?
+			Okay no renaming yet. Still, the write-back register can just sit in the file and uh, writes back.
+			It is no problem that this second phase is not used in the circuit. Paired latches introduce no waiting. Waiting is determined by the non-overlap region between the pulses in both phases.
+			Just make sure that we really operate on latches in the file.
+			The look ahead tree is difficult to package. Lets assume a square. It is only 4 gates high. Ah, okay, root notes sink in. Diagonal tranceivers are a bigger problem. They need interleave in order not to look funny.
 		</p>
 		<h2>2 metal layers</h2>
 		<p>. VIAs like on the schematic of Ben Eater as disks. I don't think that 3d bridges are really visible. Vias should be the exception .. so big disks. Think two sided PCB.</p>
