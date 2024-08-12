@@ -27,6 +27,11 @@
         </p>
         <p>
             Three register may be cool for FFT or stuff, but make this look complicated. There is no space. Free space could be used for swap with shadow registers (shadow for each)?
+            With only 4 GP regs I could fill a quarter of all instructions with ADD, AND (flipped names), COPY (same names). Probybl blows up decocing. 
+            Implied registers are now okay with me. For example indices may be SourcIndex and DestinationIndex and StackPointer as on x86.
+            Then the stack only needs a bit for load vs store. Source needs a bit for direction as does Destingation. As with all load store they need a word vs byte bit.
+            A nasty decoding would add no increment as option 11, where the bit selects if a displacement is used.
+            6502 has no NOT or NEG, and people don't miss it.
         </p>
         <p>8 bit CPUs decoding the instruction and fetching the register values takes as long as the full stages for a branch instruction. So a branch can skip to load the immediate address if not taken.
         Actually, the 6502 implementation failed to do this, but maybe the Z80 did this.

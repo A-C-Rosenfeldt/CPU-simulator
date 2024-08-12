@@ -269,6 +269,21 @@
 			Just make sure that we really operate on latches in the file.
 			The look ahead tree is difficult to package. Lets assume a square. It is only 4 gates high. Ah, okay, root notes sink in. Diagonal tranceivers are a bigger problem. They need interleave in order not to look funny.
 		</p>
+		<p>
+			For more than 16 address bits, the two read-out ports of the register file are used. With an offset, serial read out is possible.
+			The stack needs to pre-crement (I don't care about inc or dec) for POP so that a single write port is enough. It can post-crement for PUSH.
+			For 16 bit value LOADs, I need a full write-back register (not just a latch) for the byte addressing ( in addition to the loop counter in the u-instruction).
+			Ah, I could route the u-counter to the ALU?
+			Register-renaming does not help here because all registers share a single write bus.
+			Of course I could insert a multiplexer and have two register files. This layout is even more clunky than to have two write busses on my 4 regs. 
+		</p>
+		<p>Latches open when the signal becomes just valid because then noise will only result in small transisents, but no data corruption.
+			The second latch in a register (remeber RTL in verilog?) sees the totally clean signal of the first latch. This sounds kinda like a waste.
+			With the write-back being a full register (and utilised by instruction decoding) this becomes more obvious.
+			So I might invest into more transistors and latch that carry intermediate state in the ALU.
+			I almost have to thank the ALU that all those configuration multiplexers to select one of the L (optional NOT for sub), the carry for A, and the shifter for MUL and DIV add so many gates into the critical path
+			that my bookkeeping logic can race ahead.
+		</p>
 		<h2>2 metal layers</h2>
 		<p>. VIAs like on the schematic of Ben Eater as disks. I don't think that 3d bridges are really visible. Vias should be the exception .. so big disks. Think two sided PCB.</p>
 		<p>
