@@ -210,6 +210,31 @@
 		</p>
 		<h2>ALU - file distance </h2>
 		<p>
+			The ALU needs a close write-back latch to address 16 bit values over 8 bit memory and an internal latch to avoid transparency and to reduce flicker. The internal latch collects the carries like this.
+			There are 4 4 bit ripple carry adders. Their 5 bit result + propagation flag is latched. And the carra look ahead logic runs and their result, the carry in for the 4 bit adders is also latched.
+			So there is a lot of ripple and transients in the looks ahead, but those are only a few circuits. Overall only twice as much bits need to be latched compared to pure ripple carry. Remember how many registers and latches there are in total, this is acceptable.
+			It hurts a bit that after the look ahead we again need 4 bit ripple carries. But we cannot latch both results for both input carries because of our transistor budget.
+			We cannot reuse the circuit. At least the second ripple + the multiplexer for MUL / DIV balance the latency of the second part of the ALU with the first part.
+			Still I guess that there should be a short delay line to delay the internal latch. The first half needs a little more time.
+			Ideally, all latches ( odd or even) open up while the (last) input moves from the undefined middle to one of the logic values.
+			Opening up the gate also takes some time to go from keep-the-current-value-safely to barely keep it. With a cascade of latches (data flipflops) the second one opens for the safe values of the first.
+			That is a missing opportunity. Maybe the RISC pipeline really uses cascade latches -- ah for clarity. For example there is no latch inside the ALU.
+			It would also be akwarded to insert latches into all three: simple ALU, barrel shifter, MUL. I am almost sure that DIV on Jaguar internally uses odd-even latches to produce two bits per cycle.
+		</p>
+		<p>The output latch would intercept all outputs. So write-back to anything ( register, memory, address-bus after addressing mode or branch ) happens in the next cycle. 
+			The propagation flag may use a 4-NAND to save current? Likewise carry flag after the half adder is g & p & p & p . So can also be a 4-NAND.
+			The register file only needs 2-NANDs for binary address generation. Same for addressing of flags in Branch and Set/Clear flags.
+			The MUL-DIV multiplexer ( shift -1, 0, 1 ) uses 3 totem-pole NANDs on a wired-or line. So there is only one-pull up!
+			So 4-NANDs would kinde be odd-ball.
+		</p>
+		<p>
+			The program pointer is a light version of the ALU. Especially, I keep the branch calculation on the normal ALU. So the program pointer mostly consists of two latches, the 16 bit bus interface ( bidirectional),
+			4 bit counters (not full adders, some gates less). Only the carry look ahead logic is fully present. We need all the flags, even if they only change seldomly.
+			All flags can be re-generated fast after a jump. The bus can only transfer one word. So we cannot transfer carry and non-carry versions of the nibbles.
+			Even if the ALU would do its own branches, with nibbles without look-ahead, timing would suprise coders and we don't really save registers.
+			The ALU can do a RISV-V like compare in one cycle and calculate the branch in the next withouth being the bottleneck (ISA16?).
+		</p>
+		<p>
 			A bridge to the IO bus is not such a problem for fan out. We have data connecting to reg out and reg in. The 8 bit bus can connect to all bytes of the 32 bit register,
 			but per bit line it only counts as a single parasisic capacity. Since I want at least 8 registers (8080), this is okay (keep the balance!).
 			ALU needs a separate out-register / write back register? Or more fan out from write. Or is there an IO latch? ALU spits out the address after adding the displacement. In the next clock the memory value is stored in the register.
@@ -468,6 +493,20 @@
 			My default version has 16 bit registers and a SP and 5 GP regs. So 5+1+2 = 8 . So 8 physical registers, 3 bits to address these. 18 bits in the naming register. 
 		</p>
 		<h2>Control lines</h2>
+		<p>
+			The layout starts with ALU, write-back, bus-gates, register file. So this goes over the whole chip (left to right) and lets put it on top. 6502 is offent shown with registers on the bottom, but I want them on the throne.
+			Below is a weak echo: The program pointer. Vertical busses connect these two and then exit below on the address pins.
+			Control lines better not cross the signals. The instruction register sits opposite of the program pointer so that the bus is surrounded by the devices on it (address and data are clusterred).
+			So instruction decoding then runs around the chip. Do I really care if control lines cross the IO lines? In reality I would need to split address pins and data pins.
+			So there is this bus going vertically over the whole chip. Data pins on top, address pins on the bottom?
+		</p>
+		<p>Latches would allow to have a shallow instruction format decoder, where we would then only power the correct format after this latch. Or like, multiplex to this and let the other formats keep their values
+			to avoid flicker and as a foreshadow to CMOS? Even more subformats may be needed .. a whole tree (ah, better let the PLA handle this).
+			I just don't want spurious register names, when their values is not used by the multiplexer to select one of the bytes, nor the ALU. Especially, the write-back shortcut should block register reading.
+			On the back-end micro code then is executed. A multiplexer is set up in advance to repeat
+			on of the shifts (this microcode shifter in the 6502) for 16 bit values. Actually, I can just use that shifter because I don't have conditions (carry flag set) anymore with my 16 bit ALU.
+
+		</p>
 		<p>
 		When I stack the two adders, I have more justification for the delay line for the clock signals. Clock comes fromt the outside. The other clock gates the write address on the register file.
 		These gates sit outside. Clock comming from the right. So there would be a clock ring all around? Maybe I should registers from below where the IO port sits. Then register names don't have to travel too far.
