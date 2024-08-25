@@ -159,8 +159,52 @@
 			and A B register in front of the ALU for serialisation ( +pointer = 3 16 bit registers direct without a full fabric. Just a 3:1 multiplexer).
 			No one will follow this.
 		</p>
+		<h2>
+			A CPU needs all the multiplexers shown in those block diagrams
+		</h2>
+		<p>
+			Multiplexers look ugly when I sort by bit significiance.
+			There would be two domains, one sorted by significiance and one which routes parallel busses over the chip.
+			ALU and register file with its 3 ports better look sorted by significiance.
+			For a scalar or single cycle CPU I need to get the output of the ALU and a value from the register file in the same cycle for store. Ah, this is no problem.
+			But what about load with post-crement? Ah, we don't do this. Actually, the real problem is that the address mode happens in the execution cycle, but the load store happens in the next cycle,
+			where the next instruction already wants to use the registers.
+			To depict a real world with delays, I have a lot of buffers. The next instruction runs through the CPU before the load or store instruction takes away the IO bus.
+			Of course I could say, just steal this cycle, you can proceed when memory is blocked anyways? Real 8 bit CPUs would do this.
+			Does it make for a complicated control unit? Do I need to go full MIPS to postpone all register write backs? But 8bit ISA really wants its PUSH and POP and 8 bit data bus wants its Endianess.
+			8 bit data bus was so huge: SNES, pcEngine, PC, in addition to all the home computers. Of course, MIPS wanted 32 bit server standard.
+			So the MIPS trick is not very useful for me. Also this shifting of values looks very much like there should actually be a file.
+			I was considering a close to ALU file. The only thing now is that it needs a third read port for STORE and a second write port for LOAD.
+			Ah, this hurts so much. Just delay the next instruction by one cycle and execute it when the next instruction read has to wait for von Neuman. We make a decision here. No cache logic and no Harward.
+			No ROM, but code in RAM is a first class citizen. So the secondary register file is postponed. 8bit does not use it, and 16 bit will need a complete regeister renaming logic
+			with round robin replacement and unpredictable timing similar to the instruction queues on 8086?
+			16 bit architecture will use a code cache and run scalar inside short loops.
+			The secondary register file can be used directly, just for example on Load and Store, it has to be the value. And for reg-reg it offers only one read port.
+			The secondary register file may be helpful in MUL and DIV. 4 primary register might suffice. Lets have 32 secondary (00 is zero register / stack like on ARM).
+			So I need 4*5 bits for the names. Times two for the data flip-flip cascade. And I need a scoreboard because in a pipeline with Load/Store,
+			3 registers could be involved in the current and the decoded instruction.
+			The two port register file would sit in the multiplexer domain ( enclave ).
 		</p>
-		<p>I now can see how a single accumulator at the ALU looks more natural. Like in JRISC. The rest of the world only has two ports.</p>
+		<p>
+			Multiplexers look nice in CMOS (like cutting the power from unwanted gates) and okay in n-MOS. So it is not all bad. Let's promote the physical view!
+			The analog signal probabyl looks nice. Also shows how we first switch the gates close to the rails, in time for voltage be present for the gates near the drain.
+			This is also great for the carry propagation ( generation is not critical). I think even with look ahead (but we use 4 bit adder blocks),
+			the propagator is basically the power for the inverter chain of the carry. In CMOS anyways. n-MOS needs to alternate between NAND with totem pole (similar to CMOS),
+			and wired-or NOR ( which is fast because it uses gates in parallel). I stole this from 8008. I guess it looks nice for 4 bit. A balanced signal would not really change much.
+			I also feel like there cannot be a faster way. On NOR the propagator (negated) can pull down all the time and block changes by the carry.
+			A generator would need to activate the propagator and also inject its own signal as a third NOR input.
+			Likewise on NAND .. stuff is somehow simpler. Wired or on the output of NAND lets the generator pull down the output.
+			So the generator is fast in this technology. For me it also feels kinda right that it does not stack on the pole.
+			Multiplexers are often drawn as Y. Just later the routes are detangled. In a way, multiplexers are significiance sorted, just with tighter spacing.
+			The routing and vias feature an even more tighter spacing. So I guess that ther sit a lot of multiplexers at the end of ALU-File-Multiplexers.
+			Only after that routing boundles them to data IO ( two points on the bus for Endian). Address from register vs Address from ALU ( for instant POP? after all we show that the ALU is slow.)
+			MIPS uses the ALU to delay values in case of register addressing in order not to break any pipeline.
+			The next or previous instruction could have an offset, which would let the timing crash.
+			On von Neuman (Arm) we already crash the timing with the instruction read. We just put this on different cycles. Yeah, needs a gate, but stuff is already dirty.
+			Scan string better uses post-crement so that we know the condition in time for the loop.
+		</p>
+		<p>
+		I now can see how a single accumulator at the ALU looks more natural. Like in JRISC. The rest of the world only has two ports.</p>
 		<p> Ben Eater has a strange way to splatter instruction stuff all over the layout. I rather like the Intel or Atari Jaguar apporach with the instruction stream.</p>
 		<p>The instruction register and the pointer have the default access to memory, data should live in the register file mostly (kinda Harvard).</p>
 		<p>Cross overs are the exception. In a Branch we takte the flags from the ALU and the ALU calculates the new address. Load Store run micro code from ROM, while the register File (data) and the  ALU (addressing modes) has access to RAM.
