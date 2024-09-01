@@ -204,6 +204,28 @@
 			Scan string better uses post-crement so that we know the condition in time for the loop.
 		</p>
 		<p>
+			When I really accept 2 Metal layers and don't mind unrelated flicker lines going through the register file, I could layout everything in line.
+			I just need one more line to be able to take addresses either from program pointer or ALU. And I already have 3 lines where the word lines (to select a register) have to hop over.
+			Carry looks ahead on both ends. The data 16bit word to 8 bit byte multiplexer sits between ALU and register file because programm pointer, uh, still needs this.
+			Maybe I even need 5 address lines? Lets just pretend that push pop of program pointer always goes over the write back (or some other helper) because we need to bridge one more cycle.
+			Uh, it is tight. The MIPS inspired buffers to DRAM already give us one cycle delay. No transparency can happen over the programm pointer if the system was 16 bit.
+			But for 8 bit we need this increment and go over the write-back register. So, the multiplexer sits at the ALU and spits out its line right next to it before the register file.
+			Lineas are narrow. 8 lines crossing does not cost me much chip space. No justification to interleave something with transistors.
+		</p>
+		<p>
+			Control lines naturally are at 90°. So they break this interleave pattern. Still they come in bundles of 8 it seems. The ALU needs about as much control lines, as does register select and multiplexer government.
+			I should send the address bus down to the pins and data up to the pins there. So the opcode is on the upper side and control lines also come from there and dont't need to go around the adders.
+			decoding reads microcode. The Opcode will sit on the side and activate lines in ROM. The micro code instruction pointer works on a finer level.
+			I wonder if I should load a ROM line into a register for the micro counter to go through? 6502 says no.
+			We can delete whole lines of address generator and ROM and let it look more like a PLA. This is important for the different length of microcode. So I don't actually have a jump table.
+			I need the first control lines fast. So: No jump. I could jump to the next. Opcodes need a different number of bits decoded here. Some bits got the flag status word, other go the register file.
+			Mostly sorting of opcodes should deal with it. Like opcode bits enter the address generator from the top, while program counter enters from below.
+			Killing lines gives me flexibility. The result is messy and not for humans? And the top lines with all the opcode bits are great to place opcodes inside more regular encoded instuctions where some bit patterns make no sense.
+			For example I can check if source=target register. Ah, now I regret this. I may need a pre-decoding step which compares register names into -> = &lt; &gt; . Uh I only have 4 regs! So no predecode.
+			For some operations I need to replace one of the registers with SP or PP. Yeah, I probably need like 16 rows for stupid packing into 8 bit opcodes.
+			At least I mimic the 6502: Microcode is as large as the computer unit. Now I am just afraid of the "RANDOM LOGIC". But I don't do interrupts in MVP.
+		</p>
+		<p>
 		I now can see how a single accumulator at the ALU looks more natural. Like in JRISC. The rest of the world only has two ports.</p>
 		<p> Ben Eater has a strange way to splatter instruction stuff all over the layout. I rather like the Intel or Atari Jaguar apporach with the instruction stream.</p>
 		<p>The instruction register and the pointer have the default access to memory, data should live in the register file mostly (kinda Harvard).</p>
