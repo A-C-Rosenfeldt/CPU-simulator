@@ -11,6 +11,18 @@
     <body>
 		<h2>After all, is it even possible to show physics in the same picture as logic?</h2>
 		<p>
+			I re-read about ohmic region and saturation region on a MOSFT. I also found the Child-Langmuir (CL) law law for a vacuum diode. This law would be the short channel effect and does not describe the saturation region correctly.
+			To reproduce saturation and ohmic (for transfer gates), finite differences is the way to go.
+			Lots of micro MOSFET operating in ohmic region: Number of charge carriers is given by the charge on the micro capacitor.
+			Then solve for current and voltage along the channel. Poisson works along the channel, even for long channels.
+			In the ohmic region poisson is without much effect. If the drain is very positive, it sucks out electrons and creates a field along the channel.
+			Actually, the gate should shield a lot of this. Poisson does simulate these shielding I think. So it is just that charge carriers are missing at one point,
+			and don't see a field on the souce. For ohmic operation there needs to be some field. So charge carrier distribution creates a linear field.
+			Self-consistent iteration gives us higher carrier density at the souce, but a weak field, to achive the same current as the low carrier density, but stronger field at the drain.
+			This works well with multiple gates. Space charge is there. This carrier density makes the field thing is space charge, albeit in one dimension.
+			A CCD would work -- even a charge pump.
+		</p>
+		<p>
 			React looks a lot like HTML and puts emphasis on the XML attributes just like HTML. When I used React, the CSS wyas the same. Maybe we should change HTML to JSON, so that we don’t need to learn a second syntax with all those escape sequences. 
 			
 			
