@@ -129,6 +129,22 @@
             Generally it would be nice to push values out of reduntant area. For relative jumps 0 halts ,1 is illegal in 8 instruction addressing or long jumps in 16 bit instructions , and 2 is NOP.
             If I allow for 4 bit for register ( hi low + 3 names), byte immediates ( sign extended to align with jump interpretation) are pushed away from the nibble range.
         </p>
+        <h2>Out of order execution in a Jaguar RISC like CPU</h2>
+<p>
+Memory like registers are weak and can’t do double data rate? At least for nMOS I might want to use that active pull up ? For a large file in 16bit ISA, I would have a weak passive pull up.
+ Plus: on the clock edge a pull actively up one of the balanced lines.
+ Actually, I don't want to lose time after a branch. Fast decode, fast fetch, ALU, done. Fetch (with precharge) is very fast. CMOS may need stronger signals instead.
+</p><p>
+Jaguar out of order execution using a fine pipeline with hooks. Like maybe expose division adder? So two adders 3 Logic units . Mac -> for resmac : add. 2 load and store (local and IO).
+</p><p>
+Simple priority: when two values become available (all source can announce one cycle in advance), prefer the one with more buyers , prefer the one which satisfy buyers, prefer the reverse flow from branch.
+Flag renaming, register renamed as their execution unit, but one register is mapped to only one execution unit. 
+</p>
+<p>
+    So out of order execution is a bit difficult in a scalar architecture. Load Store are serial for consistency with other processors.
+    At least up to the architecture I could imagine, Loads will not overtake each other. Software should sort if it thinks there is some fast page mode cacheline stuff. Ah, cache lines.
+    Anyways, pushing instructions in the delay line slot seems to be hard.
+</p>
         <h2>registers</h2>
         <table>
             <thead>

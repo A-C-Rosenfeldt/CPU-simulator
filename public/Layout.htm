@@ -31,6 +31,14 @@
 			Just my names don't scroll. I only need latches for these registers. But I need three write ports so that IO can write, and ALU, and load from the long file.
 			And as with the pipeline I have no reall binary address generator, but a name lookup.
 		</p>
+		<p>
+			With ALU next to the register file next to the multiplexers, each bit needs 4 lines. When I mirror odd bits, I get 8 lines, which have to be crossed by control lines.
+			I am now certain that the user needs to be able to select number of bits live. So 4 bits is what my eye can follow. 8 bit is for the name. 16 bit is to show some cool math examples and showcase carry look-ahead.
+			Do I model leakage for abondoned lines? It should be the leakage of my CMOS simulation. With nMOS of course there is the pull up.
+			I really love the dynamic pull ups in 6502. Do they flicker. Uh, they do. At least I feel like the body diode is no problem with positive voltage. NPN transistors have positive substrate.
+			So more positive circuitry might short-cut with substrate. So substrate needs to be even more positive? Just gotta stay inside the power rails: No charge pump allowed!
+			I wonder how 8086 boots up when the charge pump first has to work. Probably some external 555 timer which delays the reset. I would be worried about shorts -- not speed.
+		</p>
 		<p>So I read that clock is 20 to 50 times the gate delay ( Atari Panther: 100 ). I want to show it, manage it.
 			The best solution now seems to use carry look ahaead, and latch all the ahead results (1 word) and the per bit data (1 word). Or have 2 bit adders. Just important: Balance the number of latches!
 			The half of the latches will just follow the even (1..2 gates delta) flow of logic.
