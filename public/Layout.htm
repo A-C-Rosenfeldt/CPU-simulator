@@ -1,5 +1,28 @@
 <html>
     <head>
+		<h2>ALU and register-file</h2>
+		<p>Even though the significiant invention was to integrate ALU and register, the ALU also has other duties: Passing the effective address through the file looks ugky,
+			already with 5 registers. Now allow reg-mem instructions (like JRISC MMULT) and it becomes totally nuts.
+			So multiplexors on the bit-lines (slices) need to connect to 16 crossing lines. A Load/Store architecture would still multiplex on the far side,
+			which still is not the end because that would be the program counter .. Or not? Branches need the ALU for the relative address. But absolute address from (and to) register is also needed.  
+			I don't like the zero register. This is no MIPS server CPU, but bare bone . So the Program Pointer would need to connect to 3 lines !? It makes sense with the register:
+			Just cross-over read and write lines. But for relative branches there would be a large detour. Or: Do it on the counter?
+			8 multiplexors to the data lines, and as much transistors for the full adders on the 8 lower bits. Cleaner blinkenlights.
+			Ah, the Program Pointer still needs 16 connections to load -- you know -- the program.
+		</p>
+		<p>
+			So this was the bit slice region (I imagine it as horizontal slices). The rest of the chip uses the block diagram.
+			So data lines are squeezed together, and Multiplexors are not drawn down to transistors? Also ROM for micro-code .. hard to not draw it physically.
+			So it looks like the block diagram is about the 16 bit address lines from ALU and PP and connection to RAM.
+			Same with the data lines going to the slices and the instruction register.
+			But already here: the instruction is decode bitwise. If with uncompressed ROM the address generator would sit on the register.
+			For PLA there exist these nice optimization algorithms to tell me how far off my systematic design is. PLAs are slices! ROM address generator which looks at more bits depending on a length field
+			also looks well .. but also looks well if we have separate ROMs .
+			For clean Blinkenlights I should not do conncurrent / speculative stuff. Also saves energy. So first the opcode is checked for the cycle count, and then the respecitve ROM is read to gather the microcode.
+			The control lines are routed as boundles again: Cross data lines, split up in ALU control lines and register names and something PP.
+			The clock is actually bit slice -1 because it is so crictical for the address generation on the file and skew in the ALU.
+			Maybe I just need some whitespace. And I place the stupid multiplexors somewhere in the corner.
+		</p>
         <title>6502 like layout ordered by significiance of bits</title>
 		<h2>Gate delay</h2>
 		<p>
