@@ -1,5 +1,55 @@
 <html>
     <head>
+		<h2>Overall layout</h2>
+		<p> ALU and register file are connected by 3 lines, which can be blocked. So I don't want to introduce transfer gates. So this is really just NAND which will be wired to OR to form a multiplexer / bus.
+			The progam pointer has a connection towards the Address bus. 
+			The date bus is connected with the instruction register, data in, and data out.
+			The instruction goes "away" from the addressbus to not need to cross it (later). Microcode then sits somewhere. Like in Ben Eaters SAP-1 the control lines come from the outside.
+			Both data registers can be connected to the bus, low and high.
+		</p>
+		<p>
+			For branching there is a dedicated connection from PP to the ALU; the jumped address goes over the bus. Likewise register content goes over the common bus into PP as does data.
+			PP can load data into 8 bits while keeping the other 8 bit. The DataOut and In register and the ping pong program pointer registers allow to load 16 bit in two steps.
+			I could go over the ALU for JSR to avoid more multiplexers and to compensate for any offset due to timing.
+			Data is loaded and stored into and from registers using the bus. The other register goes directly onto the address bus, but also through the ALU to address unaligned 16 bit values.
+			For Displacement we only go over the ALU. The register to address bus connection is of course also useful for byte Load and espcially byte store ( which even 32bit CPUs can do).
+		</p>
+		<p>So looke in reverse, 3 sources can send data to the address bus. Likewise 3 sources can send data to the ALU, but here we can spread that over two input ports.
+			All in all not that much influx. </p>
+		<p>
+			With inverters the frequency low pass and the nonlinearity end up to balance each other so that indeed a sharp edge is flowing through the system.
+			With multiplexers all paths have the same length. But I introduced the data bus to keep the number of overall connections down.
+			So now there are two signals coming with a different delay. And I also have to check for inversion. I do not want to balance the signal in front of the ALU anymore.
+			Ripple carry works best with alternating dual gate and wired-or. So both types of gates are considered uqual by me no ( balance between power-consumption and speed).
+			So the ALU starts by AND and OR on the incoming signal using these two gates. It would be interesingt to simulate the gate in details to show the difference in speed.
+			Maybe there is not much of a difference and the XOR in the next stage gets a correctly timed input.
+		</p>
+		<p>
+			A simple carry look-ahead solution is to use 4 bit adders. 8 of them. Split the 16 bits into 4 segments and assume both carry inputs. So, 7 adders. Or maybe accept late carry input: 8 adders.
+			Each adder has a 5 bit output. Latch this to catch the transients (write back register). Then do the look ahead and also latch. From here it is equal timing again: The carrys select one of the
+			adders per 4 bits. Then comes the shifter for MUL. I have a bit of a problem in my head with binary look ahead. I also don't want to introduce 4-input gates for faster carry from 4 bits (Manchester carry).
+			Ripple carry over 8 gates on 4 bits is just so fast. And I would like to show at least some transistents.
+		</p>
+		<p>
+			So the direct vs data bus issue is really ugly. Data Registers are registers like the ones in the file or the PP. Clock comes, signal goes onto the bus.
+			To balance this, the simple solution is to use two busses (6502 does this).	Oh no, I need 3 because I want 3 ports between ALU and register file.
+			And I want no spurious blinkenlights in the file when I don't want to change data: I should look safe.
+			So 3 busses. So basically the 3 connections between ALU and register file can be disenganged on both sides.
+			The vertical PP - Adressbus lines can connect to them. Uh, I feel like I need a fourth line for PP counting while doing reg-reg.
+			This PP line can also be disengagned on both sides. For branch, why not use this to send PP to ALU?
+			Then use some other bus also available for register direct addressing ( no blinkenlights in the ALU when I just follow a pointer!).
+			So this would be a bus which is register out, but also ALU out. So on one side this would be like going onto a high way through the exit. But does it matter?
+		</p>
+		<p>To match the timing of the file with all the solo-registers, the address needs to be latched. The clock triggers this. Similarly on solo register the control signal is latched.
+			Address generators can create transisents, which would be unfortunate on the write line. So we want to latch it anyways.
+		</p>
+		<p>
+			I thought about a double node layout. Upper node had ALU, PP, File. Lower node has data bus and address bus.
+			But now that I introduced the equal bus hop rule, so everyhting goes over the bus, I don't see why the 8 bit data bus should not squeeze itself in.
+			This bus concept has the consequence that the vertical and horizontal lines are all connected on the diagonal. All the NANDs sit on the perimeter matching the bit slices.
+			At least this makes the control lines easy to route. Maybe I can open up one corner not hit by the diagonal and squeeze in the 8 bits ( closely packed instead of bit-slicy).
+			Then I can place some NANDs inside and connect to low and high byte.
+		</p>
 		<h2>ALU and register-file</h2>
 		<p>Even though the significiant invention was to integrate ALU and register, the ALU also has other duties: Passing the effective address through the file looks ugky,
 			already with 5 registers. Now allow reg-mem instructions (like JRISC MMULT) and it becomes totally nuts.
