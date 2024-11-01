@@ -47,6 +47,10 @@
 			So if I don't care for power, I could have a 4 bit carry detection in a Matrix shape -- which is nice. Sadly the whole upper triangle in a 4x4 square generates a carry.
 			Ah, not so many transistors: 3+2+1 .. so 6. Still a bit weird that I would have the carry ready befor the sign flag. So how to I multiplex in the next higher nibble?
 			Zero flag or -1 propagation flag have 4 transistors. If I my simulation would show how multi-gate transistors are slower, than this would be interesting.
+			I don't know how to route 4 lines to gates if they sit in a Matrix. There are many taps per column going down to hit the side of the MOSFET. This is rather ugly.
+			Storing carry-in and non-carry-in results in my writeback register is at least compact, even though 6 transistor per bit are a lot. But this is only large. It does not introduce more gates.
+			Overall a more homogenous design, which looks easy to fab. I don't want to replace dual gate with inverter + wired-OR because this clearly has more latency (in addition to power consumption).
+			Commodore does it for high frequency circtuits. Yeah, but multiplexers just want dual gates. So I have them.
 		</p>
 		<p>
 			A simple carry look-ahead solution is to use 4 bit adders. 8 of them. Split the 16 bits into 4 segments and assume both carry inputs. So, 7 adders. Or maybe accept late carry input: 8 adders.
