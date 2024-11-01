@@ -24,6 +24,30 @@
 			So the ALU starts by AND and OR on the incoming signal using these two gates. It would be interesingt to simulate the gate in details to show the difference in speed.
 			Maybe there is not much of a difference and the XOR in the next stage gets a correctly timed input.
 		</p>
+		<p>Multiplexors allow me to have a lot of dual gate transistors. But can I have more? Binary address generators could use 3 or 4 gates for 8 or 16 addresses. Or 4 addresses with enable ?
+			Ah no, need a blanced signal; and I don't do Y splits within a channel. 
+			Address geneators are needed for the register file, but also for the microcode ROM. In the latter case there is one for the operation and one for the T-cycle as Z80 calls it:
+			The cycle within a multi-cycle instruction. On an IC I am not limited to a single ROM, but could have different ROMs for different instruction length.
+			So how do I organise it? All instructions hit the first generator, some the next on the next cycle? Sounds tedious.
+			To not have lots of circuitry idling, I feel like I need to read out all bits of any instructio at once. Interleave is problematic due to the internal layout.
+			Instead I bite the bullet and internleave externally. Of course, read out is on the wide site. Microcode gets a triangular shape.
+			The shifter at the end has only double gates. Like, it may not be a real shifter, but like on 6502 a single bit shifted through, or a small address generator, which then governs a multiplexer. So all dual gates.
+		</p><p>
+			For the word line I need a blanced signal.
+			So it is a good idea to have a latch in front of it (enable line and synced balanced signal). Ah, I need a blanced clock, even though this is not CMOS.
+			I could even simulate the clock circuit: I know delays. Delay uses inverters already. The problem is that there is a slight offset between the original and the inverted signal.
+			How do we bootstrap this (without an external pin with a transfomrer or so)? PLL would be a solution, but only for an edge. We try to match inv,inv with inv,inv,inv in timing.
+			Somehow I feel that a "long tail" aka Common Emitter Logic is the easy solution. Do I have any BIAS problems? So I would use nmosfets in analog mode in the ohmic region.
+			CMOS can easily be tuned using the supply voltage. With nMOS I can slow down the active edge slightly. The passive edge is set by the other transistor. I could change the width in the mask to match the speed.
+			Signal conditions cen be improved by cross connected NANDs. We want non-overlapping pulses anyway.
+			In an inverter chain every stage the edge switches between falling an raising. So it is easy to set different speeds to two inverter chains. Just how do I display channel width on screen (it is the z-direction).
+			I could mark the area in my clock module : Here all pull ups have lower current. How do I interface with the bus? There would be a delay! I guess that some delay is expected. 
+		</p><p>
+			Manchester carry look ahead uses PLAs: The balanced signal from both operands enters this PLA. NANDs gates select eithr polarity.
+			So if I don't care for power, I could have a 4 bit carry detection in a Matrix shape -- which is nice. Sadly the whole upper triangle in a 4x4 square generates a carry.
+			Ah, not so many transistors: 3+2+1 .. so 6. Still a bit weird that I would have the carry ready befor the sign flag. So how to I multiplex in the next higher nibble?
+			Zero flag or -1 propagation flag have 4 transistors. If I my simulation would show how multi-gate transistors are slower, than this would be interesting.
+		</p>
 		<p>
 			A simple carry look-ahead solution is to use 4 bit adders. 8 of them. Split the 16 bits into 4 segments and assume both carry inputs. So, 7 adders. Or maybe accept late carry input: 8 adders.
 			Each adder has a 5 bit output. Latch this to catch the transients (write back register). Then do the look ahead and also latch. From here it is equal timing again: The carrys select one of the
