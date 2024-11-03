@@ -101,6 +101,20 @@
 			The clock is actually bit slice -1 because it is so crictical for the address generation on the file and skew in the ALU.
 			Maybe I just need some whitespace. And I place the stupid multiplexors somewhere in the corner.
 		</p>
+		<p>With busses between file and ALU, it might be interessting to delay the multiplexor switches. 4 in total? The should swicht in the moment when the new singal arrives.
+			Then there is the shift multiplexor after the ALU and for arithmetic the carry lookahead switcher. The nice thing of a 4x4 look-ahead is that this timing is not more complicated than the rest of the CPU.
+			Yeah maybe use Manchester to equalize the timing and still get away with 3 phases.
+			Manchester is not for me. Binary carry look ahead has this write back aka generate propage registers. I need these anyway, so I can use them to fix the timing. 4 levels of the tree, 4 triggers.
+			I already have 4 for the multiplexers. So now it does not look excessive anymore. In addtion there are the config lines to active arithmetic at all. Multiplexers to select NOT (for SUB) select the carry.
+			I don't want spurious blinking. So there would be a latch before the look-ahead logic? Logic instructions feed right back (short turn).
+			Shift for MUL and DIV happens after. MUL shifts the "carry" to the right. DIV shifts in carry  after the subtraction.
+			Can I access these on the way back? So I may use them alone! No a+a is like shift right because it would blink so much.
+			So bascially, I just dealt in an input register. Something MIPS told me not to. And this register would need to old two summands to keep the carry logic stable. I should switch to CMOS already.
+			In NMOS the carry would just go dark. No latch, just : input is blocked.
+			When I need NOT in front I rather would like to have a balanced signal. I need single sided on the multiplexer to keep them small.
+			But 6502 has the not in front of the ALU. Weird. Does logic need balance? NAND, NOR may differ a little unblanced. So there would be transients on XOR.
+			So SUB uses crossed NAND and NOR. I need to load a latch crossed to symmetrize both summands.
+		</p>
         <title>6502 like layout ordered by significiance of bits</title>
 		<h2>Gate delay</h2>
 		<p>
@@ -208,6 +222,10 @@
 			Now how do I push or branch? Branch is easy. Peek the current address. ALU puts the new address on the bus, and InstructionPointer records it. Even JRSISC has a waite state here somewhere.
 			Ah, ALU-File parts writes the address and stack stores. This would be a two cycle instruction. Not so nice. So SP sits in the register file at 4 -- beyond the address range in the RISC set.
 			The bus sits at 5.
+			There is not much to save with 8 bits because I have to map them to the 16 bit registers anyway and cost is like a 16 bit multiplexer.
+			Only thing I could do is to split the File into low and high bytes. 3 address generatos. The center write geneator can activate bytes in any combination.
+			Alternative: More compact and standard file. The 8 bits are collected externally. This would mean more transistors. Probably the smart solution: Multplexer in front of moves one byte onto itself.
+			How about timing? I just decoded the instruction and the low byte is there, now. I need to open read first .. so with a delay line? But this timing is not canonical (it all starts in the file).
 		</p>
 		<h2>size of the components</h2>
 		<p>
