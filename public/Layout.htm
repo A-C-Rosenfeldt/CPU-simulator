@@ -79,6 +79,21 @@
 			Then I can place some NANDs inside and connect to low and high byte.
 		</p>
 		<h2>ALU and register-file</h2>
+		<p>
+			Quite a few control lines are needed to select the correct output of the ALU. Carry lookahead has its dedicated latch in the tree, and also uses the standard write back latch.
+			The final operation is an XOR. It is asymmetry because the write back data is there first. So again a multiplexer is used: The carry data selects between the balanced outputs of the write-back latch.
+			I want ALU and file to be close and think that it is okay to implement shift as multiple taps on the internal data bus.
+			I may or not may encode shift left as add, but what about rotate left through carry? Maybe I should use a multiplexer for both (I need parallel operation of sub and shift left for DIV anyways).
+			Less blinking when only shifting. Yeah, carry look ahead is blocked at the input by a control line. Logic looks clean because it sticks to the slices.
+			Shift is a mulitplexer, so only one tap will blink, and I need one tap to get on the bus anyway. It is like the situation in the file.
+			Discrete ALUs were available before .. yeah, seems like ALU is really my thing. Dataflow. It is okay to be invested into this part and to optimize for power consumption vs cost of a discrete ALU with more cooling budget.
+			Also the optimizations for MUL DIV make so much more sense with the tight integration, the scalar programming using a loop microcode.
+		</p>
+		<p>
+			NMOS loves precharge. I want to overlap precharge with the actual signal to minimize flicker ( sub-cycle blinking). Nice thing is that I can silence unused sub circutis using a simple NAND,
+			while CMOS looks better with latches. Unused parts keep the values from the last cycle. So 6 transistors vs 2. It is like a second write-back latch.
+			Also show why I should allow (unpaired) latches in my (CMOS) design.
+		</p>
 		<p>Even though the significiant invention was to integrate ALU and register, the ALU also has other duties: Passing the effective address through the file looks ugky,
 			already with 5 registers. Now allow reg-mem instructions (like JRISC MMULT) and it becomes totally nuts.
 			So multiplexors on the bit-lines (slices) need to connect to 16 crossing lines. A Load/Store architecture would still multiplex on the far side,
