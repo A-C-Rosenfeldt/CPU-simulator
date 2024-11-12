@@ -90,6 +90,20 @@
 			Also the optimizations for MUL DIV make so much more sense with the tight integration, the scalar programming using a loop microcode.
 		</p>
 		<p>
+			NAND to Tetris strikes again. Everything in nMOS seems to be a NAND. NOR would be possible for the ALU, but looks weird for the XOR after carry-look-ahead.
+			So I thought maybe have the same XOR before and after carry? I just need to accept inverters (gates which do nothing). Then I can use NANDs to query a truth table set by 4 control lines.
+			And the fun part is: This would give me a place for 3 gate NAND! Add becomes more and more a special instruction because it would need two outputs of this table.
+			How do I invert for SUB and compare? So this second truth table also needs to be set by control lines. At least I already have the balanced signal.
+			Truth table means equal signal delays. So it would be kind cool to latch the balanced signal after those pesky inverters. This may look better in animation.
+			How do I gate the entry to carry? There may be some synergy where I use a 3 gate NAND on the first escalation.
+		</p>
+		<p>
+			Timing wise it should not even be a big problem when I use 3 gate NANDs on a multiplexer to avoid a separate decoder. But then again, a decoder is only needed once per word, and 2-gate NAND is faster.
+			So when two gates of the NAND use a signal which has plenty of time, I combine them first. Also looks cleaner on the animation. I don't know why Logisim does not show gate propagation on screen.
+			Maybe it is more oriented towards usefulness. But the one thing about visual6502 which I did not like it that I cannot follow it.
+			So my simulation is all about intra cycle effects. A viewer may then advance to a multi-cycle instruction. I don't expect anyone to run whole programs on this (like Tetris).
+		</p>
+		<p>
 			NMOS loves precharge. I want to overlap precharge with the actual signal to minimize flicker ( sub-cycle blinking). Nice thing is that I can silence unused sub circutis using a simple NAND,
 			while CMOS looks better with latches. Unused parts keep the values from the last cycle. So 6 transistors vs 2. It is like a second write-back latch.
 			Also show why I should allow (unpaired) latches in my (CMOS) design.
