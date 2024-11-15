@@ -11,6 +11,51 @@
     <body>
 		<h2>After all, is it even possible to show physics in the same picture as logic?</h2>
 		<p>
+			I re-reviewed the literature about the MOSFET and it seems to be horrible. So it might really be interesting to show multiple gates ( up to 3 when I integrate latch gates with the last logic gate / adress generation).
+			It should be visible that a single wide gate or multiple smaller gates look the same to the electrons on the other side.
+			Instead of real 2d (or even 3d) electric field simulation, a row of atomic capacitors is used as model. Then I have not problem with electrons getting stuck between gates.
+			Still the "parasitic" capacity of the gate can be used to model realistic fan-out.
+			Unlike analog radio frequency devices, MOSFETs in real life, efficient gates work in or close to the Ohmic region.
+			So there should always be at least some conductors to communicate the field.
+			I don't want to use the bulk for the field to reach in because the thin gate oxide is similar to the thin PCBs on top of a ground plane : Traces are effectively shielded.
+			Of course for really good shielding in War this is not enough, but on a small scale and with limited contrast and imprecise calculation method I don't want to rely on second order effect.
+			In a vacuum tube electrons can fly for a long distance through free space towards the anode.
+			A transistor has resistance everywhere. I need a driving electric field. So indeed I need the Ohmic region: V_DS must not be shieleded completely by V_GS.
+			The dielectric needs to be thick enough and field lines may reach through the bulk depletion region.
+			So here I do a 2d simulation? With huge source and drain. So there is a homogenous field deep down. Then I can tune the influence of this vs capacity to let all transistors ride on the edge of the ohmic region.
+			The pull-up transistor in nMOS logic is supposed to work in the saturation region.
+			Just like in a tube I imagined free space between the gate and the anode. For all occuring voltages the elctrons are pulled through this.
+			The problem is that there is no charge to compensate for the charge of the electrons.
+			I think the solution is a gate with a fixed charge -- aka doping. A floating gate like in Eeprom.
+			This compensates the mean pull-up current charge density. Hi and Lo bend the potetial up or down, but the field always pushes to the anode.
+			</p><p>
+			Only CMOS is rail to rail. Sometimes CMOS looks like the simpler version. Multiplexers look clearly different from NAND. NAND needs multiple gates, while for nFET I need to justify then.
+			I can adhere to the convention of Vss on top an Vdd at the bottom (weird names though). Color for charge carrier and one color for electric potential. I have no space for funny arrows.
+			Adress generators and ALU is full of NANDs. All these other weird CMOS totem poles don't come in because they don't play well with control lines.
+			ARM2 has this weird inverter trick for ripple carry. I got confused because it should only work with carry for counters, but not for adders.
+			With adders we have (carry_in AND 01) OR 10. As with all common gate logic, signals get inverted. We have two gates, to inversions, and -- tada -- carry_out is not inverted relative to carry_in.
+			With CMOS this is even more clear because NAND vs NOR is just flipped. But then again the output of this goes into the next NAND. It is isolated.
+			I can see that in nFET this is indeed a wired-OR . But this does not help because then the next NAND would also be flipped into a NOR and isolation is lost and I only get the final carry,
+			but I don't get the actual sum bits leading to it. This may only be useful for RISC-V like branches.
+			Aparently, there is a circuit which assumes that the bits of the operands and the carry-in arrive at the same time, in a symmetric fashion.
+			The large body of work around carry shows that this is of zero relevance in a CPU.
+			Also with control lines in place, the lower transistor count of the locally-optimized generic full-adder vanishes.
+			Though, it has some nice 3-gate transistors!
+			The NAND or NOR sit the the same totem pole. Mult-gate transistors do not use common source transistors, but common gate. So no (second) inversion.
+			Half-adder increment is still a little faster thanks to the smaller totem pole.
+			At first I was so fascinated by those poles in TTL, but the CMOS examples scare me with their height. NAND,OR or OR,NAND is dual gate. In one of these I duplicate the gate to avoid Y splitters within.
+			Again, this is motivated by the wish to show the electric field ( between rail and signal ) and how we ride on the edge of the saturation region.
+			I am not here for Algebra.
+			Uh this totem pole also works for nMOS . I was just fooled because the multi-plexer method fails. Indeed: We do algebra!
+			Generation and propagatin lines in the binary carry-look-ahead tree work exactly like the ripple carry cell (on the way up at least). So inversion from level to level.
+			When I want to show single elctrons in each transistors, I surely have to show this detail.
+		</p>
+		<p>
+			Charge carrier density and velocity is most easy calculated with fixed cells (finite differences), but display seems to be clearer with electrons as particles.
+			Density does the real calcualtion, but I can track regions of charge and pull the tracer electrons with me. Actually, I once wanted to calculate this way, but it is difficult in a potential.
+			Finite elements were names like this because very similar to finite difference they act locally. Even after years of research I found no reason to not use finite difference in the this 1D simulation.
+		</p>
+		<p>
 			I re-read about ohmic region and saturation region on a MOSFT. I also found the Child-Langmuir (CL) law law for a vacuum diode. This law would be the short channel effect and does not describe the saturation region correctly.
 			To reproduce saturation and ohmic (for transfer gates), finite differences is the way to go.
 			Lots of micro MOSFET operating in ohmic region: Number of charge carriers is given by the charge on the micro capacitor.
