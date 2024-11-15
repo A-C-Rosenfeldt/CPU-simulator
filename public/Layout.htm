@@ -457,6 +457,24 @@
 			The ALU can do a RISV-V like compare in one cycle and calculate the branch in the next withouth being the bottleneck (ISA16?).
 		</p>
 		<p>
+			Regarding branches, since full Add is not really that slower .. The total count of transistors is not that much lower when I add a channel from Programm Pointer to ALU and back.
+			Multiplexing is not only expensive at the PP! Interesting would be a future case where the ALU calulates the comparision in a RISC-V branch,
+			a half adder calculates the next address if the branch is not taken, while a third adder calcualtes the address if taken.
+			How long does condidition vs flag evaluation take? Can the ALU do the next calculation in parrallel? I think not! Maybe with a deep pipeline.
+			A deep pipeline in the program pointer is similar to keeping two or three high bytes to cover this page: This pipeline needs to be refilled after a branch.
+			The lowest bits would increment on their own, while the high part flows through the pipeline.
+			I like this open pages approach more. With branches limited to +-128 bytes, they cannot leave my range of pages at once. While the branch takes place, and the low byte is calculated,
+			I have time to move my pages window by one page. Is this a real move? Oh, better only keep two pages. Still less transistors : two 8 bit adders instead of one 16 bit.
+			In the speculation case I need to keep open 3 pages. One is speculatively calculated from one of the others. The move depends on the condition evaluation.
+			For the low byte I need two values: Inc and Add. So: A lot of registers at the programm pointer :-( . But semantic is clear!
+			I still would guess that the incrementer is already finished when we fetched the jump length. So jump is relative from the instruction behind the immmediate8? Then just block write-back.
+			Too much state. First simulate the cost of a KISS branch without speculation! One control line and a full adder don't add as much complexity to this than all the state involved with open pages.
+			At least I now think that open pages need "value semantics". So the new pair of pages in calculated ( one is just a copy ) and then the write-back depends on the condition evaluation just as with the low byte.
+			A 16 bit counter only needs two gates more (tree up and down). So: is it really worth? Debugging surely is a nightmare.
+			Maybe later on when I optimize for super fast instruction fetch and super short critical path between AL operation and next fetch, I revise this.
+			Only a 4 bit counter as ripple carry is significiantly faster. And it is faster than the rest of my CPU design. So, no need without a deep pipeline and its 20 ways of stalling!
+		</p>		
+		<p>
 			A bridge to the IO bus is not such a problem for fan out. We have data connecting to reg out and reg in. The 8 bit bus can connect to all bytes of the 32 bit register,
 			but per bit line it only counts as a single parasisic capacity. Since I want at least 8 registers (8080), this is okay (keep the balance!).
 			ALU needs a separate out-register / write back register? Or more fan out from write. Or is there an IO latch? ALU spits out the address after adding the displacement. In the next clock the memory value is stored in the register.
