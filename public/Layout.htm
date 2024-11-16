@@ -59,6 +59,28 @@
 			Ripple carry over 8 gates on 4 bits is just so fast. And I would like to show at least some transistents.
 		</p>
 		<p>
+			So, look-ahead needs additional logic for the zero flag. It can have additional logic for the sign flag. Both I also want for logic (why sign on 6502?).
+			Maybe I do logic separately? I just need a few NANDs for my zero flag. Is still faster than carry because I can take two levels at once.
+			So how do I deal with control lines? I almost feel like setting up a truth table using NAND is the way to go.
+			In put latch to create a synced and balanced signal. Goes into PLA like NAND array. To switch between ADD and SUB and CMP I need to change this table for sum and carry.
+			XOR also likes this table. NOR likes the balanced signal. I fail to find a way to block logic signals from triggering blinking in the carry logic. So I need one more NAND / multiplexer.
+			To match signal propagation, the multiplexer acts on both sum and carry.
+			NOT,NEG,INC,and DEC can also be implemented this way. No additional default-value input is needed.
+			Truth table is easy to understand for noobs. No "clever" solution (to overlook) like in the carry logic. 3 gate MOSFETs are my favourite right now.
+			In an analog simulation I like to get the signal off the large bus from register to ALU. So a latch is nice.
+			Just now it feels like I need more phases? I already have this inverter line. So no transparency is introduced.
+			Though, indeed, a 32 bit latch here at least allows a short cut: Use the result of the previous instruction. No need to go over 6(!) NAND multiplexers in total.
+			Also here the latch is stupid. A mini register file would introduced new latches.
+			Yeah, for a more advanced design, I would likely have 4 local registers with 2 multiplexers in the way (JRISC interleave?). Same as for the programm counter.
+			So does this mean that the shifter NANDs are separte from the bus NAND?
+			Or is there no shortcut without us writing to the bus .. after all I isolated branches into the program counter.
+			I could even reuse operands from the previous instruction. A and B register like in 6502. Transparency on the shortcut dictates that I have two non-overlapping phases.
+		</p>
+		<p>
+			So flag calculation is quite optimzed. Flags are stored in a register. So I have a balanced signal available. The flag selection (2 bit address generator) and value condition (1 bit)
+			can be implemented by a row of 3-gate NAND (nice!). Ah, I gotta decode the instruction. How do I not select any flag? Gotta split the decoder in two parts in a tree?
+		</p>
+		<p>
 			So the direct vs data bus issue is really ugly. Data Registers are registers like the ones in the file or the PP. Clock comes, signal goes onto the bus.
 			To balance this, the simple solution is to use two busses (6502 does this).	Oh no, I need 3 because I want 3 ports between ALU and register file.
 			And I want no spurious blinkenlights in the file when I don't want to change data: I should look safe.

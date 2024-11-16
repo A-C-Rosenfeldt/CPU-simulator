@@ -27,13 +27,22 @@
 			Just like in a tube I imagined free space between the gate and the anode. For all occuring voltages the elctrons are pulled through this.
 			The problem is that there is no charge to compensate for the charge of the electrons.
 			I think the solution is a gate with a fixed charge -- aka doping. A floating gate like in Eeprom.
-			This compensates the mean pull-up current charge density. Hi and Lo bend the potetial up or down, but the field always pushes to the anode.
+			This compensates the mean pull-up current charge density. Hi and Lo bend the potential up or down, but the field always pushes to the anode.
+			Actually, charge on the gate is just an optimization.
+			Fact is that on saturation the channel is pinched off on the drain side. We have to separate reservoirs of electrons drifting around, separted by a depleted region similar to a diode in reverse voltage.
+			In contrast to the diode, one reservoire can spill over. Electrons move fast and with no way to return over the depleted region.
+			This makes me long for tubes. Maybe I will later make a tube version with fixed charge capacitors behind the electrodes?
+			Instead of an Ohmic region, I read that on an electron gun the pulling potential reaches through the hole in the Whenelt cylinder and touches down on the center of the cathode.
+			With more pulling voltage, more area is sucked on. Current is limited by the Boltzmann tail of high energy electrons which overcome the work function.
+			So there is not really Ohms law at work. Still, multiple gates in a pentode seem to be a problem for me. Just so complicated. I need the annode to reach through 3 gates??
+			Or I have gates in between connected to positive supply voltage to suck away the beam when a later electrode blocks.
+			Still feels more advanced than a MOSFET ( in terms of complications in explanation, display, simulation ).
 			</p><p>
 			Only CMOS is rail to rail. Sometimes CMOS looks like the simpler version. Multiplexers look clearly different from NAND. NAND needs multiple gates, while for nFET I need to justify then.
 			I can adhere to the convention of Vss on top an Vdd at the bottom (weird names though). Color for charge carrier and one color for electric potential. I have no space for funny arrows.
 			Adress generators and ALU is full of NANDs. All these other weird CMOS totem poles don't come in because they don't play well with control lines.
 			ARM2 has this weird inverter trick for ripple carry. I got confused because it should only work with carry for counters, but not for adders.
-			With adders we have (carry_in AND 01) OR 10. As with all common gate logic, signals get inverted. We have two gates, to inversions, and -- tada -- carry_out is not inverted relative to carry_in.
+			With adders we have (carry_in AND 01) OR 10. As with all common source logic, signals get inverted. We have two gates, to inversions, and -- tada -- carry_out is not inverted relative to carry_in.
 			With CMOS this is even more clear because NAND vs NOR is just flipped. But then again the output of this goes into the next NAND. It is isolated.
 			I can see that in nFET this is indeed a wired-OR . But this does not help because then the next NAND would also be flipped into a NOR and isolation is lost and I only get the final carry,
 			but I don't get the actual sum bits leading to it. This may only be useful for RISC-V like branches.
@@ -66,6 +75,18 @@
 			Self-consistent iteration gives us higher carrier density at the souce, but a weak field, to achive the same current as the low carrier density, but stronger field at the drain.
 			This works well with multiple gates. Space charge is there. This carrier density makes the field thing is space charge, albeit in one dimension.
 			A CCD would work -- even a charge pump.
+		</p>
+		<p>
+			The pull-up transistor works in the saturation region. For low power consumption, saturation is good. For fast switching back it is not so good. But CMOS also ends up deep in saturation.
+			I never understood LS TTL. So I just "pivot" to low energy. When passing the high border of the undefined region, pull-up becomes Ohmic to finally saturate the signal (not itself) -- uh at the rail?
+			I think, speed is achived using low voltage swing in ECL. No need to compete with ECL here. Maybe I will include a ECL implementation with real temperature and real (low) voltages
+			to show how fast it would be. Real GaAs NPN .. Oh, it is not high mobility . Still faster than silicon.
+		</p>
+		<p>
+			An (CMOS) inverter when the output signal saturates, enters the Ohmic region in one transistor, while the other needs to prevent any leakage.
+			Leakage is not about ohmic vs saturation(pinch off), but VGS . So we need to be below the threshold voltage. Cross over is in the middle between the rails.
+			Threshold in pull-up is totally different. I don't have a color for this. Also ideally it would be polarisation within the dielectric = ferro-electricity.
+			So I draw the nMOS pole downwards, and the pull up on top. Pull-ups have this self gate routing, but the others have not. So it can already be identified! So I am flexible with the layout.
 		</p>
 		<p>
 			React looks a lot like HTML and puts emphasis on the XML attributes just like HTML. When I used React, the CSS wyas the same. Maybe we should change HTML to JSON, so that we don’t need to learn a second syntax with all those escape sequences. 
