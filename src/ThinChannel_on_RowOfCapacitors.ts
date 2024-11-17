@@ -1,6 +1,19 @@
 import {  SimpleImage } from './GL.js';
 
-class Wire{
+interface Wire{
+	current(voltage:number):number
+}
+
+class Stub implements Wire{
+	voltage:number
+	resistance:number
+	current(voltage:number):number{
+		return (voltage-this.voltage)/this.resistance
+	}
+}
+/*
+class LongWire implements Wire{
+	
 	impedance: number;
 	solve(){
 		back_current=forh_current + current_to_gate
@@ -14,31 +27,25 @@ class Wire{
 	voltage(){
 		return back_voltage+forth_voltage
 	}
-}
+}*/
 class Gate{
 	capacity_to_GND:number
 	len:number
-	V_GS:number // With multiple gates this is measured at the point closest to the source 
-	solve(totalCharge:number){
+	V_G:number // With multiple gates this is measured at the point closest to the source . Gates are simulated voltag -> charge -> voltage -> charge . I need this for mutliple gates with meaningles V_GS
+	charge:number
+	dielectric_thickness: number;
+	wire:Wire = new Stub()
+	propagete_charge_2_voltage(net_Potential:number):number{
 			// Metal   mirror charge on one side to compensate the channel. 
 			// Mirror charges is mathematical charge living deep in the metal. Real charge sits on the surface
 			// The distribution is given by the need to eat the field lines. That is where dielectric thickness comes into play
 			// Evenly distributed charge on the other side to let the gate float until Ohmic relaxation.			
-			this.V_G / distance_to_GND  +  sum_of_potential(+VGD ?) / dielectric_thickness = net charge on gate
-			let current=(this.VG-Wire.V )/ wire.impedance  
-
-			// Gate
-			// cable: Ohmic = defined impedance cable
-			let V_G=sum_p/this.len-carrier_on_gate+this.V_GS // V_S is given by supply rail ( by extension also to later gates?)
-			carrier_on_gate+=V_G/this.gate.impedance // avtuslly resistance * capacity to ground (in the cable? Move away from cable?)
-
-			let avg_carrier_on_gate=carrier_on_gate/sum_p
-			this.element.forEach((e,i)=>{
-				e.carrier[0]=avg_carrier_on_gate*potential[i]
-			})
-		}	
+			return this.V_G / this.capacity_to_GND  +  (this.V_G- net_Potential) / this.dielectric_thickness
+	}
+	propagete_voltage_2_charge(voltage:number){
+		this.charge += this.wire.current(voltage)
+	}
 }
-
 class Capacitor{
 	capacity:number=1;  // for the whole elctrode backsite. Small compared to gate dielectric. I may give the channel capacity to ground and then not tota .. I don't see any advantage. There is no field along a metal electronde!
 	carrier:number[]=new Array<number>(1) // 0=gate side, 1=channel . Usually they compensate each other. 
@@ -82,7 +89,8 @@ class Channel{
 	source:Source
 	conductivity=1
 	channel: number[];
-	solve(){
+	V_GS: number; // at the start of the channel: The first gate
+	solve():number{
 		let field=0,potential=this.V_GS,carrier_on_gate=0,sum_p=0
 		this.element.forEach((e,i)=>{
 			field+=e.divergence() // After solution, field within the electrode is zero. All is in the channel. Carrier density in the elctrode mimics this potential.
@@ -92,11 +100,9 @@ class Channel{
 			sum_p+=potential
 			carrier_on_gate+=e.carrier[0]
 		});
-
-
 		
 		// semiconductor in channel
-		// source . Drain gets the same pppulation. Should have no effect usually. For a transfer gate it is exactly what we want
+		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
 		this.element[this.len-1].carrier[1]=this.element[0].carrier[1]=this.source.population
 
 		let next_channel_carrier=new Array<number>(this.len-2)
@@ -104,15 +110,16 @@ class Channel{
 			next_channel_carrier[i] = this.element[i+1][1]+Math.abs(this.field[i])*this.conductivity*this.element[i+Math.sign(this.field[i])].carrier[1]
 		}
 		this.channel=next_channel_carrier
+
+		return carrier_on_gate + this.V_GS
 	}
 }
 
 class MosFet{
 	gate:Gate
 	channel:Channel
-	solve(){
-		this.channel.solve()
-		this.gate.solve()
+	solve(){		
+		this.gate.propagete_charge_2_voltage(this.channel.solve())
 	}
 	constructor(){
 		let len=30
