@@ -137,6 +137,13 @@ lattice:Liquid_Cell[][][] // t & 1 , y , x ( row major .. like I have row object
 t=0
 }
 
+
+class StateEquation{
+	pressuer(particle_count:number, temperature:number):number
+	{
+		return particle_count*temperature // todo: Space -self - charge? Density ^2 ?
+	}
+}
 //class Vector{}
 
 // transpose of liquid lattice. interface vs imp
@@ -271,7 +278,7 @@ propagate(){
 
 			if (i>0 && k>0){  // i,k count backwards? void function with return or switch with break? JS like all the C lika languages has continue
 				//force
-				force=stress[i+1][k]-stress[i][k]+stress[i][k+1]-stress[i][k]  // I need stress on the same locations as the strain ( main component )
+				let force=stress[i+1][k]-stress[i][k]+stress[i][k+1]-stress[i][k]  // I need stress on the same locations as the strain ( main component )
 				impulse+=force // vector add
 			}
 

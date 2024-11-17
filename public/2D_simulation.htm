@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hello World</title>
+    <link  rel="stylesheet" type="text/css" href="color.css"/>
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+
+</head>
+<body>
+    <style>
+        body{
+            background-color: rgb(20, 52, 56);
+            color: white;
+        }
+    </style>
+    <h2>Transistor Technology</h2>
+    <p>The body diode may look cool if I picture it as electrons bouncing on a flat surface with gravity. I reliefs me of the need to double electrodes. The "diode" needs a contact,
+        or really in this case, a strong negative charge barrier to prevent any electron to travel to the other side. Only strange effects would result from this.
+        Though a shared source may be allowed and a shared drain. I kinda love to see inertia of Navie Stokes running over the flat surface. Bends will disctract ( and cost compute ).
+        So no nodes with multiple incoming or multiple outgoing semiconductors. The charge barrier is made of point charges ( which saturate the display) over the electrodes
+        because we have trouble enough to let charge jump from one gate to the other because I don't want to dope the channel.
+        But I need space charge for n-MOSFET as in 6502. CMOS does not need it.
+    </p>
+    <p>So enhancement mode MOSFETs need a doping profile and their body diode. This is all nice and dany, but I run out of color channels.
+        So motivated by tubes and high electron mobility transistor, I think I will display a carbon nanotube transistor.
+        The tube is pure C. It has some radius and helix pattern (not shown) which makes it an undoped semiconductor.
+        It can carry negativ charge like an ion. Since we still assume multiple electrons (on the whole tube) there is space charge which tries to make all charge go away.
+        Even a single charge would have the tendency to be attracted by any opposite charge. Quantum mechanics tells us the energies of ionisation.
+        Ring shaped electrodes of repelling charge ( a lot of it ) confine the free charge axially like in a Paul trap.
+        I really should think about big tubes, or even films, to get the scales right.
+        Though a little bit it fits: Low number of charge on the tube, high number on the repelling rings, which are either made of a doped crystal ( easy to display ),
+        or a ferroelectric with negative charge inside ( more realisitc ).
+        Now the gate sits around the repelling charge. The charge floats, the gate has a voltage releative to the ground metal tube which surrounds the trapping area.
+        Fields add up, and the gate can open the trap. Multiple gates along the tube even without ground can implement a charge coupled device.         
+    </p>
+    <p>
+        Electrons are blue typically. For the voltage I could green. Then we have different levels of red for
+        insulator, semicdonductor, metal, and metal charged with the opposite charge.
+        I could also say that the green field is not shown inside metal.
+        Green needs to be the charge and blue the field. The field is also in the insulator and easy to see.
+        Basically, I don't want any field shown, where current flows. I am obsessed with linear scale ( gamma factor ) and small leakage current.
+        Ah, no, we need the field, the potential. Maybe in n-MOS we can make Vdd green. So the switching part is darker. Only the const current drain is green.
+        I mean, I like to show off the space charge there.
+        Anyway, we need a legend and probably a way to let the user (tester (me)) switch the colors.
+    </p>
+    <p>
+        Gates will always have a slightly opposite charge due to the floating ring. The drain will have this color. They should be close to each other.
+        The bandgap would dictate that the semiconductor gets the lighter red, but to show off the dynamic there, it gets red=0.
+        So we clearly need a legend which explains every red, not just the whole channel.
+    </p>
+    <p>
+        The poses no routing problem. When animation runs, the eye sees the synced operation of the opposite side of the ring.
+        I could draw a 3d ring, but it must never hide the carbon nanotube. Maybe half an electrode like in a normal MOSFET also works good enough? Can give me an OR gate.
+    </p>
+    <h3>WebGl for printf</h3>
+    Just setting RGB on a line of pixels and let the browser display a square canvas on screen. <br/>
+    <!-- <canvas id="GlCanvas" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas> -->
+    <p class="bandGap_insulator"> Insulator </p>
+    Color Codes for the fild (left image ): red=bandgap, blue = charge density <br/>
+    Differential equation as Matrix. green=positive, red=negative . Adding more features going from left to right  <br/>
+    <canvas id="FieldGl0" width="540" height="100" style="border:1px solid #000000;" class=""></canvas>    
+    <br/>
+    <h3> display values in a matrix and then add a row to another. Test spare (run length (the dark panels)) data-structure </h3>
+    <!-- <canvas id="MatrixCanvasGl"  width="100" height="100" style="border:1px solid #914242;"  class=""></canvas>     
+    <canvas id="MatrixCanvasGl0" width="100" height="100" style="border:1px solid #24803f;"  class=""></canvas>     
+    <canvas id="MatrixCanvasGl1" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>         
+    <canvas id="MatrixCanvasGl5" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+    <canvas id="MatrixCanvasGl15" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+    <canvas id="MatrixCanvasGlSwap" width="100" height="100" style="border:1px solid #23E;"  class=""></canvas> -->
+    <canvas id="MatrixCanvasGlSwapMiddle" width="760" height="100" style="border:1px solid #28E;"  class=""></canvas>
+    There do exist test cases or matrix inversion. I have no pivot, so can only test small rotations.
+    <script src="TestGl.js" type="module" ></script>
+  
+    
+    So checking the Canvas by drawing a line, then checking if a single entry in matrix is displayed ( dispalyed down here because it is boring) <br/>
+    <!-- <canvas id="MatrixCanvas" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>     -->
+    <script src="TestEnforcePivot.js" type="module" ></script>
+    
+ 
+    <script src="TestFields.js" type="module" ></script>
+
+    <br/> Now some bands generated from a smaller ( 4x4 ) field .
+    But what part? How to see? Test? I should start with simple boundary and not electrodes and then plot the field. There are tests like that which in first pass exposed indefinite matrix
+    <br/> 
+    <!-- <canvas id="FieldGl0_field" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
+    <canvas id="FieldGl0_mat" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
+    <canvas id="FieldGl0_tri" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
+    <canvas id="FieldGl0_NoSwap" width="100" height="100" style="border:1px solid #000000;"  class=""></canvas>
+    <canvas id="FieldGl0_tri_blank" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+    <br/> -->
+     But first we check the matrix by changing voltages on cells.
+    Now rows appear as Green functions. (there do exist test cases already, but we want eye candy) <br/>
+
+    ToDoubleSquareMatrixSortByKnowledge() connects metal.<br/>
+
+    <p>Now I apply Matrix math to the field. We have test cases (automated). We love them all so, copy</p>
+    <canvas id="FieldGl" width="300" height="300" style="border:1px solid #000000;" class=""></canvas>
+    <br/>    
+
+    <p>
+        Going from right to left:
+        Green starts occupied cells and reds starts a gap.
+        Already in a dense matrix algorithm we would not actually store the columns which just hold unity. Even with a threshold for charge changes, we don't win much.
+        Localization per gate/electrode is still the best bet. So a thin slab of silicon.
+    </p>
+    <canvas id="inverse" width="1900" height="300" style="border:1px solid #6e2480;"  class=""></canvas>
+    <p>
+        So we could say that on a sparse matrix the number of calculation is about half. The minor diagonals don't really help us. Meander?
+    </p>
+
+    <p>Multiply the matrix with the voltage of the electrodes vector (top) to get the field (bottom). Examples from left to right from simple to complicated</p>
+    <div class="grid-container">
+        <!-- <div class="grid-item">
+            <canvas id="FM_2d" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="FM_2d_processed" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>        
+        <div class="item1">
+            <canvas id="FM_Square" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>
+        <div class="item1">
+            <canvas id="FM_Square_processed" width="100" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div> -->
+
+        <div class="grid-item">
+            <canvas id="FM__example" width="320" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>
+        <div class="item1">
+            <canvas id="FM__example_processed" width="320" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>        
+    </div>
+    <script src="TestFieldPlusMatrix.js" type="module" ></script>
+
+    <h2>Surface charge</p>
+    <h>I don't need prior images because I trust the colors. I may need the 6x6 matrix and show the swapped columns.</h>
+    <div class="grid-container">
+        <div class="item0">
+            <canvas id="metal_charge_matrix" width="1800" height="360" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>
+        <div class="item1">
+            <canvas id="metal_charge" width="150" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>
+        <div class="item2">
+            <canvas id="surfac_bulk" width="1000" height="100" style="border:1px solid #6e2480;"  class=""></canvas>
+        </div>        
+        <script src="TestChargeOnMetal.js" type="module" ></script>      
+    </div>    
+
+    <h2>Atmosphre</h2>
+    <p> Gas in gravity over a flat surface. Or electrons in an homogenous electric field over the gate oxyde.
+        Make this interactive
+    </p>
+    <canvas id="gas" width="300" height="360" style="border:1px solid #6e2480;"  class=""></canvas>
+    <!--script -src="NavierStokes.js" type="module" -->
+    <ol>
+        <li><button> with gas</button></li>
+        <li>then turn on gravity</li>
+        <li>n dope regions to puddle more gas there</li>
+        <li>gates</li>
+        <li>electrodes</li>
+        <li>charge influences electric field (see previous chapter)</li>
+    </ol>
+    <p> Do I simulate gate oxyde leakage and body diode current?</p>
+    <h2>Field-emission needs an extra anode and distracts from logic</h2>
+    <p>Beam forming might be interesting on its own. I imagine a kind of beam pentode which creates lots of rays from a single wire cathode. I could use those in some deflection plate logic.</p>
+    <canvas id="EmissionFromMetal" width="400" height="360" style="border:1px solid #6e2480;"  class=""></canvas>
+    <script src="EmissionFromMetal_Demo.js" type="module" ></script>    
+    <h2>Roadmap</h2>
+    <ol>
+        <li> Electron emission on interface between metal and semiconductor </li>
+        <li> verlet integration with white pixels as electrons. Or do cyan? Red==0 means metal. I don't simulate electrons in metal. Draw polyline using WebGl .. in full resolution. </li>
+        <li>Cosine generators with 1,2,3 s periods 3 independant electrodes and to test out performance with animation. I swapped voltage in the pictures above
+            It makes me nervous when an animation runs while I debug my code.
+        </li>
+    </ol>
+        
+        <p>
+    Matrix inversion does not find lucky 0.0. I could try to meander and to define a cut-off value. Faraday cage test fields?
+    
+</p>
+<p>
+    To choose a way to meander of if even I need more eleborated fields. So I concentrate on a working prototype. Sorry for the time used for RLE, but that was on my list for many reasons.
+    I already wrote code for contacts. So I should apply phase shifted sine waves to many contacts. Window.SetTimeOut() should work well on canvas. I give it a play button with second degree time out:
+    " let it play for 30 s at 20 fps ". That should not run hot on any notebok
+</p>
+<p>
+    I alread wrote some code with regards to the electrons integration. I should now render a verlet animation of just a lot of points over the field ( color? ).
+</p>
+    <!-- would need  MDN.createWebGLProgramFromIds() --><script id="vertex-shader" type="x-shader/x-vertex"></script>
+
+    <!-- type="text/javascript"   <canvas id="GlCanvas" width="600" height="400" style="border:1px solid #000000;">
+
+    </canvas> -->
+
+    <ul>
+        <li>Add slider</li>
+        <li> do poisson based on gate (with all other borders at ground potential</li> 
+        <li> multiple gates. </li>
+        <li> random charge density </li>
+        <li> current </li>
+        <li> Test in <a href="https://mochajs.org/">Mocha</a>Mocha</li>
+    </ul>
+
+    <form>
+        <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+    </form>
+
+    <!-- <script src="helloworld.js" type="text/javascript" ></script>
+    <script src="gl-matrix.js" type="text/javascript" ></script>   
+    <script src="GL.js" type="text/javascript" ></script> -->
+    <h2>Appendix</h2>
+    I tried to draw square, flat pixels in Canvas2d, but it was more difficult:<br/>
+    <canvas id="FieldsCanvas" width="100" height="100" style="border:1px solid #000000;" class=""></canvas>
+    <p>
+        It looks like my transistors will all be linear NAND type. For CMOS I would have different doping, but only the sign changes. Every gate is also a transfere gate.
+        The doping around both, source and drain, makes sure that only the correct carriers enter the channel, no matter which electrode assumes which role at a time.
+        NMOS additionally has this constant current pull up. This is a small improvement on a resistor. So it should only me small. Also it is a single transistor actually, no totem pole.
+        For the NAND / CCD type transistors obviously each electrode could be a segment. So there would be the first and last electrode and intermediate electrodes.
+        I solve them going ping-pong (remember: transfer gate ) along the line. Boundary condition is the calculated potential (iterative solution) and the electrode.
+        Now the elctrode is connected to my slow motion coax cables, so will change iteratively. Only the own, current electrode has the resistance factored into the matrix.
+    </p>
+    <p>
+        This way the matrices are small enough for brute force inversion at loading time, and multiplicaton at run timee. All segmentation artifacts can easily be identified because they align with the electrodes.
+        The information is leaping from electrode to electrode. Each electrode is like 10 grid cells large. In other words: When mapping electron density from one frame to the next,
+        the elctrons are allowed to jump like 5 cells. A 4 NAND needs 8 frames to turn on. For a smooth animation I will elongate this to like 16 frames.
+        A learner can only understand 1 simulated CPU cycle per second. So even at 16 fps on old hardware we are good.
+    </p>
+    <p>
+        I had this dream of free electrons in the semicdonductor, but unlike CCD and pull-up current source this dream is not grounded in reality.
+        Instead, the lack of metallic gates remove shields and make computation and understanding difficult. A finfet would be even esiear and in fact the pull up is like this.
+        But for the CCD I don't want complicated routing and I want to show the field next to the current to not only rely on color to distinguish current and voltage.
+    </p>
+    <p>
+        I hate that I don't understand the metal semiconductor interface. Same with
+        Tube cathodes. Yeah tubes come later. I prefer beam tubes. The gates then become deflection plates which may kick out the beam. It is pretty boring actually, compared to the CCD and pull-up MOSFETs.
+        The only intersting part is the gun. Tubes have this hot center wire. I dream of aligned grids which produce multiple beams going out like rays from a star. Magnetic opic takes away too much space.
+        So basically the beams would be coming from outside. So what I actually need to do here to satisfy my curiosity is a full blown quantum mechanical calcualtion about surfaces and interface (Si - SiO2).
+    </p>
+</body>
+</html>
