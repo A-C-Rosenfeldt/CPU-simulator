@@ -88,7 +88,7 @@ class Channel{
 	gate:Gate
 	source:Source
 	conductivity=1
-	channel: number[];
+	carrier_density: number[];
 	V_GS: number; // at the start of the channel: The first gate
 	solve():number{
 		let field=0,potential=this.V_GS,carrier_on_gate=0,sum_p=0
@@ -109,23 +109,37 @@ class Channel{
 		for(let i=1;i<this.len-1;i++){
 			next_channel_carrier[i] = this.element[i+1][1]+Math.abs(this.field[i])*this.conductivity*this.element[i+Math.sign(this.field[i])].carrier[1]
 		}
-		this.channel=next_channel_carrier
+		this.carrier_density=next_channel_carrier
 
 		return carrier_on_gate + this.V_GS
 	}
 }
 
 class MosFet{
+	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
+	channel2bitmapRow(current_Row: Uint8Array, p0: number) {
+
+    for (let i=0,k = 0; k < this.channel.len;) {
+      // bluescreen
+      current_Row[i++] = 0
+      current_Row[i++] = this.channel.potential[k]
+      current_Row[i++] = this.channel.carrier_density[k++]
+      current_Row[i++] = 255
+    }
+
+	}
 	gate:Gate
 	channel:Channel
 	solve(){		
 		this.gate.propagete_charge_2_voltage(this.channel.solve())
 	}
-	constructor(){
+	constructor(threshold:number){ // for CMOS this would be channel carriers polarity. Kinda in a real MOSFET it all boils down to doping (with sign).
 		let len=30
 		this.gate.len=len // singel gate
 		this.channel.len=len+2 // reservoir in source and drain
 	}
+
+
 }
 class Source{
 	population:number=1 // needed for tuning. Physcially it is source temperature and doping. Same in cathode : temperature and work function. I don't do field effect here anymore
@@ -133,3 +147,5 @@ class Source{
 		return voltage * this.population
 	}
 }
+
+export {MosFet}

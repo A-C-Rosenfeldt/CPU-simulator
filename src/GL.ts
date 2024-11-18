@@ -9,7 +9,9 @@ class AttribNameRange {
 }
 
 // CanvasId is a string because I do not reuse the object and thus the caller only has the string in sourceCode
-export function field2Gl(canvasId: string, data: SimpleImage[]) {
+export function field2Gl(canvasId: string, data_reboot: SimpleImage| SimpleImage[]) {
+
+if (Array.isArray(data_reboot)){var data=data_reboot} else {var data=[data_reboot]} // low entrance barrier -> good usage of screen space
 
   const gl = (document.getElementById(canvasId) as HTMLCanvasElement).getContext("webgl");
   if (!gl) {
