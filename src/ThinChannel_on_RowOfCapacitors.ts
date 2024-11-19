@@ -33,9 +33,14 @@ class Gate{
 	len:number
 	V_G:number // With multiple gates this is measured at the point closest to the source . Gates are simulated voltag -> charge -> voltage -> charge . I need this for mutliple gates with meaningles V_GS
 	charge:number
-	dielectric_thickness: number;
+	dielectric_thickness: number=1;
+	polarization:number=0
+	capacity_per_element: number;
+	constructor(){
+
+	}
 	wire:Wire = new Stub()
-	propagete_charge_2_voltage(net_Potential:number):number{
+	propagete_to_field(net_Potential:number):number{
 			// Metal   mirror charge on one side to compensate the channel. 
 			// Mirror charges is mathematical charge living deep in the metal. Real charge sits on the surface
 			// The distribution is given by the need to eat the field lines. That is where dielectric thickness comes into play
@@ -45,7 +50,13 @@ class Gate{
 	propagete_voltage_2_charge(voltage:number){
 		this.charge += this.wire.current(voltage)
 	}
+	divergence(potential:number,charge_density:number):number{
+		let charged_bound_by_capcitor=(potential-this.V_G)*this.capacity_per_element
+		return charge_density-charged_bound_by_capcitor
+	}
 }
+// Capacitor as an object is not compatible with the simulation loop over time and alternating between carriers and field
+// static information is per gate
 class Capacitor{
 	capacity:number=1;  // for the whole elctrode backsite. Small compared to gate dielectric. I may give the channel capacity to ground and then not tota .. I don't see any advantage. There is no field along a metal electronde!
 	carrier:number[]=new Array<number>(1) // 0=gate side, 1=channel . Usually they compensate each other. 
@@ -55,8 +66,9 @@ class Capacitor{
 		// So even with gates: charge -> electric field
 				return this.carrier[1]-this.carrier[0]+this.polarization
 	}
-
 }
+
+
 class Channel{
 	len:number
 	element:Capacitor[]
@@ -85,15 +97,16 @@ class Channel{
 
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 
-	gate:Gate
+	gate:Gate[] // nMOSFET with single gates was used by Commodore for high frequency circuits, but generally, MOSFETs strive on multiple gates
 	source:Source
 	conductivity=1
 	carrier_density: number[];
+	
 	V_GS: number; // at the start of the channel: The first gate
-	solve():number{
+	propagate_to_field():number{
 		let field=0,potential=this.V_GS,carrier_on_gate=0,sum_p=0
 		this.element.forEach((e,i)=>{
-			field+=e.divergence() // After solution, field within the electrode is zero. All is in the channel. Carrier density in the elctrode mimics this potential.
+			field+=this.gate[0].divergence(this.potential[i],this.carrier_density[i]) // After solution, field within the electrode is zero. All is in the channel. Carrier density in the elctrode mimics this potential.
 			potential+=field
 			this.field[i]=field
 			this.potential[i]=potential
@@ -128,10 +141,17 @@ class MosFet{
     }
 
 	}
-	gate:Gate
+	gate:Gate[]
 	channel:Channel
-	solve(){		
-		this.gate.propagete_charge_2_voltage(this.channel.solve())
+	solve(){ // self consisten  /  fine time-steps		
+		[avg_potential]=this.channel.propagate_to_field(V_G)  // I need the real V_G as in the 2d simulation. There may be some mathematical shot cuts, but it probably has no educational worth and does not help debugging. And is there really? V_G globally pulls in carriers. In the end (haha pun) this is V_GS. The main parameter in any textbook (channel potential is pinned to V_S on the source site. While solving, this (information) propagates through the whole channel) . This an the next call replace the 2d poisson solution of the grid based simulation.
+		this.gate.forEach(g=>{
+			g.propagete_to_field( avg_potential  );// field to voltage using capacity. No array. Metal is mixes carriers and fields. I could claim high dielectric constant, but that would be difficult to solve
+			g.propagete_to_carriers()  // Ohmic resistor to wire. No array  // 
+	});
+		this.channel.propagate_to_carriers()  // Ohmic from element to element
+
+
 	}
 	constructor(threshold:number){ // for CMOS this would be channel carriers polarity. Kinda in a real MOSFET it all boils down to doping (with sign).
 		let len=30
