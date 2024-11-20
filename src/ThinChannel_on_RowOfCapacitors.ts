@@ -130,7 +130,7 @@ class Channel{
 
 class MosFet{
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
-	channel2bitmapRow(current_Row: Uint8Array, p0: number) {
+	channel2bitmapRow(current_Row: Uint8Array, V_source: number, V_drain: number) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
 
     for (let i=0,k = 0; k < this.channel.len;) {
       // bluescreen
