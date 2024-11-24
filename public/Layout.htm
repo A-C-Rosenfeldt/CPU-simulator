@@ -59,6 +59,15 @@
 			Ripple carry over 8 gates on 4 bits is just so fast. And I would like to show at least some transistents.
 		</p>
 		<p>
+			Flags do cost extra. Look-ahead logic works for a zero flag, but needs additional gates. And we still it feels weird to activate the full blown carry logic,
+			for logic functions and shifts. A common zero flag on the result only needs 4 NANDs to compact 4 bits and then a wired or (inverted signal) going to
+			a NAND of a RS flip-flop. So evaluate on the way back. Same for sign. Logic is faster. So carry after A is as fast as all flags after L.
+			Only sign and zero after A may need an additional cycle inside the branch instruction or push flags ( ADC and ROR only use carry).
+			Overflow also needs some gates to grab the xor of the operands signs and compare it with carry? No compare with output sign. Feels so weird. Carry would be faster.
+			Output sign is offical ( - - should never give + ). You could deduce sign from carry in a fast way. So xor was 0 .. then carry will not tell us about sign due to carry-in.
+			Ah, carry is useless. Sign needs to be checked after rotation to keep transistor count low.
+		</p>
+		<p>
 			So, look-ahead needs additional logic for the zero flag. It can have additional logic for the sign flag. Both I also want for logic (why sign on 6502?).
 			Maybe I do logic separately? I just need a few NANDs for my zero flag. Is still faster than carry because I can take two levels at once.
 			So how do I deal with control lines? I almost feel like setting up a truth table using NAND is the way to go.
