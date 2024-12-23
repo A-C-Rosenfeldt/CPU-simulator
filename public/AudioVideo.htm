@@ -6,6 +6,7 @@
     </head>
     <body>
         <h1>Video</h1>
+        <p>I love simpe CPUs and I love 3d. This does not really go together, but I try.</p>
         <h2>Texture mapped triangles: Rasterizer for a memory with a databus 4 times as wide as a px and a technology node which allow a hardware multiplier on die.</h2>
         <h3>Alignment and fast page mode</h3>
         <p>Triangle rasterization works best line by line. A framebuffer most of the time is organized line by line for easy readout to the screen.
@@ -50,6 +51,80 @@
         <h3>Division and multiplication</h3>
         <p> For small triangles which are not more wide than 16px or more heigh, the best bang for the buck is to linearly interpolate between the vertices like it was parallel projection (affine transformation).
             The triangle can even be larger if it is pointing towards the camera</p>
+        <p>
+            I have to accept that texture mapping introduces rounding errors. It is possible to keep them in check, it is just not possible to have the border texels at 100% size. Saturation tricks don't work with UV mapping in a texture atlas. So I don't look into them. Just at a gueard line of texels between two maps in an atlas.
+            Yeah, if accidently there are texel aligned edges, maybe have a way to descirbe border lines (with endpoints).
+            I know 4 ways to avoid one division per pixel
+        </p>
+        <p> Division in computer graphics uses a table of 1/z values (for 1z &lt; 2). Linear interpolation can be used, but leads to the texture pulled in between the z values in the table like a batwing. So we need a wide guard band.
+            The Newton Raphsody method puts these vertice in the middle between the z values of the table. The texture touches the edges of the polygon at the z values of the table.
+            The texture is stretched. No "access violation" to other maps in the Atlas can occur. The methods replace the divsion by two multiplications.
+            Throwing a moderate amount of transistors at this problem, multiplication can be made fast. Actually, Newton Raphsody converges really good on iterations. So it should take some time, but still only like 4 cycles.
+            The error is quadratic. So more values in the table reduce the error better and better. I wonder if it is possible to compress the table. Like we store a rough table and a bit pattern for the edges?
+            How fast is bit counting (up to 16?). Uh, this is to large. 8 bits can be converted to counted values bei a LuT.
+            To optimize reads of z-values, it may be Interesting to apply const-z rasterization. 2x2px blocks probably still access two entries in the table. I could convert the jaggy bit pattern to a local table of 16 entries.
+        </p>
+        <p>
+            Affine trianlges pin the texture to the edge of the polygon. Rounding is still involved (system is optimized for bang for the buck).
+            Now I want automatic conversion to a triangle strip with mostly const-z edges. Imagine a quad projected as a trapez. The directions of an edge flow all the way to the other side, just the extent where we look at it gets smaller.
+            Now grazing angles make me crazy and I should not think too much about them. So lets just assume -45° and + 45° edges. Triangles slithers which look like hairlines in the center, don't introduce too much distortion.
+            Or? Usually my rule of subpixel precision is 1/16 ( 4 bit ). This is violated here. There may appear weird grizzles on smooth textures. But I cannot go below a hair line because
+            Realistic drawing (looking at Jaguar hardware) would involve 2x2 pixel blocks which I draw in a const-z matter almost like DukeNukem3d does.
+            Just in reality I would cover these blocks by 4 triangles from the strip. I need two triangles to form a quad and even draw a compact line ( where I can move to neighboring pixels without a jump).
+            So this would work with "ray tracing" when VRAM has single pixel granularity, which only happend with the SNES mode-7 and in no other case.
+            So realistically I need to cover 2x2 px. For this I need to take into account 4 triangles, but only advance two for every block line I draw.
+            The bleeding edge of this strip determines my Block line Bresenham. I don't think there is no way to have a perfect triangle width because this would go near common demoninator math, which is slow.
+            Rather I have a fixed width along the normal in screen space to make sure to cover Bresenham hairlines even in the worst condition.
+            4 Triangles and the 2d nature ( compared to subspan interlopation in 1d) means a lot of delta values to track.
+            The Bresnham values of the triangle edges are traced, even though they don't decide over which blocks the rasterizer works.
+            But they decide which of the 4 triangles is hit at each pixel. I read that the tile renderer in PowerVR works in a similar way to allow for parallel processing of rows inside a tile.
+            After writing this paragraph, it is pretty clear to me that only hairline make sense in the blocks. I mean, thicker lines sound more compact. And they don't loose any compactness.
+            So maybe for almost normal incidence this is a valid speed up. Texturea access may be more compact, espcially when zoomed in.
+        </p>
+        <p>
+            The same circtuitry could be used to draw 4 (small) affine polygons in a mesh in one go to reduce unaligned writes to the 2x2px blocks.
+            Similar to a scanline renderer, all vertices are sorted by y. An active edge list is kept. Two rows need to be rasterized at the same time.
+        </p>
+        <p>
+            Repeated Newton-Raphsody ( on the function 0= 1/x-y (find x;yeah you really have to do the algebra with the derivative))
+            gives much precision pretty fast. Even slow division two bits per cycle is possible: Either use a wild lookup table as in Pentium or use a the naive way ( I think Jaguar does).
+            Carry look ahaed with 3 borders. For example imagine simple 4 bit adders (like the Z80 ALU). Now from the accumualtor we can subtract the denominator and or subtract the denominator shifted or both.
+            So we get 3 cases each with their own carry. There is one rule: if one of the subtracts triggers a carry (borrow actually), the "both" case will also. Does this reduce the number of data lines?
+            We start with 3. Ah, not really. Only thing is: Carry look ahead usually needs to almost put in the same work to actually apply the addition ( trickle down to the leafes of the tree),
+            but we only need it to do for one case. I don't think that this not-write-back algorithm works for more than 2 bits, or does it? When we slap this onto the next iteration, surly there are two carry bits.
+            Maybe even the two adds introduce these already. So 3 cases and 2 carry bits! Two carry bits allow for 3 adds. So this fits.
+            In the Jaguar the reminder is affected only by the last bit of the quotient. Looks to me not like an optimized 2 digit division circuit.
+            I also don't belive that the Jaguar has a high phase, low phase duplicated circtuit because the multiplexer to set the intitial values breaks the symmetry.
+            In a way, two adds match the latency of the multiplication circuit. To make the barrel shifter this slow I guess that they really use 16 multiplexers for the signal to pass through all of them.
+        </p>
+        <p>
+            Anyway, with "perfect" division, blinear interpolation in like 4x4px blocks becomes attractive. While this matches the 2x2 blocks in VRAM, I never found a sastisfiying solution to match this to the edges of the polygon.
+            Small polygons and espcially slithers become really slow. This method relies heavily on a switch to affine mapping for small triangles.
+            I cannot find a way to bound interpolation with control points outside the polygon. I could use some of the other algorithms to fill in the edges, but why even keep a code paths for bilinear then?
+            It may improve quality of the const-z triangle strip because the triangles only fill the sides. But the set-up is a nightmare.
+            The only sane solution seems to be to accept a severe slow down at the edges.
+            While the corners at each vertex (and espcially top and bottom with a natural transition to full affine) can indeed be rendered as affine triangles, the edges are hard to set up.
+            The only sane way seems to be a quad tree with some mergers. For example in a 4x4 tile there can be two 2x2 children side by side. These becom 4x2. This can happen at most once.
+            It is a bit weird how the fully calculated pixels are shared. There is a top, left rule. Only one of the pixels in inside the current rectangle. If the outside pixels are also outside of the rectangle,
+            I already need to split it down. Bottom right rectangles can only be single pixels. Bottom rectangles can only be of height 1. Right rectangles can only be of width one.
+            It does not change anything with the control points to calculate, but these single line rectangles can be merged with the top and left neighbor, respecitvely.
+            So this is really mostly a way to optize VRAM access for texture and frame buffer (and z-buffer). It needs a queue for the high precision "control point" data.
+            Each triangle is rasterized in block lines. So the queue can even out the flow between edges and faces. Maybe two pointer can be used: One for the edges and one for the face tiles.
+            The circtuitry would swicht between both to stabilize the filling of the queue. Like the edge queue starts at the top vertex and draws all tiles to utilize the "natural" evening out effect.
+            The inner tiles would start from the y of the middle vertex (and center?). Some "pressure" enters the algorithm to make both meet at the same time.
+            Or just draw top and bottom trapezoid both top to bottom in an interleaved fashion. Trapezoids may have differnt height, though.
+            I have not found a good way to optimize grid offset per polygon. Really, rather invest in faster division and mostly use the blocks for optimized memory access.
+            I feel like this method does not really belong into this project. Actually, it more belongs into Dreamcast era graphics. Atari Jaguar has some bottlenecks in memory access, but after all even a page miss only
+            adds 2 cycles to the normal 2 cycle access time. Clearyl in my current hardware I don't aim at a superscalar CPU.
+            Why does Atari say that they only had the budget for a single 16x16 multiplier per chip? Is this really big? This digit aligned multiplication really shines with many bits. 8x8 looks rather rough.
+            16x16 with powerful floats already create convincing 3d. Ah, I guess that such a multiplier does not fit on screen. 
+        </p>
+        <p>
+            All the adders for the other method also don't fit on screen. I kinda have proven why the unity of 3d and sprites was not possible before 1994. Warping textures are ugly. I don't want to get my hands dirty.
+            LoD also looks ugly for low polygon count levels. LoD is only for game objects. I have nothing inteligent to add to this topic. Good algorithms exists. They even handle pretty fractal geometry gracefully.
+            My contribution would be to use imposters: Rasterize the high detail geometry at a low frame rate onto the low geometry. I just don't feel like some new insight will come out of any code I write for this.
+        </p>
+        </p>
             <p>
                 All others apply the perspective correction. The correct math ends up -- after a long journey -- in a shape, where
                 we have to interpolate once, and then divide all our coordinates by Z.

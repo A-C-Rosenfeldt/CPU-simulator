@@ -1,6 +1,54 @@
 <html>
     <head>
 		<h2>Overall layout</h2>
+		<p>
+			I decided to go with a kinda MIPS layout. It looks like registers and ALU are close to each other to give reg-reg instruction low latency.
+			With even less registers on my design (8?) pass through of other data is not so bad.
+			So outside of this pair is the global bus to implent all the other instructions, probably in a lot of cycles.
+		</p>
+		<p>
+			To make the microcode easy to follow with the eye, I now envision that the control lines don't reach around the data flow,
+			but come from one side very much as in the 6502.
+			So there are (from left to right in my inner eye) the ALU on the left with the ever more sphisticated cicruitry on the very left side.
+			Control lines activate these. Even more far left are the flags, who are selected by branch instructions.
+			More in the middle are the address lines for the registers.
+			Then we have the bus lines and far on the right is the program pointer and its counter.
+			The decode circuit starts dark. Then from the instruction register the signal enters and activates some parts.
+			Parts then stay active during the whole instruction. Hopefully, the clock provocoes all the data flow through the latches.
+			Only like 4 control lines should change within an instruction. Mostly the instruction lenght counter counts down.
+			
+		</p>
+		<p>
+			Now when an instruction is loaded into the instruction register, some bits select the type of the instruction. So MIPS famously has only 3 types: Register, Jump, and Immediate?
+			This does not really match an 8 bit CPU, or does it? The Register Type triggers two binaray adress decoders for two registers and the ALU.
+			The branch type and the flag instructions (do I need those? I'd rather have ADD and SUB which ignore flags as inputs.
+			Like shift is rotate but ignores carry. So flags are always ignored on input. It makes not much sense to also block output to flags in a scalar CPU.
+			And in a superscalar CPU, I would rather allow the CPU to reorder instructions and rename flags for overlaping execution, instead of backwards recognition of register pairs in RISC-V branch instructions.
+			Or is this about the order of Load and Store? Is that easy to define in RISC-V? This is too high for me. I would probabyl rather go the PowerPC (32 bit instructions). Have a file of 3 flag registers. Adress 0 is zero register.
+			I have no interrupts yet, no decimal) address flags
+			 (and their normal or inverted value). The real branch type and the immediate type trigger the ALU to process the immediate value.
+			The immedediate type address one register. The load store type adresses two registers.
+		</p>
+		<p>
+			Now some of these instructions need multiple cycles. What control lines do I really need to switch? Can't I just hold the ciruitry most of the time?
+			The immediate instructions just need to silence the next instruction until the instruciton register is filled.
+			The jump instruction relies on the clock and latches to let the new instruction pointer value flow in. Also needs to delay the load of the instruciton register.
+			Load and Store instructions typically allow an address mode where a register is added to the immediate value.
+			With the flow through the register file this becomes a multi-cycle instruction, where in one cycle the immediate flows through and in the other the value flows out or in.
+			I really should start the layout without any addressing mode (two different data accesses) and check if the current layout with alternating code and 8bit data already confuses the viewer enough.
+			SAP-1 also has no addressing mode and 1802 also not, I think.
+			Unaligned 16 bit data needs the ALU even without immediate data. Do I have enough lines? So the low byte is one source register, the high byte is the ALU output = target register line.
+			So this state blocks data reads. A write can happen thanks to the second source line. A multiplexer to the databus is driven by the micro-code counter.
+			Symmetry is broken. Even with sophisticated timing the high-address out line collides with data low in. I need a 16 bit data register (multiplexed by micro-code counter).
+			And there is a special state where data is transferred from this extra register into the file. At least, the file then does not need 8 bit granular write lines.
+			Since I want the elecitcal interface like in a 6502, there is one byte sized latch directly on the data pins (okay two: read and wirite). The 16 bit register is an addtion.
+			Sits in the system bus. May help with jumps. Has a multiplexer to load the low byte of the bus in either low or high byte of itself. Always outputs 16 bit.
+			This can be generalized to 24 bits. Just, carry look-ahead rather likes 32 bit for the GP registers. Ripple carry over 3? Ah, I love maths. Commodore BASIC also has 32 bit manitssa for floats!
+			Ah, who does not hate the 80 bit float registers of 8087? So 24 bit architecture would still need 32 bit loads -- not for pointers, but maths.
+			As it is right now, a far jump goes like: load immediate into low, load immediate into high, copy register to programm pointer. Or have: assemble program pointer from register_high:immediate8.
+			Ah stop it. Unlike indirect addressing, counting is already working inside the program pointer. With enough latches (a hidden register on the low byte), the clock naturally weaves the new address into the counting.
+			CMP and BIT are no so difficult because I only make the state machine forget the write-back in the next cycle. This sould be one gate. Killing a signal reduces confusion.
+		</p>
 		<p> ALU and register file are connected by 3 lines, which can be blocked. So I don't want to introduce transfer gates. So this is really just NAND which will be wired to OR to form a multiplexer / bus.
 			The progam pointer has a connection towards the Address bus. 
 			The date bus is connected with the instruction register, data in, and data out.
