@@ -98,7 +98,7 @@
             In a way, two adds match the latency of the multiplication circuit. To make the barrel shifter this slow I guess that they really use 16 multiplexers for the signal to pass through all of them.
         </p>
         <p>
-            Anyway, with "perfect" division, blinear interpolation in like 4x4px blocks becomes attractive. While this matches the 2x2 blocks in VRAM, I never found a sastisfiying solution to match this to the edges of the polygon.
+            Anyway, with "perfect" division, bilinear interpolation in like 4x4px blocks becomes attractive. While this matches the 2x2 blocks in VRAM, I never found a sastisfiying solution to match this to the edges of the polygon.
             Small polygons and espcially slithers become really slow. This method relies heavily on a switch to affine mapping for small triangles.
             I cannot find a way to bound interpolation with control points outside the polygon. I could use some of the other algorithms to fill in the edges, but why even keep a code paths for bilinear then?
             It may improve quality of the const-z triangle strip because the triangles only fill the sides. But the set-up is a nightmare.
@@ -120,9 +120,49 @@
             16x16 with powerful floats already create convincing 3d. Ah, I guess that such a multiplier does not fit on screen. 
         </p>
         <p>
-            All the adders for the other method also don't fit on screen. I kinda have proven why the unity of 3d and sprites was not possible before 1994. Warping textures are ugly. I don't want to get my hands dirty.
+            All the adders for the other method also don't fit on screen of my simulation and won't fit on chip in 1982. I kinda have proven why the unity of 3d and sprites was not possible before 1994. Warping textures are ugly. I don't want to get my hands dirty.
             LoD also looks ugly for low polygon count levels. LoD is only for game objects. I have nothing inteligent to add to this topic. Good algorithms exists. They even handle pretty fractal geometry gracefully.
             My contribution would be to use imposters: Rasterize the high detail geometry at a low frame rate onto the low geometry. I just don't feel like some new insight will come out of any code I write for this.
+        </p>
+        <p>With perfect division sub-span rendering also works. The motivation for the above mentioned methods was to investigate the effect of low precision DIV. Of course without this, simple and stupid subspan wins.
+            Transition to affine for small triangles is straight forward, you can do top and bottom corners. For large, compact triangles this morphs the cost of the short edge span can be hidden in a queue.
+            Two edge spans on both sides are not a problem. I then bin lines for more local texture access. Binning could stick to power of two and morph into the block mode mentioend above.
+            I am still scared by the 16px spans of Quake, but a hardware implementation would not have to fight the intel architecture.
+            I am not quite sure about the need for multipliers of two precisions, but even with a single MUL with single cycle operation ( Dadda tree is surrounded by pipeline registers, add is next stage ),
+            we only have so many MULs. 2 Muls per Newton-Raphsody iteration. Let's do two operations here to distinguish from the above mentioned methods. So 4 Muls. Then we need 2 to multiply with S and T.
+            So it is kinda difficult to justify spans longer than 8px. Even with 8px, we have 2 cycles which coulc be used by a queue to make up for the less inefficient right edge.
+        </p>
+        <p>
+            Texture filtering on N64 needs 3*3 MULs (low precision) per pixel. It would need 3 CLUT accesses to stay period correct. The Jaguar can do two accesses.
+            Unfilterred texture would be faster because LINERP can easily be parallelized. Still memory access would be a problem. Tom in Jaguar should have more than 2 different clock domains.
+            I guess that it is nice that low horizontal resolution produces less heat? Other parts of Tom run idle, but their clock amps still heat up.
+            Without filtering, I would love to implement a texture made of antialised edges. A large buffer would hold like 512 edges criss crossing form the polygon edges.
+            Each edge keeps a factor to make anitalising look good. This is not perfect at corners, but at least symmetric. MipMapping would need to choose a level which is upscaled. I think this is a death penalty.
+            Only superscaler on weak hardware with a high clock do pure upscale. Basically, only the weird VIC-II.
+        </p>
+        <p>
+            Another way to pin the texture to the edges is to, yeah map the texture along the edges and then interpolate the spans.
+            For interpolation I now need a full blown division (not the small LuT for normal supspans). But the precsion does not depend on weird grazing incidence or what.
+            We just need to interpolate on screen. With floats we check for relative error. We just don't want to trespass px 318 over px 319. This can almost be achived by a LuT.
+            We need a MUL to get to the first and last pixel respecitvely (I always hated this, both pixels need to be calcuated from ther repsecive edges to allow a larger error in the DIV)
+             because I want subpixel precision. But in the grand scheme, two muls are not much. Are 4 muls due to s and t.
+            Clipping reverts back to the subspan code, as do subspans anyway. The perfect texture isolation in an Atlas may not be that perfect.
+            In a way this is similar to the triangle strips where I also calculate points on the polygon edge. Just I get a full const-z span for one division ( the determinante ).
+            The method seems to be ideal to be combined with like 4x4 tiles in the face. A large guard band reduces the chance that the 4x4 blocks violate access restrictions,
+            which generally occur at subpixel distances. Ah, a problem here are shallow edges. The 4x4 blocks may need to come within 1px separation to the edge to limit the length of filling spans.
+            Also 2px and 1px height blocks are needed. So this all needs a lot of (micro-) code.
+            Like some woodend tables, the edges could join at an angle at the vertices. Then each edge could have its own span direction ( x or y ).
+            Uh, sounds expensive. Maybe just stop the spans when they cannot hit any 4x4 block. Then floodfill interpolate the corners.
+            Especially with slithers, the edge with the more suited (cutting the bisecting angles or const-z) direction wins.
+        </p>
+        <p>I hat aliasing. With a low precision divison I should make sure that ther is not additional grid of tiles or subspans on screen. Const-z lines need to be aligned.
+            Espcially, this means that triangle strips may not be zig zag. Full z-table zoom in makes them zig, const-z, zig, const-z. For grazing incidence the is integer scaling.
+            So it may make sense to vary the line thickness accordingly. I mean, I already draw greedy, and don't overdraw leading the test in the bleeding edge pixel of each VRAM tile.
+            So lines are thick. It looks like this method does not go together with any of the superlinear algorithms. Especially, not Newton-Raphsody.
+            So table size is a hard limit. We need floats and this table span jaggy compression. Affine triangles already bring the linear interpolation.
+            Integer scaling and floating will cut the polygon along z. With visible grizzle, this will also be visble.
+            Interestingly, this then works both ways: I could use equal screen space, or I could use equal world space to facilitate adaptive subdivision. Just this subdivision still does not move with the object,
+            and animation may not look better. Only quad-LoD moves with the object, but is the most expensive sub-division, even worse than doing one high precision div per pixel.
         </p>
         </p>
             <p>
