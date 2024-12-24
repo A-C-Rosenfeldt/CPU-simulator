@@ -87,7 +87,18 @@
         </p>
         <p>
             Repeated Newton-Raphsody ( on the function 0= 1/x-y (find x;yeah you really have to do the algebra with the derivative))
-            gives much precision pretty fast. Even slow division two bits per cycle is possible: Either use a wild lookup table as in Pentium or use a the naive way ( I think Jaguar does).
+            gives much precision pretty fast. When we unroll this we get a polynom of degree 3 in w (screen space). Deltas can be used to avoid multiplication while iterating over a span "belonging" to a table entry.
+            The advantage of this span is that the calculation never goes off the rails. We know it convergers and is stable.
+            A DeltaChain works without (fully) carried over bits. Even the multiplication between z and x and y would not need it, but the square makes it expensive.
+            Also distribution cost nullify any average case power saving using the product from the last pixel. For texture filtering, half of the bits will change between pixels.
+            If I don't plan to filter the texture, I may actually just use a naive divide and demand the driver to choose a mipmap with max texture ordinate change of 4 (also see: Antialised lines scale up).
+            I wonder if it is okay to resolve carries for blocks of 4 bit? Ah, law of distribution still makes this prettey expensive.
+            Triangles I needed 4 of them to cover blocks. Here I still would need two quads. Of course in both cases for short spans a write back (not write through) cache gets cheaper at some point.
+            I guess that in a write cache latency is not much of a problem. I just fear weird timing spikes due to the replacement strategy. Two quad-spans at a time is the clean solution.
+        </p>
+        <p>            
+            
+            Even slow division two bits per cycle is possible: Either use a wild lookup table as in Pentium or use a the naive way ( I think Jaguar does).
             Carry look ahaed with 3 borders. For example imagine simple 4 bit adders (like the Z80 ALU). Now from the accumualtor we can subtract the denominator and or subtract the denominator shifted or both.
             So we get 3 cases each with their own carry. There is one rule: if one of the subtracts triggers a carry (borrow actually), the "both" case will also. Does this reduce the number of data lines?
             We start with 3. Ah, not really. Only thing is: Carry look ahead usually needs to almost put in the same work to actually apply the addition ( trickle down to the leafes of the tree),
@@ -137,7 +148,10 @@
             Unfilterred texture would be faster because LINERP can easily be parallelized. Still memory access would be a problem. Tom in Jaguar should have more than 2 different clock domains.
             I guess that it is nice that low horizontal resolution produces less heat? Other parts of Tom run idle, but their clock amps still heat up.
             Without filtering, I would love to implement a texture made of antialised edges. A large buffer would hold like 512 edges criss crossing form the polygon edges.
-            Each edge keeps a factor to make anitalising look good. This is not perfect at corners, but at least symmetric. MipMapping would need to choose a level which is upscaled. I think this is a death penalty.
+            Each edge keeps a factor to make anitalising look good. This is not perfect at corners, but at least symmetric. MipMapping would need to choose a level which is upscaled.
+            I think this is a death penalty. Looking at a texture from the side is just part of the fun of 3d. It does not need to be grazing, just racing game Drone camera.
+            Antialised lines already break down here. I once tried a game in directx which did this aggressive mipmaps to facilitate the cache of the CPU.
+            It did not help much and looked aweful ("interesting" for me). Now at 60 fps and with motion undersampling looks so much better (kinda the opposite to audio).
             Only superscaler on weak hardware with a high clock do pure upscale. Basically, only the weird VIC-II.
         </p>
         <p>
