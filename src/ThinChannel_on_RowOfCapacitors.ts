@@ -1,9 +1,13 @@
 import {  SimpleImage } from './GL.js';
 
-interface Wire{
-	current(voltage:number):number
+interface Stub{
+	Voltage:number
+	charge:number
+	capacity:number
+	//current(voltage:number):number
 }
 
+/*
 class Stub implements Wire{
 	voltage:number
 	resistance:number
@@ -11,7 +15,7 @@ class Stub implements Wire{
 		return (voltage-this.voltage)/this.resistance
 	}
 }
-
+*/
 // Signal propagation will be fun to follow, but first let's get right the steady state. Gates have capacity.
 // Let's give the wires an impedance .. ah uh, just start with a resistance for a simpe RC elemement.
 // How do I deal with source ( emitted charge carriers ) and drain ( overflow? )
@@ -21,38 +25,63 @@ class Stub implements Wire{
 
 // Only capacity at each end allows me to redistribute charge. Otherwise everyone gets the same. This will not flow
 class Route{
-	const capacity=1
-
+	stub:Stub[]
+	index: number // easier to debug than stale voltage values
 
 	//
 	environment_and_charge_to_voltage(){
-		let charge=0, voltage_per_capacity=0
+		let charge=0, voltage_per_capacity=0, capacity=0, charge_after_distribution=0
+
+
+		this.gate.forEach( (gate:Gate)=>{
+			let ch:Channel=gate.channel[], len=ch.potential.length-2, gate_count=ch.gate.length
+			let gate_width=len*this.index/gate_count
+			let start=this.index*gate_width
+			gate.voltage=0
+			for(let i=start;i<start+gate_width;i++){
+				gate.voltage+=ch.potential[i]
+			}
+		})
+
 		// This works like divergence, just with more neighbors.
 		// Capacity 2 is like 2 neighbors
-		for(){
+		this.stub.forEach(stub=>{
 			average_voltage+=voltage[i]*capacity[i] // Gates have like 4 times the capacity, while electrodes are more Ohmic
 			this.capacity+=this.capacity[i]
 			// charge flows freely between all ends
 			charge+=s.charge // from emission or overflow and previous time-step
-		}
-		let voltage_avg=average_voltage/capacity 
+		})
+		let voltage=average_voltage/capacity 
+
+		this.electrode.forEach(electrode=>{
+			let c= voltage *capacity[i] // Gates have like 4 times the capacity, while electrodes are more Ohmic
+			electrode.charge=c, charge_after_distribution+=c
+		})
+
 
 	}
-
-
 }
 
 
-class Gate{
+class Gate implements Stub{
+	capacity_per_element: number;
+		dielectric_thickness: number=1;
 	capacity_to_GND:number
 	len:number
-	V_G:number // With multiple gates this is measured at the point closest to the source . Gates are simulated voltag -> charge -> voltage -> charge . I need this for mutliple gates with meaningles V_GS
-	charge:number
-	dielectric_thickness: number=1;
+	voltage:number // With multiple gates this is measured at the point closest to the source . Gates are simulated voltag -> charge -> voltage -> charge . I need this for mutliple gates with meaningles V_GS
+	
 	polarization:number=0
-	capacity_per_element: number;
-	constructor(){
+	doping_electroferric: number
+	V_Gd(){
+		return this.voltage+this.doping_electroferric
+	}
+	charge:number
 
+	channel:Channel
+	index:number	
+	constructor(channel,index){
+		this.channel=channel
+		this.index=index
 	}
 	wire:Wire = new Stub()
 	propagete_field_from_channel_to_gate(net_Potential:number):number{
@@ -62,14 +91,14 @@ class Gate{
 			// Evenly distributed charge on the other side to let the gate float until Ohmic relaxation.			
 
 			// this is stable because changes in potential on either side get damped before the pull on the other side. Also: negative feedback. Charge dampens. Maybe add artificial dammping later.
-			return this.V_G / this.capacity_to_GND  +  (this.V_G- net_Potential) / this.dielectric_thickness
+			return this.voltage / this.capacity_to_GND  +  (this.voltage- net_Potential) / this.dielectric_thickness
 	}
 	// Mostly serves encapsulation. Or should a gate own the wire up to the next node?
 	propagete_voltage_2_charge(voltage:number){
 		this.charge += this.wire.current(voltage)
 	}
 	divergence(potential:number,charge_density:number):number{
-		let charged_bound_by_capcitor=(potential-this.V_G)*this.capacity_per_element
+		let charged_bound_by_capcitor=(potential-this.voltage)*this.capacity_per_element
 		return charge_density-charged_bound_by_capcitor
 	}
 }
@@ -142,12 +171,20 @@ class Channel{
 
 		// This is kinda futile with multiple gates : if (V_S>V_G) ; // go from source to drain. But what about Ohmic region? 
 
+		this.potential[0]=this.electrode[0].voltage
+		this.potential[this.potential.length-1]=this.electrode[1].voltage
 		// Probably I could apply currying here? But I fail to see the benefit
-		for(let i=0;i<this.element.length;i++){
-			this.charge2field_elm(i) // Not local. So it should not be a method on the element
-			this.element[i].charge2field()
+		// Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
+		for(let i=1;i<this.element.length-1;i++){
+			let k=i
+			for(let j=0;j<2;j++){
+				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])+this.gate[(k-1)/this.gate.length].V_Gd())/4  + this.carrier_density[k]  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				k=this.element.length-i
+			}
 		}
 
+
+		///////////////////////////////////////////////////// dated trash
 		for(let i=this.element.length-1;i>=0;i--){
 			this.element[i].charge2field()
 		}
@@ -163,7 +200,7 @@ class Channel{
 
 			// This is simple divergence with 3 directions: channel left and right and towards the gate, weaked by dielectic. The dielectric towards to body is so thick that it does not count.
 
-			this.potential[i]= (2*(this.potential[i-1]+this.potential[i+1])+V_G)/4   // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+			
 
 			field+=this.gate[0].divergence(this.potential[i],this.carrier_density[i]) // After solution, field within the electrode is zero. All is in the channel. Carrier density in the elctrode mimics this potential.
 			potential+=field
@@ -192,6 +229,8 @@ class Channel{
 }
 
 class MosFet{
+
+
 	V_drain: number;
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 	channel2bitmapRow(current_Row: Uint8Array, V_source: number, V_drain: number) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
@@ -205,6 +244,17 @@ class MosFet{
 	}
 
 	gate:Gate[]
+
+	constructor(gateCount:number)
+	{
+		this.gate=new Array<Gate>(gateCount)
+		for(let i=0;i<gateCount;i++){
+			this.gate[i]=new Gate(this.channel,i)
+		}
+
+		//this.len=gateCount*16
+	}
+
 	channel:Channel
 
 	solve(){ // self consisten  /  fine time-steps		
@@ -214,11 +264,11 @@ class MosFet{
 
 		// On the one hand the gate provides the voltage .. like a function to pull from
 		// On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
-this.channel.propagate_carrier_to_field(gates:gate[])
-this.channel.propagete_field_to_carriers()
+		this.channel.propagate_carrier_to_field(gates:gate[])
+		this.channel.propagete_field_to_carriers()
 
 
-this.channel.get_drained()
+		this.channel.get_drained()
 
 
 		this.gate.forEach(g=>{
@@ -237,20 +287,17 @@ this.channel.get_drained()
 		this.channel.propagete_field_to_carriers()  // Ohmic from element to element
 	}
 
-	constructor(threshold:number){ // for CMOS this would be channel carriers polarity. Kinda in a real MOSFET it all boils down to doping (with sign).
-		let len=30
-		this.gate.len=len // singel gate
-		this.channel.len=len+2 // reservoir in source and drain
-	}
 
 
 }
-class Source{
-	population:number=1 // needed for tuning. Physcially it is source temperature and doping. Same in cathode : temperature and work function. I don't do field effect here anymore
-	current(voltage:number):number{
+
+// This is not an object. The lifetime is too short for my taste because voltages change and source and drain switch roles
+//class Source{
+	//population:number=1 // needed for tuning. Physcially it is source temperature and doping. Same in cathode : temperature and work function. I don't do field effect here anymore
+function emission(voltage:number):number{
 		return voltage * this.population
 	}
-}
+//}
 
 // looks very similar to MosFet and hence should reside in the same file
 // Looks like I come back to the original Poisson solver from university
@@ -258,8 +305,26 @@ class Source{
 // So it seems that I still go over the elements in the channel, but take the old field right of me into account, just like the gate voltage.
 // Boundary condidtions are just that, even in 2d
 // Now, should I do the same with the electrodes and gates?
+
+// I don't need this for my first tests, but want to give an outlook. It seems like I need to read a netlist format, not VHDL. Logsim is XML .. JS has a parser -- nice.
+// Logisim has circuit tag (nice!), but then there are wires. I may revert to wires, but right now I have routes, which can have more than one end.
+// Logisim uses coordinates to model releation-ships. I would rather like to use a tree when I specify test cases. Layout is of secondary concern here.
+// component would probably be my MosFets. For some reasons components in Logisim have no children. Connection to wires happens via coordinates. Need to know the footprint to read the file?
+// Maybe I can steel stuff from Chisel, though I really don't know about all those types.
 class Circuit{
-	MosFets: MosFet[];
+	name: string;
+	constructor(logsim_file:string){
+		this.name="RS latch"
+		this.MosFets=new Array<MosFet>(3)
+		this.route=new Array<Route>(3)
+		this.MosFets[0]=new MosFet(2)
+		this.route[0]=new Route(2,this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.		
+		this.MosFets[1]=new MosFet(2,this.route[0])  // I don't use transfer gates right now. For a compact file format, I should use the tree structure aggressively, even if it breaks symmetry. This is an optionial parameter
+		this.route[1]=new Route(2,this.MosFets[1],this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.	
+			// Bidirectional links connect mosfet 0 to route 1
+	}
+	MosFets: MosFet[]
+	route:Route[]
 	solve(){
 		this.MosFets.forEach();
 	}
