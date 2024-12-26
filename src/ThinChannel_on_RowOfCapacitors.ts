@@ -1,6 +1,16 @@
 import {  SimpleImage } from './GL.js';
 
-interface Stub{
+class End{
+	Voltage:number
+	// capacity of the rails is effectively infinite
+	// so the solver should 
+	example(){
+		let other:Stub
+		if (other.capacity==undefined) var end=other as End;
+	}
+}
+
+class Stub extends End{
 	Voltage:number
 	charge:number
 	capacity:number
@@ -25,37 +35,77 @@ class Stub implements Wire{
 
 // Only capacity at each end allows me to redistribute charge. Otherwise everyone gets the same. This will not flow
 class Route{
-	stub:Stub[]
-	index: number // easier to debug than stale voltage values
+	end:End[]
+	isGoverned=false
 
+	constructor(End_count:number,formal_drain?:MosFet){
+		this.end=new Array<End>(End_count)
+		if (formal_drain!=undefined) {
+			this.end[this.end.length-1] = formal_drain.electrode[1]
+			//formal_drain.electrode[1].
+		}
+	}
+
+	Voltage:number
 	//
 	environment_and_charge_to_voltage(){
-		let charge=0, voltage_per_capacity=0, capacity=0, charge_after_distribution=0
+		let charge=0,  capacity=0, charge_after_distribution=0,bound_charge=0, voltage_wo_divergence=0
+		let pinned_voltage:number=null
 
+		// Harvest field on the other side of the dielectic of the gate ( addition to capacity to ground )
+		// Collect charge on elementary capacitors of the gate
+		this.end.forEach( (end:(End|Stub|Gate))=>{
 
-		this.gate.forEach( (gate:Gate)=>{
-			let ch:Channel=gate.channel[], len=ch.potential.length-2, gate_count=ch.gate.length
-			let gate_width=len*this.index/gate_count
-			let start=this.index*gate_width
-			gate.voltage=0
+			if ( (end as Stub).capacity ==undefined) {pinned_voltage=end.Voltage;return} // no gate
+			if ( (end as Gate).channel=undefined) {return} // source or drain, nothing to do here
+			if (pinned_voltage!=null ) return  // gates will be overpowered
+
+			let gate
+
+			let ch:Channel=gate.channel, len=ch.potential.length-2, gate_count=ch.gate.length
+			let gate_width=len*gate.index/gate_count
+			let start=gate.index*gate_width
+			gate.channel_voltage=0
 			for(let i=start;i<start+gate_width;i++){
-				gate.voltage+=ch.potential[i]
+				gate.channel_voltage+=ch.potential[i]
 			}
+			gate.channel_voltage=gate.channel_voltage/(ch.potential.length-2)
 		})
 
-		// This works like divergence, just with more neighbors.
-		// Capacity 2 is like 2 neighbors
-		this.stub.forEach(stub=>{
-			average_voltage+=voltage[i]*capacity[i] // Gates have like 4 times the capacity, while electrodes are more Ohmic
-			this.capacity+=this.capacity[i]
-			// charge flows freely between all ends
-			charge+=s.charge // from emission or overflow and previous time-step
-		})
-		let voltage=average_voltage/capacity 
+		// collect charge to GND . I use the old voltage to keep values small and make it physical
+		if (pinned_voltage!=null ) {var voltage=pinned_voltage } else {
+			// total charge on our side
+			// This works like divergence, just with more neighbors.
+			// Capacity 2 is like 2 neighbors
+			this.end.forEach((stub:Stub)=>{
+				bound_charge+=stub.Voltage*stub.capacity // Gates have like 4 times the capacity, while electrodes are more Ohmic
+				capacity+=stub.capacity
+				// charge flows freely between all ends
+				charge+=stub.charge // from emission or overflow and previous time-step
 
-		this.electrode.forEach(electrode=>{
-			let c= voltage *capacity[i] // Gates have like 4 times the capacity, while electrodes are more Ohmic
-			electrode.charge=c, charge_after_distribution+=c
+				voltage_wo_divergence+=0 // Environment is at 0. Does this make sense?
+
+				if ((stub as Gate).channel_capacity != undefined) {
+					voltage_wo_divergence+=(stub as Gate).channel_capacity*stub.Voltage
+					capacity+=(stub as Gate).channel_capacity
+					bound_charge+=(stub as Gate).channel_capacity*(stub.Voltage-(stub as Gate).channel_voltage)
+				}
+			})
+			// our voltage ( Metal contains no field)
+			voltage_wo_divergence /= capacity
+			var voltage= voltage_wo_divergence +charge/capacity 
+		}
+
+		// Redistribute charge and broadcast the voltage
+		this.end.forEach((stub:Stub)=>{
+			if ( (stub).capacity ==undefined) {return} // no stub . No defined capacity. No way to distribute charge here.
+			stub.Voltage=voltage
+			let c= voltage *stub.capacity // Gates have like 4 times the capacity, while electrodes are more Ohmic. 
+			let maybe_gate=	stub as Gate		
+			if (maybe_gate.channel_voltage != undefined) {
+				c+= (voltage-maybe_gate.channel_voltage) * maybe_gate.channel_capacity
+			}
+			stub.charge=c, charge_after_distribution+=c  // second one is a check
 		})
 
 
@@ -63,15 +113,17 @@ class Route{
 }
 
 
-class Gate implements Stub{
+class Gate extends Stub{
 	capacity_per_element: number;
 		dielectric_thickness: number=1;
 	capacity_to_GND:number
 	len:number
 	voltage:number // With multiple gates this is measured at the point closest to the source . Gates are simulated voltag -> charge -> voltage -> charge . I need this for mutliple gates with meaningles V_GS
-	
+	channel_voltage:number
+
 	polarization:number=0
 	doping_electroferric: number
+	channel_capacity: number;
 	V_Gd(){
 		return this.voltage+this.doping_electroferric
 	}
@@ -80,10 +132,11 @@ class Gate implements Stub{
 	channel:Channel
 	index:number	
 	constructor(channel,index){
+		super()
 		this.channel=channel
 		this.index=index
 	}
-	wire:Wire = new Stub()
+	//wire = new Stub()
 	propagete_field_from_channel_to_gate(net_Potential:number):number{
 			// Metal   mirror charge on one side to compensate the channel. 
 			// Mirror charges is mathematical charge living deep in the metal. Real charge sits on the surface
@@ -93,10 +146,10 @@ class Gate implements Stub{
 			// this is stable because changes in potential on either side get damped before the pull on the other side. Also: negative feedback. Charge dampens. Maybe add artificial dammping later.
 			return this.voltage / this.capacity_to_GND  +  (this.voltage- net_Potential) / this.dielectric_thickness
 	}
-	// Mostly serves encapsulation. Or should a gate own the wire up to the next node?
+/*	// Mostly serves encapsulation. Or should a gate own the wire up to the next node?
 	propagete_voltage_2_charge(voltage:number){
 		this.charge += this.wire.current(voltage)
-	}
+	}*/
 	divergence(potential:number,charge_density:number):number{
 		let charged_bound_by_capcitor=(potential-this.voltage)*this.capacity_per_element
 		return charge_density-charged_bound_by_capcitor
@@ -121,7 +174,7 @@ class field_along_carriers{
 	V_drain:number
 }
 
-class Channel{
+class Channel{   // kinda inner part of Mosfet. Needs access to a lot of elements. hmm
 	len:number
 	element:Capacitor[]
 	potential:number[]
@@ -152,85 +205,54 @@ class Channel{
 	gate:Gate[] // nMOSFET with single gates was used by Commodore for high frequency circuits, but generally, MOSFETs strive on multiple gates
 
 	current_Gate:number
+	/*
 	get_Gate(i:number){
 		// cstr current_Gate=0
 		if (i<this.Gate[current_Gate].right ) return this.Gate[current_Gate];
 		this.Gate[current_Gate].average_potential=this.average_potential;this.average_potential=0
 		this.current_Gate++
-	}
+	}*/
 
-	source:Source
 	conductivity=1
 	carrier_density: number[];
 	
+
+
 	V_GS: number; // at the start of the channel: The first gate. Where to store? I need to store state! Absolute potential actually. V_GS is only for functions!
-	propagate_carrier_to_field(V_Source:number):field_along_carriers{
+	propagate_carrier_to_field(electrode:number[],gate:number[]){
 		let field=0,potential=this.V_GS,carrier_on_gate=0,sum_p=0
 		// Like in the 2d simulation I need to criss cross? But I don't accumulate .. should I? I do ping pong within in the channel. This should be stable if I don't have a bug
 		// Kinda like, when charge -> field -> charge don't agree, something is not consistent?
 
 		// This is kinda futile with multiple gates : if (V_S>V_G) ; // go from source to drain. But what about Ohmic region? 
 
-		this.potential[0]=this.electrode[0].voltage
-		this.potential[this.potential.length-1]=this.electrode[1].voltage
+		let gate_length=(this.element.length-2)/gate.length
+		this.potential[0]=electrode[0]
+		this.potential[this.potential.length-1]=electrode[1]
 		// Probably I could apply currying here? But I fail to see the benefit
 		// Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
 		for(let i=1;i<this.element.length-1;i++){
 			let k=i
 			for(let j=0;j<2;j++){
-				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])+this.gate[(k-1)/this.gate.length].V_Gd())/4  + this.carrier_density[k]  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])+gate[Math.floor((k-1)/gate.length)])/4  + this.carrier_density[k]  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
 				k=this.element.length-i
 			}
 		}
-
-
-		///////////////////////////////////////////////////// dated trash
-		for(let i=this.element.length-1;i>=0;i--){
-			this.element[i].charge2field()
-		}
-
-		// I need to go from left and right. Blend over.
-		
-		// Only then should I calculate charge per gate!
-
-
-		this.element.forEach((e,i)=>{
-
-			let V_G=this.get_Gate(i)
-
-			// This is simple divergence with 3 directions: channel left and right and towards the gate, weaked by dielectic. The dielectric towards to body is so thick that it does not count.
-
-			
-
-			field+=this.gate[0].divergence(this.potential[i],this.carrier_density[i]) // After solution, field within the electrode is zero. All is in the channel. Carrier density in the elctrode mimics this potential.
-			potential+=field
-			this.field[i]=field
-			this.potential[i]=potential
-			sum_p+=potential
-			carrier_on_gate+=e.carrier[0]
-		});
-
-		let V_G=this.get_Gate(1000) // number > element_count
 	}
 
 	propagete_field_to_carriers(){
 		// semiconductor in channel
 		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
-		this.element[this.len-1].carrier[1]=this.element[0].carrier[1]=this.source.population
+		this.element[this.len-1].carrier[1]=this.element[0].carrier[1]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
 
 		let next_channel_carrier=new Array<number>(this.len-2)
 		for(let i=1;i<this.len-1;i++){
 			next_channel_carrier[i] = this.element[i+1][1]+Math.abs(this.field[i])*this.conductivity*this.element[i+Math.sign(this.field[i])].carrier[1]
 		}
-		this.carrier_density=next_channel_carrier
-
-		return carrier_on_gate + this.V_GS
 	}
 }
 
 class MosFet{
-
-
 	V_drain: number;
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 	channel2bitmapRow(current_Row: Uint8Array, V_source: number, V_drain: number) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
@@ -244,32 +266,32 @@ class MosFet{
 	}
 
 	gate:Gate[]
+	electrode:Stub[]
 
-	constructor(gateCount:number, drain?:Stub)
+	constructor(gateCount:number, electrode:Stub[], routes:Route[])
 	{
 		this.gate=new Array<Gate>(gateCount)
-		for(let i=0;i<gateCount;i++){
-			this.gate[i]=new Gate(this.channel,i)
+		for(let i=0;i<routes.length;i++){			
+			routes[i].end.push( this.gate[i] )
 		}
-
-		//this.len=gateCount*16
+		this.electrode=electrode.concat( new Array<Gate>(2- electrode.length) )
 	}
 
 	channel:Channel
 
 	solve(){ // self consisten  /  fine time-steps		
-		let average_potential=this.channel.propagate_carrier_to_field(this.channel.V_GS)  // I need the real V_G as in the 2d simulation. There may be some mathematical shot cuts, but it probably has no educational worth and does not help debugging. And is there really? V_G globally pulls in carriers. In the end (haha pun) this is V_GS. The main parameter in any textbook (channel potential is pinned to V_S on the source site. While solving, this (information) propagates through the whole channel) . This an the next call replace the 2d poisson solution of the grid based simulation.
+		// Types suggest that I should not send raw numbers .. Maybe in the end the channel comes back into the MosFET
+		this.channel.propagate_carrier_to_field(this.electrode.map(e=>e.Voltage),this.gate.map(g=>g.Voltage))  // I need the real V_G as in the 2d simulation. There may be some mathematical shot cuts, but it probably has no educational worth and does not help debugging. And is there really? V_G globally pulls in carriers. In the end (haha pun) this is V_GS. The main parameter in any textbook (channel potential is pinned to V_S on the source site. While solving, this (information) propagates through the whole channel) . This an the next call replace the 2d poisson solution of the grid based simulation.
 		let voltages:field_along_carriers
 
 
 		// On the one hand the gate provides the voltage .. like a function to pull from
 		// On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
-		this.channel.propagate_carrier_to_field(gates:gate[])
+		//this.channel.propagate_carrier_to_field(gates:gate[])
 		this.channel.propagete_field_to_carriers()
 
-
+		/*
 		this.channel.get_drained()
-
 
 		this.gate.forEach(g=>{
 			g.propagete_to_field( potential_in_channel_between  );// field to voltage using capacity. No array. Metal is mixes carriers and fields. I could claim high dielectric constant, but that would be difficult to solve
@@ -283,8 +305,8 @@ class MosFet{
 
 		// voltage and charge propagation  is part of the wire?  Overall loop toggles between MosFet and Wires . coupled by voltage is the gate.
 
-
 		this.channel.propagete_field_to_carriers()  // Ohmic from element to element
+		*/
 	}
 
 
@@ -300,10 +322,12 @@ function emission(voltage:number):number{
 //}
 
 // The website should play like a YouTube video, but even then it needs a clock: which can also act as Single Step
-class Button implements Stub{
+class Button extends Stub{
 name:string
-constructor(name){
+constructor(name:string, default_voltage?:number){
+	super()
 	this.name=name
+	this.Voltage=default_voltage  // I don't want to translate undefined to null
 }
 }
 
@@ -319,32 +343,44 @@ constructor(name){
 // Logisim uses coordinates to model releation-ships. I would rather like to use a tree when I specify test cases. Layout is of secondary concern here.
 // component would probably be my MosFets. For some reasons components in Logisim have no children. Connection to wires happens via coordinates. Need to know the footprint to read the file?
 // Maybe I can steel stuff from Chisel, though I really don't know about all those types.
+
+// The test circuit is not defined like this, but accesses propteries of the Mosfet directly (for now).
 class Circuit{
 	name: string;
 	Buttons: Button[];
 	constructor(logsim_file:string){
 		this.name="RS latch"
 		this.Buttons=new Array<Button>(2)
-		this.Buttons[0]=new Button("Set")
+		this.Buttons[0]=new Button("Set")  // default is undefined  =  high Z
 		this.Buttons[1]=new Button("Clear")
+		this.Buttons[2]=new Button("GND",0)
+		this.Buttons[3]=new Button("Vcc",1)
+
 		this.MosFets=new Array<MosFet>(3)
 		this.route=new Array<Route>(3)
-		this.MosFets[0]=new MosFet(2,this.Buttons[0])
+		this.route[0]=new Route(0)
+		this.route[0].end.push(this.Buttons[0])
+		this.MosFets[0]=new MosFet(2,[],[this.route[0]])
 
 
 		this.route[0]=new Route(2,this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.		
 		// There are multiple ports on the MosFet. It is difficult to name them here ( Logisim and their cooridinates?). I only allow designated "drain"
 
 		// So on here the Parameter is source? Source is GND usually. So it is the first gate? No weird one element Arrays. But why 2 gates counted a .. union type
-		this.MosFets[1]=new MosFet(2,this.route[0])  // I don't use transfer gates right now. For a compact file format, I should use the tree structure aggressively, even if it breaks symmetry. This is an optionial parameter
+		this.MosFets[1]=new MosFet(2,[],[this.route[1]])  // I don't use transfer gates right now. For a compact file format, I should use the tree structure aggressively, even if it breaks symmetry. This is an optionial parameter
 
-		this.route[1]=new Route(2,this.MosFets[1],this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.	
+		this.route[1]=new Route(2,this.MosFets[1])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.	
+
+		// Todo: Make a method for this:
+		let g=new Gate(this.MosFets[0].channel,2)
+		this.route[1].end.push(g)
+		this.MosFets[0].gate.push( g );//)
 			// Bidirectional links connect mosfet 0 to route 1
 	}
 	MosFets: MosFet[]
 	route:Route[]
 	solve(){
-		this.MosFets.forEach();
+		this.MosFets.forEach(t=>t.solve() );
 	}
 }
 
