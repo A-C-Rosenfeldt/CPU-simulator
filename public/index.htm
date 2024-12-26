@@ -13,8 +13,30 @@
             color: white;
         }
     </style>
+    <h2>Motivation</h2>
+    <p>
+        My first CPU was the 6502, but even to me the animation of its operation on visual6502.org looks confusing.
+        I looked into theory, but don't feel like I have something to contribute to the abstractions.
+        Since I know physics and heard of Spice, I thought that I could animate the circuit more fluently using a physically motivated simulation of the nMOSFET logic in the 6502.
+        I simplified the CPU a bit (so lied, abstractions incoming!).
+        Other 8 bit CPUs had more registers. This allows a load-store architecture, which is easier to follow.
+        8-bit CPUs already had a 16 bit address bus. I want to try out a 16 bit ALU for efficient address calculations and register based maths.
+        Then I compare it to multi-cycle operation on smaller ALUs and see how many transistors this will save.
+        The ALU is split into two phases. The carry is cleared and set by feeding operands, so that I can avoid a gate in the loop.
+    <p></p>
+        Of course, for toy problems, I only need 8 bit addresses. I can easily show 8 bit code and data memory on a full-HD screen.
+        Logisim could possibly also calculate gate delays. Just a physical simulation naturally explains slow down due to fan out,
+        and tell us if transients from different paths length are gobbled up by the finite transition times of single transistors.
+        I want a fully static design driven by two non-overlapping phases. Then I check if there is any part in a CPU which would profit from a dynamic and async design.
+    </p>
+    <p>
+        I know two ways to tune a static design. For one, active pull ups (pre-charge) can speed up the design. But I always want to also keep the static pull-ups.
+        With equal path length through the combinatorial circuits, at the clock limit, the phases can be made to overlap, to achieve a little high clock rates.
+    </p>
+
+
     <h2>Transistor Technology</h2>
-    <p>Electrons live on a wire, think of carbon nanotube. Or a thin film of silicon on silicon Oxide. Vacuum on the other side? I dunno about surace states.
+    <p>Electrons live on a wire, think of carbon nanotube. Or a thin film of silicon on silicon Oxide. Vacuum on the other side? I dunno about surface states.
         I feel like a finFET is actually most easy to simulate. Molecular film of silicon between two sliced of SiO2. I still only display on electrode for clarity.
     </p>
     <p>Signal MOSFETS are of enhancement mode. So I don't need doping. I don't simulate the source in detail, but as Ohmic resistance.
@@ -22,7 +44,7 @@
         Multiple gates along the channel to implement a charge coupled device.         
     </p>
     <p>
-        Electrons are blue typically. For the voltage I could use green.
+        Electrons are displayed as blue typically. For the voltage I could use green.
         I use a simple geometry. Red could mean bandgap. The gate insulation is a red line. But I don't need crimson in the channel. Channel is know by geometry, it is the continous thing connected on the extreme sides,
         while the metal gates sit in a row and come from the short side. There do exists some MOSFET symbols with a broken channel and emphasis on the body diode. This is just futile here.
         Pull-ups use the same color. You recognize them by the short between electrode and first gate.

@@ -245,7 +245,7 @@ class MosFet{
 
 	gate:Gate[]
 
-	constructor(gateCount:number)
+	constructor(gateCount:number, drain?:Stub)
 	{
 		this.gate=new Array<Gate>(gateCount)
 		for(let i=0;i<gateCount;i++){
@@ -299,6 +299,14 @@ function emission(voltage:number):number{
 	}
 //}
 
+// The website should play like a YouTube video, but even then it needs a clock: which can also act as Single Step
+class Button implements Stub{
+name:string
+constructor(name){
+	this.name=name
+}
+}
+
 // looks very similar to MosFet and hence should reside in the same file
 // Looks like I come back to the original Poisson solver from university
 // Go over each element and adjuat potential there to satisfy the environment
@@ -313,13 +321,23 @@ function emission(voltage:number):number{
 // Maybe I can steel stuff from Chisel, though I really don't know about all those types.
 class Circuit{
 	name: string;
+	Buttons: Button[];
 	constructor(logsim_file:string){
 		this.name="RS latch"
+		this.Buttons=new Array<Button>(2)
+		this.Buttons[0]=new Button("Set")
+		this.Buttons[1]=new Button("Clear")
 		this.MosFets=new Array<MosFet>(3)
 		this.route=new Array<Route>(3)
-		this.MosFets[0]=new MosFet(2)
+		this.MosFets[0]=new MosFet(2,this.Buttons[0])
+
+
 		this.route[0]=new Route(2,this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.		
+		// There are multiple ports on the MosFet. It is difficult to name them here ( Logisim and their cooridinates?). I only allow designated "drain"
+
+		// So on here the Parameter is source? Source is GND usually. So it is the first gate? No weird one element Arrays. But why 2 gates counted a .. union type
 		this.MosFets[1]=new MosFet(2,this.route[0])  // I don't use transfer gates right now. For a compact file format, I should use the tree structure aggressively, even if it breaks symmetry. This is an optionial parameter
+
 		this.route[1]=new Route(2,this.MosFets[1],this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.	
 			// Bidirectional links connect mosfet 0 to route 1
 	}
