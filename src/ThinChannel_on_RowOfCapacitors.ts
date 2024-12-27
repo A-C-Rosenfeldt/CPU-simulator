@@ -216,7 +216,10 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 	conductivity=1
 	carrier_density: number[];
 	
-
+	constructor(channel_len:number){
+		this.carrier_density=new Array<number>(channel_len)  // The solver fights the clean consept of:   Cell{ potential, charge }
+		this.potential=new Array<number>(channel_len)
+	}
 
 	V_GS: number; // at the start of the channel: The first gate. Where to store? I need to store state! Absolute potential actually. V_GS is only for functions!
 	propagate_carrier_to_field(electrode:number[],gate:number[]){
@@ -268,7 +271,7 @@ class MosFet{
 	gate:Stub[]       // I guess that I will unify MosFet and channel. Circuit -> routes -> gates -> mirror-charge
 	electrode:Stub[]
 
-	constructor(gateCount:number, electrode:Stub[], routes:Route[])
+	constructor(channel_len:number,gateCount:number, electrode:Stub[], routes:Route[])
 	{
 		this.gate=new Array<Gate>(gateCount)
 		for(let i=0;i<routes.length;i++){			
@@ -280,6 +283,8 @@ class MosFet{
 		if (electrode.length>2){
 			this.gate=electrode.slice(2).concat(this.gate)
 		}
+
+		this.channel=new Channel(channel_len)
 	}
 
 	channel:Channel
@@ -365,14 +370,15 @@ class Circuit{
 		this.route=new Array<Route>(3)
 		this.route[0]=new Route(0)
 		this.route[0].end.push(this.Buttons[0])
-		this.MosFets[0]=new MosFet(2,[],[this.route[0]])
+		let channel_len=256
+		this.MosFets[0]=new MosFet(2,channel_len,[],[this.route[0]])
 
 
 		this.route[0]=new Route(2,this.MosFets[0])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.		
 		// There are multiple ports on the MosFet. It is difficult to name them here ( Logisim and their cooridinates?). I only allow designated "drain"
 
 		// So on here the Parameter is source? Source is GND usually. So it is the first gate? No weird one element Arrays. But why 2 gates counted a .. union type
-		this.MosFets[1]=new MosFet(2,[],[this.route[1]])  // I don't use transfer gates right now. For a compact file format, I should use the tree structure aggressively, even if it breaks symmetry. This is an optionial parameter
+		this.MosFets[1]=new MosFet(2,channel_len,[],[this.route[1]])  // I don't use transfer gates right now. For a compact file format, I should use the tree structure aggressively, even if it breaks symmetry. This is an optionial parameter
 
 		this.route[1]=new Route(2,this.MosFets[1])  // I need a way to iterate over all Routes exactly once. With Multiplexers, one route is connected to multiple drains.	
 
