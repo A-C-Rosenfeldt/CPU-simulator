@@ -1,77 +1,39 @@
 //import import * as validator from "./ZipCodeValidator"; './enforcePivot'
-import { MosFet, Gate } from './ThinChannel_on_RowOfCapacitors.js'
+// start quasi-static: I only need to set voltage so I only need the interface End
+// But I need a test circuit -- looks like the data model wants routes? ah no does not
+// I want a cstr MosFet( gate_count, electrodes:stub[],gates:stub[]  )
+import { MosFet, Stub,Button } from './ThinChannel_on_RowOfCapacitors.js'
 import { field2Gl, SimpleImage } from './GL.js';
 //import 'assert'
 
-
+{
 let channel_len=30
 let sweep_resolution=20
 let v_range=2
-
-var mosfet=new MosFet(0) // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
-{
-let g=new Gate()
-g.V_G=0
-// Or should I actually start from zero voltage and let carriers flow in from source and drain? Zero intinialisation is default in Java and C# (and easy in C++)
-mosfet.gate=[g]
-}
-
-mosfet.channel.len= channel_len
-mosfet.solve()
-
-
-function PrintGl(): SimpleImage { //ToPicture   print=text vs picture?
-
+let GND=new Button("GND",0)
+let Vcc=new Button("Vcc",1)
+let gate=new Button("sweep",0)
+var mosfet=new MosFet(1,[GND,Vcc,gate],[]) // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
 
 // Create an ArrayBuffer with a size in bytes
 const buffer = new ArrayBuffer(channel_len*sweep_resolution*4); // sweepParameters
-for(let vgs=0;vgs<sweep_resolution;vgs++)
+
+
+for(let sweep=0;sweep < sweep_resolution;sweep++)
 {
-	let current_Row=new Uint8Array(buffer, vgs*channel_len*4, channel_len*4)
-	mosfet.channel2bitmapRow(current_Row,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
-}
-// plan: 
-// start out with cavases .. 
-// then pull in the image array from the Matrix code
-// polysweep: sync sweep VGS and VDS into Ohm. Then async sweep into pinch off
 
-var allOfIt=new Uint8Array(buffer)
+  let vgs=sweep/(sweep_resolution-1)
 
-return { pixel: allOfIt, width: mosfet.channel.len, height: sweep_resolution };
+	let current_Row=new Uint8Array(buffer, sweep*channel_len*4, channel_len*4)
+	mosfet.channel2bitmapRow(current_Row) //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
+  mosfet.solve()  // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
+
+  gate.Voltage=vgs  // I put it here to check for steady state on first iteration
 }
 
-    const pixel = new Uint8Array(4 * this.maxStringLenght * this.touchTypedDescription.length)
+let pixel2:Uint8Array = new Uint8Array(buffer ) 
+let si:SimpleImage = { pixel: pixel2, width: channel_len, height: sweep_resolution }
 
+field2Gl("FieldGl0",si)
+}
 
-
-
-
-    // RGBA. This flat data structure resists all functional code
-    // ~screen
-    for (let i = 0; i < pixel.length;) {
-      // bluescreen
-      pixel[i++] = 0
-      pixel[i++] = 0
-      pixel[i++] = 0
-      pixel[i++] = 32
-    }
-
-    this.touchTypedDescription.forEach((str, i) => {
-      // JS is strange still. I need index:      for (let c of str) 
-      for (let k = 0; k < str.length; k++) {
-        const c = str[k]
-        const bandgaps = new Map([['i', 2], ['-', 2], ['s', 1], ['m', 0]])  // todo remove dupe
-        let p = ((i * this.maxStringLenght) + k) << 2;
-
-        //iD.data.set([
-        pixel[p++] = bandgaps.get(c) * 50
-        pixel[p++] = 0
-        pixel[p++] = c === '-' ? 200 : 0; // charge density. Blue is so weak on my monitor
-        pixel[p++] = 255
-        //  ((i*this.maxStringLenght)+k)<<2)
-        //}
-      }
-
-    })
-    return { pixel: pixel, width: this.maxStringLenght, height: this.touchTypedDescription.length };
-  }

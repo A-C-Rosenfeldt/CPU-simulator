@@ -255,7 +255,7 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 class MosFet{
 	V_drain: number;
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
-	channel2bitmapRow(current_Row: Uint8Array, V_source: number, V_drain: number) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
+	channel2bitmapRow(current_Row: Uint8Array) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
 		for (let i=0,k = 0; k < this.channel.len;) {
 			// bluescreen
 			current_Row[i++] = 0
@@ -265,7 +265,7 @@ class MosFet{
 		}
 	}
 
-	gate:Gate[]
+	gate:Stub[]       // I guess that I will unify MosFet and channel. Circuit -> routes -> gates -> mirror-charge
 	electrode:Stub[]
 
 	constructor(gateCount:number, electrode:Stub[], routes:Route[])
@@ -274,7 +274,12 @@ class MosFet{
 		for(let i=0;i<routes.length;i++){			
 			routes[i].end.push( this.gate[i] )
 		}
-		this.electrode=electrode.concat( new Array<Gate>(2- electrode.length) )
+		this.electrode=electrode.concat( new Array<Gate>(Math.max(0,2- electrode.length) ))
+
+		// important for the  ohmic vs pinch-off region test
+		if (electrode.length>2){
+			this.gate=electrode.slice(2).concat(this.gate)
+		}
 	}
 
 	channel:Channel
@@ -380,11 +385,12 @@ class Circuit{
 	MosFets: MosFet[]
 	route:Route[]
 	solve(){
-		this.MosFets.forEach(t=>t.solve() );
+		this.MosFets.forEach(t=>t.solve() )
+		this.route.forEach(r=>r.environment_and_charge_to_voltage())
 	}
 }
 
-export {MosFet}
+export {MosFet,Stub,Button}
 
 
 /*
