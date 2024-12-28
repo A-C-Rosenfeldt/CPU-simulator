@@ -176,7 +176,7 @@ class field_along_carriers{
 
 class Channel{   // kinda inner part of Mosfet. Needs access to a lot of elements. hmm
 	len:number
-	element:Capacitor[]
+	//element:Capacitor[]
 	potential:number[]
 	field:number[]  // So the distance thanks to the gate dielectric allows the channel to have field . Maybe with JFETs and the wide depletion zone this is easier to grasp?
 	// This field is weak, but all we have?
@@ -229,16 +229,16 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 
 		// This is kinda futile with multiple gates : if (V_S>V_G) ; // go from source to drain. But what about Ohmic region? 
 
-		let gate_length=(this.element.length-2)/gate.length
+		let gate_length=(this.potential.length-2)/gate.length
 		this.potential[0]=electrode[0]
 		this.potential[this.potential.length-1]=electrode[1]
 		// Probably I could apply currying here? But I fail to see the benefit
 		// Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
-		for(let i=1;i<this.element.length-1;i++){
+		for(let i=1;i<this.potential.length-1;i++){
 			let k=i
 			for(let j=0;j<2;j++){
-				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])+gate[Math.floor((k-1)/gate.length)])/4  + this.carrier_density[k]  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
-				k=this.element.length-i
+				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])+gate[Math.floor((k-1)/gate_length)])/4  + this.carrier_density[k]  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				k=this.potential.length-1-i
 			}
 		}
 	}
@@ -246,11 +246,21 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 	propagete_field_to_carriers(){
 		// semiconductor in channel
 		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
-		this.element[this.len-1].carrier[1]=this.element[0].carrier[1]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
+		this.carrier_density[this.carrier_density.length-1]=this.carrier_density[0]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
 
-		let next_channel_carrier=new Array<number>(this.len-2)
-		for(let i=1;i<this.len-1;i++){
-			next_channel_carrier[i] = this.element[i+1][1]+Math.abs(this.field[i])*this.conductivity*this.element[i+Math.sign(this.field[i])].carrier[1]
+		//let next_channel_carrier=new Array<number>(this.carrier_density.length-2)
+		let old=this.carrier_density[0]
+		for(let i=1;i<this.len;i++){
+			let field=(this.potential[i]-this.potential[i-1])*this.conductivity		
+			if (field>0) var current=field*old
+			else var current=field*this.carrier_density[i]
+			old=this.carrier_density[i]
+			this.carrier_density[i-1] -=current
+			this.carrier_density[i] +=current
+			
+			
+
+			//next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
 		}
 	}
 }
