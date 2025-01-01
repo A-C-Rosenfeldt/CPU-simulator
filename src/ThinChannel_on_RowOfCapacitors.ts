@@ -217,8 +217,9 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 	carrier_density: number[];
 	
 	constructor(channel_len:number){
-		this.carrier_density=new Array<number>(channel_len)  // The solver fights the clean consept of:   Cell{ potential, charge }
-		this.potential=new Array<number>(channel_len)
+		this.len=channel_len
+		this.carrier_density=new Array<number>(channel_len).fill(0)  // The solver fights the clean consept of:   Cell{ potential, charge }
+		this.potential=new Array<number>(channel_len).fill(0)
 	}
 
 	V_GS: number; // at the start of the channel: The first gate. Where to store? I need to store state! Absolute potential actually. V_GS is only for functions!
@@ -272,8 +273,8 @@ class MosFet{
 		for (let i=0,k = 0; k < this.channel.len;) {
 			// bluescreen
 			current_Row[i++] = 0
-			current_Row[i++] = this.channel.potential[k]
-			current_Row[i++] = this.channel.carrier_density[k++]
+            current_Row[i++] = (this.channel.potential[k]+0.5)*64
+            current_Row[i++] = this.channel.carrier_density[k++]*64
 			current_Row[i++] = 255
 		}
 	}

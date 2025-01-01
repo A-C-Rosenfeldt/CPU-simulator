@@ -13,7 +13,7 @@ let v_range=2
 let GND=new Button("GND",0)
 let Vcc=new Button("Vcc",1)
 let gate=new Button("sweep",0)
-var mosfet=new MosFet(channel_len,1,[GND,Vcc,gate],[]) // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
+var mosfet=new MosFet(channel_len,0,[GND,Vcc,gate],[]) // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
 
 // Create an ArrayBuffer with a size in bytes
 const buffer = new ArrayBuffer(channel_len*sweep_resolution*4); // sweepParameters
