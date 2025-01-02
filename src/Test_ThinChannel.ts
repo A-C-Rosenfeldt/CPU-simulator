@@ -7,8 +7,8 @@ import { field2Gl, SimpleImage } from './GL.js';
 //import 'assert'
 
 {
-let channel_len=30
-let sweep_resolution=20
+let channel_len=20
+let sweep_resolution=512
 let v_range=2
 let GND=new Button("GND",0)
 let Vcc=new Button("Vcc",1)
@@ -22,7 +22,7 @@ const buffer = new ArrayBuffer(channel_len*sweep_resolution*4); // sweepParamete
 for(let sweep=0;sweep < sweep_resolution;sweep++)
 {
 
-  let vgs=sweep/(sweep_resolution-1)
+  let vgs=1-2*Math.abs((sweep/(sweep_resolution-1))-0.5)
 
 	let current_Row=new Uint8Array(buffer, sweep*channel_len*4, channel_len*4)
 	mosfet.channel2bitmapRow(current_Row) //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)

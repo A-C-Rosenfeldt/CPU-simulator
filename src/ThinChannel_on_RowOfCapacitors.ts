@@ -238,7 +238,9 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		for(let i=1;i<this.potential.length-1;i++){
 			let k=i
 			for(let j=0;j<2;j++){
-				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])+gate[Math.floor((k-1)/gate_length)])/4  + this.carrier_density[k]  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				let g=gate[Math.floor((k-1)/gate_length)]
+				
+				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])   +  g *0.1 )/4.1     - this.carrier_density[k]*0.01  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
 				k=this.potential.length-1-i
 			}
 		}
@@ -247,19 +249,20 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 	propagete_field_to_carriers(){
 		// semiconductor in channel
 		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
-		this.carrier_density[this.carrier_density.length-1]=this.carrier_density[0]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
+		for(let i=0;i<2;i++){		
+			this.carrier_density[this.carrier_density.length-1-i]=this.carrier_density[i]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
+		}
 
 		//let next_channel_carrier=new Array<number>(this.carrier_density.length-2)
-		let old=this.carrier_density[0]
-		for(let i=1;i<this.len;i++){
-			let field=(this.potential[i]-this.potential[i-1])*this.conductivity		
-			if (field>0) var current=field*old
-			else var current=field*this.carrier_density[i]
-			old=this.carrier_density[i]
-			this.carrier_density[i-1] -=current
-			this.carrier_density[i] +=current
-			
-			
+		let this_carrier_density_i_=this.carrier_density[1]
+		for(let i=1;i<this.len-1;i++){
+			let field=(this.potential[i+1]-this.potential[i-1])*this.conductivity	// pull field
+			// push carriers 	(KISS)
+			var current=field*this_carrier_density_i_;this_carrier_density_i_=this.carrier_density[i+1]
+			let target=Math.sign(current)+i
+			let carrier_count=Math.abs(current)
+			this.carrier_density[i]-=carrier_count
+			this.carrier_density[target]+=carrier_count
 
 			//next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
 		}
@@ -273,8 +276,9 @@ class MosFet{
 		for (let i=0,k = 0; k < this.channel.len;) {
 			// bluescreen
 			current_Row[i++] = 0
-            current_Row[i++] = (this.channel.potential[k]+0.5)*64
-            current_Row[i++] = this.channel.carrier_density[k++]*64
+            current_Row[i++] = Math.min(255,Math.max(0,(this.channel.potential[k]+0.5)*64))
+			let t=this.channel.carrier_density[k++]
+            current_Row[i++] = Math.min(255,Math.max(0,t*128+(t>0?10:0)))
 			current_Row[i++] = 255
 		}
 	}
