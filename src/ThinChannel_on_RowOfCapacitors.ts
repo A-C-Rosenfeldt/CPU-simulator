@@ -213,13 +213,15 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		this.current_Gate++
 	}*/
 
-	conductivity=1
+	
 	carrier_density: number[];
 	
-	constructor(channel_len:number){
+	constructor(channel_len:number, c?:number){
 		this.len=channel_len
 		this.carrier_density=new Array<number>(channel_len).fill(0)  // The solver fights the clean consept of:   Cell{ potential, charge }
 		this.potential=new Array<number>(channel_len).fill(0)
+
+		this.conductivity=c | 1
 	}
 
 	V_GS: number; // at the start of the channel: The first gate. Where to store? I need to store state! Absolute potential actually. V_GS is only for functions!
@@ -235,16 +237,21 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		this.potential[this.potential.length-1]=electrode[1]
 		// Probably I could apply currying here? But I fail to see the benefit
 		// Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
+
+		const compensation=0.1  // Voltage between gate and source of 1 ( V actually in cold Silicon CMOS ) should result in carrier density of 1 ( whatever, I dunno those, just for dispaly)
+
 		for(let i=1;i<this.potential.length-1;i++){
 			let k=i
 			for(let j=0;j<2;j++){
 				let g=gate[Math.floor((k-1)/gate_length)]
 				
-				this.potential[k]= (2*(this.potential[k-1]+this.potential[k+1])   +  g *0.1 )/4.1     - this.carrier_density[k]*0.01  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				this.potential[k]= ((this.potential[k-1]+this.potential[k+1])   +  g *compensation )/(2+compensation)     - this.carrier_density[k]*compensation  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
 				k=this.potential.length-1-i
 			}
 		}
 	}
+
+	conductivity:number 
 
 	propagete_field_to_carriers(){
 		// semiconductor in channel
@@ -258,9 +265,9 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		for(let i=1;i<this.len-1;i++){
 			let field=(this.potential[i+1]-this.potential[i-1])*this.conductivity	// pull field
 			// push carriers 	(KISS)
-			var current=field*this_carrier_density_i_;this_carrier_density_i_=this.carrier_density[i+1]
+			var current=field*this_carrier_density_i_
 			let target=Math.sign(current)+i
-			let carrier_count=Math.abs(current)
+			let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=this.carrier_density[i+1]
 			this.carrier_density[i]-=carrier_count
 			this.carrier_density[target]+=carrier_count
 
@@ -275,10 +282,12 @@ class MosFet{
 	channel2bitmapRow(current_Row: Uint8Array) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
 		for (let i=0,k = 0; k < this.channel.len;) {
 			// bluescreen
-			current_Row[i++] = 0
-            current_Row[i++] = Math.min(255,Math.max(0,(this.channel.potential[k]+0.5)*64))
 			let t=this.channel.carrier_density[k++]
-            current_Row[i++] = Math.min(255,Math.max(0,t*128+(t>0?10:0)))
+			let rb=Math.min(255,Math.max(0,t*220+(t>0?10:0)))
+			current_Row[i++] = rb
+            current_Row[i++] = Math.min(255,Math.max(0,(this.channel.potential[k]+0.5)*80))
+
+            current_Row[i++] = rb
 			current_Row[i++] = 255
 		}
 	}
@@ -286,7 +295,7 @@ class MosFet{
 	gate:Stub[]       // I guess that I will unify MosFet and channel. Circuit -> routes -> gates -> mirror-charge
 	electrode:Stub[]
 
-	constructor(channel_len:number,gateCount:number, electrode:Stub[], routes:Route[])
+	constructor(channel_len:number,gateCount:number, electrode:Stub[], routes:Route[],conductivity?:number)
 	{
 		this.gate=new Array<Gate>(gateCount)
 		for(let i=0;i<routes.length;i++){			
@@ -299,7 +308,7 @@ class MosFet{
 			this.gate=electrode.slice(2).concat(this.gate)
 		}
 
-		this.channel=new Channel(channel_len)
+		this.channel=new Channel(channel_len,conductivity)
 	}
 
 	channel:Channel
