@@ -37,10 +37,12 @@ for(let sweep=0;sweep < sweep_resolution;sweep++)
 let pixel2:Uint8Array = new Uint8Array(buffer ) 
 let si:SimpleImage = { pixel: pixel2, width: channel_len, height: sweep_resolution }
 
+//console.log("conductivity ", conductivity)
 field2Gl("FieldGl0",si)
+//console.log("conductivity ", conductivity)
 
-if ((conductivity+=0.1)>10 ) window.clearInterval(id)
+if ((conductivity+=0.3)>8 ) window.clearInterval(id)
 
 }
 animate()  // for instant feedback after Ctrl-R in browser
-id=window.setInterval(animate,300)
+id=window.setInterval(animate,100)
