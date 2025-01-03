@@ -8,7 +8,7 @@ import { field2Gl } from './GL.js';
 //for(let conductivity=0;conductivity<10;conductivity+=0.5)
 var conductivity = 0.1, id;
 function animate() {
-    let channel_len = 20;
+    let channel_len = 40;
     let sweep_resolution = 512;
     let v_range = 2;
     let GND = new Button("GND", 0);
@@ -26,9 +26,16 @@ function animate() {
     }
     let pixel2 = new Uint8Array(buffer);
     let si = { pixel: pixel2, width: channel_len, height: sweep_resolution };
+    //console.log("conductivity ", conductivity)
     field2Gl("FieldGl0", si);
-    if ((conductivity += 0.1) > 5)
+    //console.log("conductivity ", conductivity)
+    if ((conductivity += 0.3) > 8) {
         window.clearInterval(id);
+        id = 0;
+    }
 }
 animate(); // for instant feedback after Ctrl-R in browser
 id = window.setInterval(animate, 100);
+//var me=new MouseEvent()
+document.getElementById("FieldGl0").onclick = me => { conductivity = 0.1; if (id == 0)
+    id = window.setInterval(animate, 100); };

@@ -41,8 +41,12 @@ let si:SimpleImage = { pixel: pixel2, width: channel_len, height: sweep_resoluti
 field2Gl("FieldGl0",si)
 //console.log("conductivity ", conductivity)
 
-if ((conductivity+=0.3)>8 ) window.clearInterval(id)
+if ((conductivity+=0.3)>8 ) {window.clearInterval(id);id=0}
 
 }
 animate()  // for instant feedback after Ctrl-R in browser
 id=window.setInterval(animate,100)
+
+//var me=new MouseEvent()
+
+document.getElementById("FieldGl0").onclick=me=>{conductivity=0.1;if (id==0) id=window.setInterval(animate,100) }
