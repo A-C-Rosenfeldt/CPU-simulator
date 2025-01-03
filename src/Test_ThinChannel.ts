@@ -10,7 +10,7 @@ import { field2Gl, SimpleImage } from './GL.js';
 var conductivity:number=0.1, id:number
 function animate()
 {
-let channel_len=20
+let channel_len=40
 let sweep_resolution=512
 let v_range=2
 let GND=new Button("GND",0)
@@ -39,8 +39,8 @@ let si:SimpleImage = { pixel: pixel2, width: channel_len, height: sweep_resoluti
 
 field2Gl("FieldGl0",si)
 
-if ((conductivity+=0.1)>5 ) window.clearInterval(id)
+if ((conductivity+=0.1)>10 ) window.clearInterval(id)
 
 }
 animate()  // for instant feedback after Ctrl-R in browser
-id=window.setInterval(animate,100)
+id=window.setInterval(animate,300)

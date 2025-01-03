@@ -251,6 +251,50 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		}
 	}
 
+	propagate_carrier_to_field_blend(electrode:number[],gate:number[]){
+		let field=0,potential=this.V_GS,carrier_on_gate=0,sum_p=0
+		// Like in the 2d simulation I need to criss cross? But I don't accumulate .. should I? I do ping pong within in the channel. This should be stable if I don't have a bug
+		// Kinda like, when charge -> field -> charge don't agree, something is not consistent?
+
+		// This is kinda futile with multiple gates : if (V_S>V_G) ; // go from source to drain. But what about Ohmic region? 
+
+		let gate_length=(this.potential.length-2)/gate.length
+		let bevel=4
+		let gate_length_blend=(this.potential.length-2)/(gate.length*bevel+1)
+		this.potential[0]=electrode[0]
+		this.potential[this.potential.length-1]=electrode[1]
+		// Probably I could apply currying here? But I fail to see the benefit
+		// Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
+
+		const compensation=0.1  // Voltage between gate and source of 1 ( V actually in cold Silicon CMOS ) should result in carrier density of 1 ( whatever, I dunno those, just for dispaly)
+
+		for(let i=1;i<this.potential.length-1;i++){
+			let k=i
+			for(let j=0;j<2;j++){
+				// boxcar  let g=gate[Math.floor((k-1)/gate_length)]
+				
+				let p_blend=(k-1)/gate_length_blend
+				let p_int=Math.floor(p_blend)
+
+				let poss=[ Math.floor((p_int-1)/bevel)  , Math.floor(p_int/bevel)  ];
+				let source=electrode.slice()
+				
+				if (poss[0]>=0) source[0]= gate[poss[0]]
+				if (poss[1]< gate.length) source[1]= gate[poss[1]]
+
+				let g=source[0]
+				if (source[0]!=source[1]){
+					p_blend%=1
+					g=p_blend*source[1]+(1-p_blend)*source[0]
+				} 
+
+				this.potential[k]= ((this.potential[k-1]+this.potential[k+1])   +  g *compensation )/(2+compensation)     - this.carrier_density[k]*compensation  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				k=this.potential.length-1-i
+			}
+		}
+	}
+
+
 	conductivity:number 
 
 	propagete_field_to_carriers(){
@@ -273,6 +317,33 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 
 			//next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
 		}
+	}
+
+	propagete_field_to_carriers_diffuse(){
+		// semiconductor in channel
+		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
+		for(let i=0;i<2;i++){		
+			this.carrier_density[this.carrier_density.length-1-i]=this.carrier_density[i]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
+		}
+
+		let diffused2=new Array<number>(this.carrier_density.length-1)
+		for(let i=0;i<diffused2.length;i++){
+			diffused2[i]=(this.carrier_density[i]+this.carrier_density[i+1])/2
+		}
+
+		let diffused3=diffused2.slice()  // Code as different as possible to other version  to  have complementary test
+		for(let i=0;i<diffused2.length;i++){
+			let field=(this.potential[i+1]-this.potential[i])*this.conductivity ;	// pull field
+			let current=Math.min(1,Math.max(-1,diffused2[i]*field))
+			let target=Math.sign(current)+i
+			let c=Math.abs(current)
+			diffused3[i]-=c
+			diffused3[target]+=c
+		}
+		
+		for(let i=1;i<diffused2.length;i++){
+			this.carrier_density[i]=(diffused3[i-1]+diffused3[i])/2
+		}	
 	}
 }
 
@@ -322,8 +393,8 @@ class MosFet{
 		// On the one hand the gate provides the voltage .. like a function to pull from
 		// On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
 		//this.channel.propagate_carrier_to_field(gates:gate[])
-		this.channel.propagete_field_to_carriers()
-
+		this.channel.propagete_field_to_carriers_diffuse()
+		//this.channel.propagete_field_to_carriers()
 		/*
 		this.channel.get_drained()
 
