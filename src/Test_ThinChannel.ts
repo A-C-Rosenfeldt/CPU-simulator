@@ -49,4 +49,4 @@ id=window.setInterval(animate,100)
 
 //var me=new MouseEvent()
 
-document.getElementById("FieldGl0").onclick=me=>{conductivity=0.1;if (id==0) id=window.setInterval(animate,100) }
+document.getElementById("FieldGl0").onclick=me=>{conductivity=0.1;if (id==0) id=window.setInterval(animate,200) }

@@ -228,28 +228,94 @@ class Channel {
             //next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
         }
     }
+    // Todo: Here seem to be two products . Maybe this can be formulated as MatrixMul  selfMul MatrixMul . Weird. Or distribute the sums.
+    // So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
     propagete_field_to_carriers_diffuse() {
         // semiconductor in channel
         // source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
         for (let i = 0; i < 2; i++) {
             this.carrier_density[this.carrier_density.length - 1 - i] = this.carrier_density[i] = 1; // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
         }
+        // diffuse carriers part
         let diffused2 = new Array(this.carrier_density.length - 1);
         for (let i = 0; i < diffused2.length; i++) {
             diffused2[i] = (this.carrier_density[i] + this.carrier_density[i + 1]) / 2;
         }
         let diffused3 = diffused2.slice(); // Code as different as possible to other version  to  have complementary test
+        diffused3.fill(0);
         for (let i = 0; i < diffused2.length; i++) {
-            let field = (this.potential[i + 1] - this.potential[i]) * this.conductivity; // pull field
-            let current = Math.min(1, Math.max(-1, diffused2[i] * field));
+            let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i]) * this.conductivity)); // pull field
+            let current = diffused2[i] * field;
             let target = Math.sign(current) + i;
             let c = Math.abs(current);
             diffused3[i] -= c;
             diffused3[target] += c;
         }
-        for (let i = 1; i < diffused2.length; i++) {
-            this.carrier_density[i] = (diffused3[i - 1] + diffused3[i]) / 2;
+        //diffuse field
+        let carriers = new Array(this.carrier_density.length).fill(0);
+        for (let i = 1; i < this.len - 1; i++) {
+            let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i - 1]) * this.conductivity)); // pull field
+            // push carriers 	(KISS)
+            var current = field * this.carrier_density[i];
+            let target = Math.sign(current) + i;
+            //let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=this.carrier_density[i+1]
+            carriers[i] -= current;
+            carriers[target] += current;
+            //next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
         }
+        // Blend
+        for (let i = 1; i < this.len - 1; i++) {
+            this.carrier_density[i] = (0.5 * this.carrier_density[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((diffused3[i - 1] + diffused3[i]) / 2) + 0.3 * carriers[i]); //+0.5*((diffused3[i-1]+diffused3[i])/2)
+            //this.carrier_density[i] =  (this.carrier_density[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
+        }
+        // Bleed : Only place to prevent carriers going below zero
+        // Landing at exactly at zero is very important as is known from the theory of a Diode
+        // no interleave of this iteration with the linear one until I understand stability
+        // Should be local. This is not a list of accounts of one customer.
+        // Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
+        let signCount = [0, 0, 0], last_positive = 0; // certainly the electrode has carriers
+        let len = this.carrier_density.length, m = 0;
+        let shore = new Array(len).fill(0, 0, len / 2 - 1).fill(len - 1, len / 2, len - 1); // point to nearest electrode
+        for (let i = 1; i < this.len - 1; i++) {
+            if (this.carrier_density[i] > 0)
+                last_positive = i;
+            else {
+                if (this.carrier_density[i] < 0) {
+                    m = -1;
+                    let d = Math.abs(i - last_positive) - Math.abs(i - shore[i]);
+                    if (d == 0) { // same distance which happens often because I want a rough grid per gate
+                        let c = this.carrier_density; // tie break for 99% or all cases. No glitch for the rest
+                        d = c[shore[i]] - c[last_positive]; // opposite order
+                    }
+                    if (d < 0)
+                        shore[i] = last_positive;
+                }
+            }
+        }
+        for (var safety = 0; safety < this.len && m != 0; safety++) {
+            var lm = m;
+            m = 0;
+            // land on shore. I don't interleave this for symmetry and easy debugging
+            for (let i = 1; i < this.len - 1; i++) {
+                let c = this.carrier_density;
+                if (c[i] < 0) {
+                    let s = shore[i];
+                    let d = c[s];
+                    d += c[i];
+                    c[i] = 0;
+                    if (s > 0 && s < len - 1)
+                        m = Math.min(m, d); // the electrode density shown is merely the thermic current. The reservoir is deep.
+                    c[s] = d; // Still need to track carriers for the elecric field and current through the wires!
+                }
+            }
+            // shores "roll up" , which may make islands vanish
+        }
+        //if (safety) console.log(safety,lm)  // shows 0 or 10
+    }
+    //figure_of_merit
+    fm(me, them) {
+        Math.abs(me - them);
+        return false;
     }
 }
 class MosFet {
@@ -267,10 +333,10 @@ class MosFet {
     }
     // The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
     channel2bitmapRow(current_Row) {
-        for (let i = 0, k = 0; k < this.channel.len;) {
+        for (let i = 0, k = 0; k < this.channel.len; k++) {
             // bluescreen
-            let t = this.channel.carrier_density[k++];
-            let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 10 : 0)));
+            let t = this.channel.carrier_density[k];
+            let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 30 : 0)));
             current_Row[i++] = rb;
             current_Row[i++] = Math.min(255, Math.max(0, (this.channel.potential[k] + 0.5) * 80));
             current_Row[i++] = rb;

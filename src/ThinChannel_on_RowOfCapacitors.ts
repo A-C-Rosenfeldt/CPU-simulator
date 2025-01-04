@@ -215,6 +215,7 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 
 	
 	carrier_density: number[];
+	shore: number[];
 	
 	constructor(channel_len:number, c?:number){
 		this.len=channel_len
@@ -320,6 +321,8 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		}
 	}
 
+	// Todo: Here seem to be two products . Maybe this can be formulated as MatrixMul  selfMul MatrixMul . Weird. Or distribute the sums.
+	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
 	propagete_field_to_carriers_diffuse(){
 		// semiconductor in channel
 		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
@@ -363,18 +366,52 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		//this.carrier_density[i] =  (this.carrier_density[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
 		}	
 
-		// Bleed: Only place to prevent carriers going below zero
+		// Bleed : Only place to prevent carriers going below zero
 		// Landing at exactly at zero is very important as is known from the theory of a Diode
-		// Todo: Should be local. This is not a list of accounts of one customer.
-		let signCount=[0,0,0]
-		for(let i=1;i<this.len-1;i++){
-			signCount[ Math.sign(this.carrier_density[i])+1 ] +=this.carrier_density[i]
-		}
 
-		for(let i=1;i<this.len-1;i++){
-			signCount[ Math.sign(this.carrier_density[i])+1 ] +=this.carrier_density[i]
-		}
+		// no interleave of this iteration with the linear one until I understand stability
+	
+			// Should be local. This is not a list of accounts of one customer.
+			// Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
+			let signCount=[0,0,0], last_positive=0 // certainly the electrode has carriers
+			let len=this.carrier_density.length, m=0
+			let shore=new Array<number>(len).fill(0,0,len/2-1).fill(len-1,len/2,len-1) // point to nearest electrode
+			for(let i=1;i<this.len-1;i++){
+				if (this.carrier_density[i]>0) last_positive=i
+				else{
+					if (this.carrier_density[i]<0){
+						m=-1
+						let d=Math.abs(i-last_positive)-Math.abs(i-shore[i])
+						if (d==0){ // same distance which happens often because I want a rough grid per gate
+							let c=this.carrier_density  // tie break for 99% or all cases. No glitch for the rest
+						d=  c[shore[i]]-c[last_positive]  // opposite order
+						}
+						if (d<0) shore[i] = last_positive			 
+					}
+				}
+			}
 
+		for(var safety=0;safety<this.len && m!=0;safety++){
+			var lm=m;m=0
+			// land on shore. I don't interleave this for symmetry and easy debugging
+			for(let i=1;i<this.len-1;i++){
+				let c=this.carrier_density
+				if (c[i]<0){
+					let s=shore[i]
+					let d=c[s]
+					d+=c[i];c[i]=0;if (s>0 && s<len-1 )m=Math.min(m,d)  // the electrode density shown is merely the thermic current. The reservoir is deep.
+					c[s]=d  // Still need to track carriers for the elecric field and current through the wires!
+				}
+			}			
+			// shores "roll up" , which may make islands vanish
+		}
+		//if (safety) console.log(safety,lm)  // shows 0 or 10
+	}
+
+	//figure_of_merit
+	private fm(me:number,them:number):boolean{
+		Math.abs(me-them)
+		return false
 	}
 }
 
@@ -385,7 +422,7 @@ class MosFet{
 		for (let i=0,k = 0; k < this.channel.len;k++) {
 			// bluescreen
 			let t=this.channel.carrier_density[k]
-			let rb=Math.min(255,Math.max(0,t*220+(t>0?10:0)))
+			let rb=Math.min(255,Math.max(0,t*220+(t>0?30:0)))
 			current_Row[i++] = rb
             current_Row[i++] = Math.min(255,Math.max(0,(this.channel.potential[k]+0.5)*80))
 
