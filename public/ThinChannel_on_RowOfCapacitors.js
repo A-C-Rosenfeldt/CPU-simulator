@@ -177,29 +177,30 @@ class Channel {
         // Like in the 2d simulation I need to criss cross? But I don't accumulate .. should I? I do ping pong within in the channel. This should be stable if I don't have a bug
         // Kinda like, when charge -> field -> charge don't agree, something is not consistent?
         // This is kinda futile with multiple gates : if (V_S>V_G) ; // go from source to drain. But what about Ohmic region? 
-        let gate_length = (this.potential.length - 2) / gate.length;
+        //let gate_length=(this.potential.length-2)/gate.length  
         let bevel = 4;
-        let gate_length_blend = (this.potential.length - 2) / (gate.length * bevel + 1);
+        let gate_length_blend = (this.potential.length - 2) / (gate.length * bevel + 1); // subtract electrodes   add one extra blend between right (last) gate and right electrode
         this.potential[0] = electrode[0];
         this.potential[this.potential.length - 1] = electrode[1];
         // Probably I could apply currying here? But I fail to see the benefit
         // Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
         const compensation = 0.1; // Voltage between gate and source of 1 ( V actually in cold Silicon CMOS ) should result in carrier density of 1 ( whatever, I dunno those, just for dispaly)
         for (let i = 1; i < this.potential.length - 1; i++) {
-            let k = i;
+            let k = i; // little hack to improve effect of both electrodes. Maybe I only will use NAND later on, and one electrode will be a rail? Then do away! I need it now to check for symmetry in my indices
             for (let j = 0; j < 2; j++) {
                 // boxcar  let g=gate[Math.floor((k-1)/gate_length)]
-                let p_blend = (k - 1) / gate_length_blend;
-                let p_int = Math.floor(p_blend);
-                let poss = [Math.floor((p_int - 1) / bevel), Math.floor(p_int / bevel)];
-                let source = electrode.slice();
+                let p_blend = (k - 1) / gate_length_blend; // -1 is to avoid the electrodes. There is no synergy with the other -1 because I want the real array address in the loop counter ( buffer overruns are the worst ) 
+                let p_int = Math.floor(p_blend); // blend segment
+                let poss = [Math.floor((p_int - 1) / bevel), Math.floor(p_int / bevel)]; // Positions where to possible lookup data from  . We look to the left here. To the right we are made to overshood by the +1 in gate_length_blend divisor
+                let source = electrode.slice(); // electrodes are in the correct order. Base case ( is this lingo consistent with rekursion? ) is a capacitor with two electrodes
+                // Positions within bounds? Then replace electrode voltage with gate voltage
                 if (poss[0] >= 0)
                     source[0] = gate[poss[0]];
                 if (poss[1] < gate.length)
                     source[1] = gate[poss[1]];
-                let g = source[0];
-                if (source[0] != source[1]) {
-                    p_blend %= 1;
+                let g = source[0]; // we may be square on top of an electrode
+                if (source[0] != source[1]) { // or actually need to blend
+                    p_blend %= 1; // fraction
                     g = p_blend * source[1] + (1 - p_blend) * source[0];
                 }
                 this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g * compensation) / (2 + compensation) - this.carrier_density[k] * compensation; // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
@@ -278,7 +279,8 @@ class MosFet {
     }
     solve() {
         // Types suggest that I should not send raw numbers .. Maybe in the end the channel comes back into the MosFET
-        this.channel.propagate_carrier_to_field(this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage)); // I need the real V_G as in the 2d simulation. There may be some mathematical shot cuts, but it probably has no educational worth and does not help debugging. And is there really? V_G globally pulls in carriers. In the end (haha pun) this is V_GS. The main parameter in any textbook (channel potential is pinned to V_S on the source site. While solving, this (information) propagates through the whole channel) . This an the next call replace the 2d poisson solution of the grid based simulation.
+        this.channel.propagate_carrier_to_field_blend(this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage));
+        //this.channel.propagate_carrier_to_field(this.electrode.map(e=>e.Voltage),this.gate.map(g=>g.Voltage))  // I need the real V_G as in the 2d simulation. There may be some mathematical shot cuts, but it probably has no educational worth and does not help debugging. And is there really? V_G globally pulls in carriers. In the end (haha pun) this is V_GS. The main parameter in any textbook (channel potential is pinned to V_S on the source site. While solving, this (information) propagates through the whole channel) . This an the next call replace the 2d poisson solution of the grid based simulation.
         let voltages;
         // On the one hand the gate provides the voltage .. like a function to pull from
         // On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
