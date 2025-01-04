@@ -327,24 +327,54 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 			this.carrier_density[this.carrier_density.length-1-i]=this.carrier_density[i]=1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
 		}
 
+		// diffuse carriers part
 		let diffused2=new Array<number>(this.carrier_density.length-1)
 		for(let i=0;i<diffused2.length;i++){
 			diffused2[i]=(this.carrier_density[i]+this.carrier_density[i+1])/2
 		}
 
 		let diffused3=diffused2.slice()  // Code as different as possible to other version  to  have complementary test
+		diffused3.fill(0)
 		for(let i=0;i<diffused2.length;i++){
-			let field=(this.potential[i+1]-this.potential[i])*this.conductivity ;	// pull field
-			let current=Math.min(1,Math.max(-1,diffused2[i]*field))
+			let field=Math.min(1,Math.max(-1,(this.potential[i+1]-this.potential[i])*this.conductivity ))	// pull field
+			let current=diffused2[i]*field
 			let target=Math.sign(current)+i
 			let c=Math.abs(current)
 			diffused3[i]-=c
 			diffused3[target]+=c
 		}
 		
-		for(let i=1;i<diffused2.length;i++){
-			this.carrier_density[i]=(diffused3[i-1]+diffused3[i])/2
+		//diffuse field
+		let carriers=new Array<number>(this.carrier_density.length).fill(0)
+		for(let i=1;i<this.len-1;i++){
+			let field=Math.min(1,Math.max(-1,(this.potential[i+1]-this.potential[i-1])*this.conductivity))	// pull field
+			// push carriers 	(KISS)
+			var current=field*this.carrier_density[i]
+			let target=Math.sign(current)+i
+			//let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=this.carrier_density[i+1]
+			carriers[i]-=current
+			carriers[target]+=current
+			//next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
+		}		
+
+		// Blend
+		for(let i=1;i<this.len-1;i++){
+			this.carrier_density[i]=(0.5*this.carrier_density[i] + 0.5*(diffused2[i-1]+diffused2[i])/2) + (   0.7*((diffused3[i-1]+diffused3[i])/2) +  0.3*carriers[i] ) //+0.5*((diffused3[i-1]+diffused3[i])/2)
+		//this.carrier_density[i] =  (this.carrier_density[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
 		}	
+
+		// Bleed: Only place to prevent carriers going below zero
+		// Landing at exactly at zero is very important as is known from the theory of a Diode
+		// Todo: Should be local. This is not a list of accounts of one customer.
+		let signCount=[0,0,0]
+		for(let i=1;i<this.len-1;i++){
+			signCount[ Math.sign(this.carrier_density[i])+1 ] +=this.carrier_density[i]
+		}
+
+		for(let i=1;i<this.len-1;i++){
+			signCount[ Math.sign(this.carrier_density[i])+1 ] +=this.carrier_density[i]
+		}
+
 	}
 }
 
@@ -352,9 +382,9 @@ class MosFet{
 	V_drain: number;
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 	channel2bitmapRow(current_Row: Uint8Array) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
-		for (let i=0,k = 0; k < this.channel.len;) {
+		for (let i=0,k = 0; k < this.channel.len;k++) {
 			// bluescreen
-			let t=this.channel.carrier_density[k++]
+			let t=this.channel.carrier_density[k]
 			let rb=Math.min(255,Math.max(0,t*220+(t>0?10:0)))
 			current_Row[i++] = rb
             current_Row[i++] = Math.min(255,Math.max(0,(this.channel.potential[k]+0.5)*80))
@@ -395,8 +425,10 @@ class MosFet{
 		// On the one hand the gate provides the voltage .. like a function to pull from
 		// On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
 		//this.channel.propagate_carrier_to_field(gates:gate[])
+	
 		this.channel.propagete_field_to_carriers_diffuse()
 		//this.channel.propagete_field_to_carriers()
+
 		/*
 		this.channel.get_drained()
 
