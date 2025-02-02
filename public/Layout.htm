@@ -4,6 +4,16 @@
 		<p>
 			I decided to go with a kinda MIPS layout. It looks like registers and ALU are close to each other to give reg-reg instruction low latency.
 			With even less registers on my design (8?) pass through of other data is not so bad.
+			I see that the MIPS pipeline shows a multiplexer for immediate data to go into the ALU.
+			But then again, a block diagram does not show bit-slices either.
+			I want only one mutliplexer: Between register file and instruction pointer. Top is address bus, bottom is data bus.
+			Okay, one more multiplexer to load the instruction register.
+			Addressbus needs a latch for the ALU output and the long path through the file. So this can also latch the instruction pointer.
+			On the 6502 the memory address register collects the bytes while the instruction pointer must move. So the MAR can't be used by said pointer.
+			But my internals are 16 bit. Did 6502 cheat on the signal quality? 24 bits * 6 transistos .. 144 transistors. Hurt a little bit.
+			I cannot find synergy. The Alu better has a write-back register (also for logic functions, but certainly for the instruction pointer).
+			Write back does not provoke a short-cut because I place it in the middle of the ALU with operations forward and backwards (logic is faster, though).
+			Register renaming blows up the instruction decoding. The two names go to a pseudo register file with the real names (surprise!). Strains my transistor budget. Ah maybe later. Later logic functions may be faster than add. 
 			So outside of this pair is the global bus to implent all the other instructions, probably in a lot of cycles.
 		</p>
 		<p>

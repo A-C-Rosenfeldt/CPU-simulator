@@ -252,6 +252,44 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 		}
 	}
 
+	// Real NAND gates have a complicated doping profile at the ends of the electrodes and try to reduce capacity between electrodes
+	// Also I get head ache when I try to blend between electrodes
+	// It is kinda realistc to give electrodes round edges and fill the space with dopants to keep carrier density homogenous at full on state
+	// I don't show this geometry, just at the edges I use two parabolas to blend over
+	// Doping is subtracted from the free carriers before the field is calculated
+	// to keep numbers easy, I set doping to 1
+	propagate_carrier_n_doping_to_field(electrode:number[],gate:number[]){
+		let bevel=8
+		let gate_length_blend=(this.potential.length-2)/(gate.length*bevel)  // subtract electrodes   add one extra blend between right (last) gate and right electrode
+		this.potential[0]=electrode[0]
+		this.potential[this.potential.length-1]=electrode[1]
+		// Probably I could apply currying here? But I fail to see the benefit
+		// Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
+
+		const compensation=0.1  // Voltage between gate and source of 1 ( V actually in cold Silicon CMOS ) should result in carrier density of 1 ( whatever, I dunno those, just for dispaly)
+
+		for(let i=1;i<this.potential.length-1;i++){
+			let k=i  // little hack to improve effect of both electrodes. Maybe I only will use NAND later on, and one electrode will be a rail? Then do away! I need it now to check for symmetry in my indices
+			for(let j=0;j<2;j++){
+				// boxcar  let g=gate[Math.floor((k-1)/gate_length)]
+				
+				let gb=Math.floor((k-1)/gate_length_blend)  // -1 is to avoid the electrodes. There is no synergy with the other -1 because I want the real array address in the loop counter ( buffer overruns are the worst ) 
+				let g1=Math.floor(gb/bevel)
+				let g4=gb%bevel
+				let gf=(k-1)%gate_length_blend
+				if (g4>4)  g4=7-g4, gf=1-gf
+				if (g4==0) var doping=-1-0.5*Math.pow(gf,2);
+				if (g4==1) var doping=0.5* Math.pow(1-gf,2)
+
+				let g=gate[g1] // we may be square on top of an electrode
+			
+				this.potential[k]= ((this.potential[k-1]+this.potential[k+1])   +  g *compensation*(1-doping) )/(2+compensation*(1-doping))     - (this.carrier_density[k]-doping )*compensation  // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+				k=this.potential.length-1-i
+			}
+		}
+	}	
+
+	// This still creates a homogenous electric field with spikes of carriers on both ends
 	propagate_carrier_to_field_blend(electrode:number[],gate:number[]){
 		let field=0,potential=this.V_GS,carrier_on_gate=0,sum_p=0
 		// Like in the 2d simulation I need to criss cross? But I don't accumulate .. should I? I do ping pong within in the channel. This should be stable if I don't have a bug
@@ -320,6 +358,7 @@ class Channel{   // kinda inner part of Mosfet. Needs access to a lot of element
 			//next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
 		}
 	}
+
 
 	// Todo: Here seem to be two products . Maybe this can be formulated as MatrixMul  selfMul MatrixMul . Weird. Or distribute the sums.
 	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
