@@ -5,6 +5,18 @@
 import { MosFet, Button } from './ThinChannel_on_RowOfCapacitors.js';
 import { field2Gl } from './GL.js';
 //import 'assert'
+function doping() {
+    let channel_len = 40;
+    let sweep_resolution = 512;
+    let v_range = 2;
+    let GND = new Button("GND", 0);
+    let Vcc = new Button("Vcc", 1);
+    let gate = new Button("sweep", 0);
+    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, gate], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
+    mosfet.channel.propagate_carrier_n_doping_to_field(this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage));
+    //  electrode: number[], gate: number[], manual_test = false) 
+}
+doping(); // todo  anonym function
 //for(let conductivity=0;conductivity<10;conductivity+=0.5)
 var conductivity = 0.1, id;
 function animate() {

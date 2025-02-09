@@ -172,6 +172,72 @@ class Channel {
             }
         }
     }
+    // Real NAND gates have a complicated doping profile at the ends of the electrodes and try to reduce capacity between electrodes
+    // Also I get head ache when I try to blend between electrodes
+    // It is kinda realistc to give electrodes round edges and fill the space with dopants to keep carrier density homogenous at full on state
+    // I don't show this geometry, just at the edges I use two parabolas to blend over
+    // Doping is subtracted from the free carriers before the field is calculated
+    // to keep numbers easy, I set doping to 1
+    propagate_carrier_n_doping_to_field(electrode, gate, manual_test = false) {
+        if (manual_test) {
+            let c = document.getElementById("myCanvas");
+            var ctx = [c.getContext("2d"), c.getContext("2d")];
+            ctx[0].strokeStyle = "blue";
+            ctx[1].strokeStyle = "red";
+            ctx.forEach(c => c.moveTo(0, 0));
+        }
+        let half_bevel = 4, granularity_for_bevel = 2 * half_bevel;
+        let simulated_channel_length = this.potential.length - 2; // subtract electrodes .. I know that the field -> carrier code needs this, but here it looks ugly
+        let count_of_bevel_grid_cells = (gate.length * half_bevel + 1) * 2; // electrodes each have only one bevel compared to the gate. Add back in as one effective gate
+        let channel_cells__per__bevel_cells = simulated_channel_length / count_of_bevel_grid_cells;
+        // don't confuse gate (the array) length with gate (a sinlge one ) length in terms of simulation cells!
+        let bevel_count_perChannel_undergates = ((this.potential.length - 2) * granularity_for_bevel); // subtract electrodes, finer granularity for gate. Add electrode bevel back in ((round=>2) * (sides=2)). //   add one extra blend between right (last) gate and right electrode
+        let gate_bevel_count = bevel_count_perChannel_undergates / gate.length;
+        this.potential[0] = electrode[0];
+        this.potential[this.potential.length - 1] = electrode[1];
+        // Probably I could apply currying here? But I fail to see the benefit
+        // Left and right interleaved. Start at the electrodes to work well with Source or Drain on either side (Ohmic region, transfer gate)
+        const electron_charge = 0.1; // Voltage between gate and source of 1 ( V actually in cold Silicon CMOS ) should result in carrier density of 1 ( whatever, I dunno those, just for dispaly)
+        for (let i = 1; i < this.potential.length - 1; i++) {
+            // little hack to improve effect of both electrodes. Maybe I only will use NAND later on, and one electrode will be a rail? Then do away! I need it now to check for symmetry in my indices
+            for (let j = 0, k = i; j < 2; j++, k = this.potential.length - 1 - i) {
+                // boxcar  let g=gate[Math.floor((k-1)/gate_length)]
+                // floor and % does not introduce new aliasing. All alising happens at the final -floor-> index 
+                let g_if = (k - 1) / channel_cells__per__bevel_cells - 2 + granularity_for_bevel; // add the imaginary gate part of the left electrode cell, which is not simulated as is the right one. // subtract the left electrode bevel
+                let g_i_ = Math.floor(g_if);
+                let g__f = g_if % 1;
+                let gi = Math.floor((g_i_) / granularity_for_bevel);
+                let gl = g_i_ % granularity_for_bevel; // gate local  // floor(floor) is only allowed for integer division
+                let g_volt = this.potential[0]; // I wished that a compiler would optimize away access to potential. But then away, it is my (this) potential. Access should be safe
+                if (gi >= 0)
+                    g_volt = gi < gate.length ? gate[gi] : this.potential[this.potential.length - 1];
+                // todo: print doping and gi  .. special test methods?
+                let f = g__f, doping = 0;
+                if (gl >= half_bevel)
+                    gl = 7 - gl, f = 1 - f;
+                if (gl == 0)
+                    doping = -1 - 0.5 * Math.pow(f, 2);
+                if (gl == 1)
+                    doping = 0.5 * Math.pow(1 - f, 2);
+                let capa = electron_charge * (1 - doping); // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
+                // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
+                // Make divergence = charge 
+                // capa blends to zero
+                // carrier density should cover [0,1], but also match capacity. Divergence along the channel needs to be enhanced for pinch-off. Instead we reduce the capacity and the charge of a carrier
+                // Doping is expressed in terms of dopants, but not their charge
+                // blending is relative
+                this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - doping) * electron_charge;
+                if (manual_test && j == 0) {
+                    ctx[0].lineTo(k, gi * 10);
+                    ctx[1].lineTo(k, doping * 100);
+                }
+            }
+        }
+        if (manual_test) {
+            ctx.forEach(c => c.stroke());
+        }
+    }
+    // This still creates a homogenous electric field with spikes of carriers on both ends
     propagate_carrier_to_field_blend(electrode, gate) {
         let field = 0, potential = this.V_GS, carrier_on_gate = 0, sum_p = 0;
         // Like in the 2d simulation I need to criss cross? But I don't accumulate .. should I? I do ping pong within in the channel. This should be stable if I don't have a bug
