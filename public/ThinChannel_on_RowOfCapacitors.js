@@ -178,17 +178,10 @@ class Channel {
     // I don't show this geometry, just at the edges I use two parabolas to blend over
     // Doping is subtracted from the free carriers before the field is calculated
     // to keep numbers easy, I set doping to 1
-    propagate_carrier_n_doping_to_field(electrode, gate, manual_test = false) {
-        if (manual_test) {
-            let c = document.getElementById("myCanvas");
-            var ctx = [c.getContext("2d"), c.getContext("2d")];
-            ctx[0].strokeStyle = "blue";
-            ctx[1].strokeStyle = "red";
-            ctx.forEach(c => c.moveTo(0, 0));
-        }
+    propagate_carrier_n_doping_to_field(electrode, gate, lines) {
         let half_bevel = 4, granularity_for_bevel = 2 * half_bevel;
         let simulated_channel_length = this.potential.length - 2; // subtract electrodes .. I know that the field -> carrier code needs this, but here it looks ugly
-        let count_of_bevel_grid_cells = (gate.length * half_bevel + 1) * 2; // electrodes each have only one bevel compared to the gate. Add back in as one effective gate
+        let count_of_bevel_grid_cells = ((gate.length * 2 + 1) * half_bevel); // electrodes each have only one bevel compared to the gate. Add back in as one effective gate
         let channel_cells__per__bevel_cells = simulated_channel_length / count_of_bevel_grid_cells;
         // don't confuse gate (the array) length with gate (a sinlge one ) length in terms of simulation cells!
         let bevel_count_perChannel_undergates = ((this.potential.length - 2) * granularity_for_bevel); // subtract electrodes, finer granularity for gate. Add electrode bevel back in ((round=>2) * (sides=2)). //   add one extra blend between right (last) gate and right electrode
@@ -216,7 +209,7 @@ class Channel {
                 if (gl >= half_bevel)
                     gl = 7 - gl, f = 1 - f;
                 if (gl == 0)
-                    doping = -1 - 0.5 * Math.pow(f, 2);
+                    doping = 1 - 0.5 * Math.pow(f, 2);
                 if (gl == 1)
                     doping = 0.5 * Math.pow(1 - f, 2);
                 let capa = electron_charge * (1 - doping); // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
@@ -227,15 +220,15 @@ class Channel {
                 // Doping is expressed in terms of dopants, but not their charge
                 // blending is relative
                 this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - doping) * electron_charge;
-                if (manual_test && j == 0) {
-                    ctx[0].lineTo(k, gi * 10);
-                    ctx[1].lineTo(k, doping * 100);
+                if (lines !== undefined && j == 0) {
+                    lines[0][k] = g_if / 10;
+                    lines[1][k] = f;
+                    lines[2][k] = gl / 2;
+                    lines[3][k] = doping;
                 }
             }
         }
-        if (manual_test) {
-            ctx.forEach(c => c.stroke());
-        }
+        return;
     }
     // This still creates a homogenous electric field with spikes of carriers on both ends
     propagate_carrier_to_field_blend(electrode, gate) {

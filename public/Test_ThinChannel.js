@@ -5,18 +5,36 @@
 import { MosFet, Button } from './ThinChannel_on_RowOfCapacitors.js';
 import { field2Gl } from './GL.js';
 //import 'assert'
-function doping() {
-    let channel_len = 40;
+let doping = function () {
+    let channel_len = 400;
     let sweep_resolution = 512;
     let v_range = 2;
     let GND = new Button("GND", 0);
     let Vcc = new Button("Vcc", 1);
     let gate = new Button("sweep", 0);
     var mosfet = new MosFet(channel_len, 0, [GND, Vcc, gate], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
-    mosfet.channel.propagate_carrier_n_doping_to_field(this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage));
+    let schar_size = 4;
+    let lines = new Array(schar_size);
+    for (let i = 0; i < schar_size; i++)
+        lines[i] = new Array(channel_len);
+    mosfet.channel.propagate_carrier_n_doping_to_field(mosfet.electrode.map(e => e.Voltage), mosfet.gate.map(g => g.Voltage), lines);
+    let c = document.getElementById("doping");
+    var ctx = c.getContext("2d");
+    for (let schar = 0; schar < schar_size; schar++) {
+        ctx.strokeStyle = ["yellow", "red", "green", "orange"][schar];
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        let w = ctx.canvas.clientWidth;
+        for (let k = 1; k < channel_len; k++) {
+            let x = k * w / channel_len;
+            let s = ctx.canvas.clientHeight;
+            ctx.lineTo(x, (lines[schar][k] + 0.1) / 2 * s);
+        }
+        ctx.lineTo(ctx.canvas.clientWidth, 0);
+        ctx.stroke();
+    }
     //  electrode: number[], gate: number[], manual_test = false) 
-}
-doping(); // todo  anonym function
+}();
 //for(let conductivity=0;conductivity<10;conductivity+=0.5)
 var conductivity = 0.1, id;
 function animate() {
