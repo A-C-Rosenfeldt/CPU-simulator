@@ -68,7 +68,13 @@ function animate() {
     mosfet.channel2bitmapRow(current_Row) //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
     mosfet.solve()  // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
 
+
+    for(let i=0;i<2;i++)
+			{ // console.log(mosfet.electrode[i].charge)    extra canvas?
+      }
+
     //gate2.Voltage =gate.Voltage = vgs  // I put it here to check for steady state on first iteration
+
 
     let step=sweep*(20)/sweep_resolution   // plateaus with blends (-1)
     let si=Math.floor(step)+3,f=step % 1

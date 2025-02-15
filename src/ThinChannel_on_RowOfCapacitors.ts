@@ -398,17 +398,24 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	// Todo: Here seem to be two products . Maybe this can be formulated as MatrixMul  selfMul MatrixMul . Weird. Or distribute the sums.
 	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
-	propagete_field_to_carriers_diffuse() {
+	propagete_field_to_carriers_diffuse() :number[]{
 		// semiconductor in channel
 		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
 		for (let i = 0; i < 2; i++) {
 			this.carrier_density[this.carrier_density.length - 1 - i] = this.carrier_density[i] = 1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
 		}
 
+		let guardband=0 //3
+		let f=new Array<number>(guardband).fill(1)
+		let c=new Array<number>(this.carrier_density.length +2*guardband)
+		c.splice(0,guardband,...f)
+		c.splice(c.length-guardband-1,guardband,...f)
+		c.splice(guardband,...this.carrier_density)
+
 		// diffuse carriers part
-		let diffused2 = new Array<number>(this.carrier_density.length - 1)
+		let diffused2 = new Array<number>(c.length - 1+2*guardband)
 		for (let i = 0; i < diffused2.length; i++) {
-			diffused2[i] = (this.carrier_density[i] + this.carrier_density[i + 1]) / 2
+			diffused2[i] = (c[i] + c[i + 1]) / 2
 		}
 
 		let diffused3 = diffused2.slice()  // Code as different as possible to other version  to  have complementary test
@@ -423,22 +430,22 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		}
 
 		//diffuse field
-		let carriers = new Array<number>(this.carrier_density.length).fill(0)
+		let carriers = new Array<number>(c.length).fill(0)
 		for (let i = 1; i < this.len - 1; i++) {
 			let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i - 1]) * this.conductivity))	// pull field
 			// push carriers 	(KISS)
-			var current = field * this.carrier_density[i]
+			var current = field * c[i]
 			let target = Math.sign(current) + i
-			//let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=this.carrier_density[i+1]
+			//let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=c[i+1]
 			carriers[i] -= current
 			carriers[target] += current
-			//next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
+			//next_channel_carrier[i] = c[i+1]+Math.abs(this.field[i])*this.conductivity*c[i+Math.sign(this.field[i])]
 		}
 
 		// Blend
 		for (let i = 1; i < this.len - 1; i++) {
-			this.carrier_density[i] = (0.5 * this.carrier_density[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((diffused3[i - 1] + diffused3[i]) / 2) + 0.3 * carriers[i]) //+0.5*((diffused3[i-1]+diffused3[i])/2)
-			//this.carrier_density[i] =  (this.carrier_density[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
+			c[i] = (0.5 * c[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((diffused3[i - 1] + diffused3[i]) / 2) + 0.3 * carriers[i]) //+0.5*((diffused3[i-1]+diffused3[i])/2)
+			//c[i] =  (c[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
 		}
 
 		// Bleed : Only place to prevent carriers going below zero
@@ -449,16 +456,16 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		// Should be local. This is not a list of accounts of one customer.
 		// Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
 		let signCount = [0, 0, 0], last_positive = 0 // certainly the electrode has carriers
-		let len = this.carrier_density.length, m = 0
+		let len = c.length, m = 0
 		let shore = new Array<number>(len).fill(0, 0, len / 2 - 1).fill(len - 1, len / 2, len - 1) // point to nearest electrode
 		for (let i = 1; i < this.len - 1; i++) {
-			if (this.carrier_density[i] > 0) last_positive = i
+			if (c[i] > 0) last_positive = i
 			else {
-				if (this.carrier_density[i] < 0) {
+				if (c[i] < 0) {
 					m = -1
 					let d = Math.abs(i - last_positive) - Math.abs(i - shore[i])
 					if (d == 0) { // same distance which happens often because I want a rough grid per gate
-						let c = this.carrier_density  // tie break for 99% or all cases. No glitch for the rest
+						//let c = c  // tie break for 99% or all cases. No glitch for the rest
 						d = c[shore[i]] - c[last_positive]  // opposite order
 					}
 					if (d < 0) shore[i] = last_positive
@@ -481,6 +488,15 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 			// shores "roll up" , which may make islands vanish
 		}
 		//if (safety) console.log(safety,lm)  // shows 0 or 10
+
+		this.carrier_density=c.slice(guardband,guardband+this.carrier_density.length)
+		let electrodes=[0,0]
+		for(let side=0;side<2;side++){
+			let s=(c.length-guardband)*side
+			electrodes[side]=c.slice(s,s+guardband).map(v=>v-1).reduce((p,c)=>p+c,0)
+		}
+
+		return electrodes
 	}
 
 	//figure_of_merit
@@ -538,7 +554,10 @@ class MosFet {
 		// On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
 		//this.channel.propagate_carrier_to_field(gates:gate[])
 
-		this.channel.propagete_field_to_carriers_diffuse()
+		let electrodes=this.channel.propagete_field_to_carriers_diffuse()
+		for(let i=0;i<2;i++)
+			this.electrode[i].charge=electrodes[i];
+
 		//this.channel.propagete_field_to_carriers()
 
 		/*
