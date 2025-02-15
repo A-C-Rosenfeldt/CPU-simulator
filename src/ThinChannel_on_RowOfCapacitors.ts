@@ -311,7 +311,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 				// carrier density should cover [0,1], but also match capacity. Divergence along the channel needs to be enhanced for pinch-off. Instead we reduce the capacity and the charge of a carrier
 				// Doping is expressed in terms of dopants, but not their charge
 				// blending is relative
-				this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - doping) * electron_charge
+				this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - 0.8*doping) * electron_charge
 
 				if (lines!==undefined && j == 0){
 					lines[0][k]= g_if /10

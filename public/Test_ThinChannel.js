@@ -12,7 +12,8 @@ let doping = function () {
     let GND = new Button("GND", 0);
     let Vcc = new Button("Vcc", 1);
     let gate = new Button("sweep", 0);
-    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, gate], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
+    let gate2 = new Button("sweep", 0);
+    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, gate, gate2], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
     let schar_size = 4;
     let lines = new Array(schar_size);
     for (let i = 0; i < schar_size; i++)
@@ -36,30 +37,39 @@ let doping = function () {
     //  electrode: number[], gate: number[], manual_test = false) 
 }();
 //for(let conductivity=0;conductivity<10;conductivity+=0.5)
-var conductivity = 0.1, id;
+var conductivity = 0.4, id;
 function animate() {
-    let channel_len = 40;
-    let sweep_resolution = 512;
+    let channel_len = 60;
+    let sweep_resolution = 1512, overflow = 0;
     let v_range = 2;
     let GND = new Button("GND", 0);
     let Vcc = new Button("Vcc", 1);
-    let gate = new Button("sweep", 0);
-    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, gate], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
+    let gates = [new Button("sweep", 0), new Button("sweep", 0)];
+    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, ...gates], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
     // Create an ArrayBuffer with a size in bytes
-    const buffer = new ArrayBuffer(channel_len * sweep_resolution * 4); // sweepParameters
-    for (let sweep = 0; sweep < sweep_resolution; sweep++) {
-        let vgs = 1.2 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1));
+    const buffer = new ArrayBuffer(channel_len * (sweep_resolution + overflow) * 4); // sweepParameters
+    for (let sweep = 0; sweep < sweep_resolution + overflow; sweep++) {
+        //let vgs = 1.2 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1))
         let current_Row = new Uint8Array(buffer, sweep * channel_len * 4, channel_len * 4);
         mosfet.channel2bitmapRow(current_Row); //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
         mosfet.solve(); // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
-        gate.Voltage = vgs; // I put it here to check for steady state on first iteration
+        //gate2.Voltage =gate.Voltage = vgs  // I put it here to check for steady state on first iteration
+        let step = sweep * (20) / sweep_resolution; // plateaus with blends (-1)
+        let si = Math.floor(step) + 3, f = step % 1;
+        let si1 = si + 1;
+        si = si + (si > 9 ? 2 : 0);
+        si1 = si1 + (si1 > 9 ? 2 : 0);
+        for (let i = 0; i < 2; i++) {
+            let voltages = [si >> (1 + i) & 1, si1 >> (1 + i) & 1]; // I think that in C this is actually undefined behaviour :-(
+            gates[1 - i].Voltage = 1.1 * (voltages[0] * (1 - f) + f * voltages[1]);
+        }
     }
     let pixel2 = new Uint8Array(buffer);
-    let si = { pixel: pixel2, width: channel_len, height: sweep_resolution };
+    let si = { pixel: pixel2, width: channel_len, height: sweep_resolution + overflow };
     //console.log("conductivity ", conductivity)
     field2Gl("FieldGl0", si);
     //console.log("conductivity ", conductivity)
-    if ((conductivity += 0.3) > 8) {
+    if ((conductivity += 0.3) > 10) {
         window.clearInterval(id);
         id = 0;
     }
@@ -67,5 +77,5 @@ function animate() {
 animate(); // for instant feedback after Ctrl-R in browser
 id = window.setInterval(animate, 100);
 //var me=new MouseEvent()
-document.getElementById("FieldGl0").onclick = me => { conductivity = 0.1; if (id == 0)
+document.getElementById("FieldGl0").onclick = me => { conductivity = 0.4; if (id == 0)
     id = window.setInterval(animate, 200); };
