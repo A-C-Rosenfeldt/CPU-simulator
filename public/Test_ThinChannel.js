@@ -48,7 +48,7 @@ function animate() {
     // Create an ArrayBuffer with a size in bytes
     const buffer = new ArrayBuffer(channel_len * sweep_resolution * 4); // sweepParameters
     for (let sweep = 0; sweep < sweep_resolution; sweep++) {
-        let vgs = 1.7 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1));
+        let vgs = 1.2 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1));
         let current_Row = new Uint8Array(buffer, sweep * channel_len * 4, channel_len * 4);
         mosfet.channel2bitmapRow(current_Row); //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
         mosfet.solve(); // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.

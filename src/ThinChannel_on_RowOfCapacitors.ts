@@ -263,7 +263,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		let half_bevel = 4, granularity_for_bevel = 2 * half_bevel
 
 		let simulated_channel_length = this.potential.length - 2 // subtract electrodes .. I know that the field -> carrier code needs this, but here it looks ugly
-		let count_of_bevel_grid_cells = ((gate.length*2+1) * half_bevel )  // electrodes each have only one bevel compared to the gate. Add back in as one effective gate
+		let count_of_bevel_grid_cells = ((gate.length*2) * half_bevel )  // electrodes each have only one bevel compared to the gate. Add back in as one effective gate
 		let channel_cells__per__bevel_cells = simulated_channel_length / count_of_bevel_grid_cells
 
 		// don't confuse gate (the array) length with gate (a sinlge one ) length in terms of simulation cells!
@@ -283,14 +283,14 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 				// boxcar  let g=gate[Math.floor((k-1)/gate_length)]
 
 				// floor and % does not introduce new aliasing. All alising happens at the final -floor-> index 
-				let g_if = (k - 1) / channel_cells__per__bevel_cells - 2 + granularity_for_bevel  // add the imaginary gate part of the left electrode cell, which is not simulated as is the right one. // subtract the left electrode bevel
+				let g_if = (k - 1) / channel_cells__per__bevel_cells + granularity_for_bevel  // add the imaginary gate part of the left electrode cell, which is not simulated as is the right one. // subtract the left electrode bevel
 				let g_i_ = Math.floor(g_if)
 				let g__f = g_if % 1
-				let gi = Math.floor((g_i_) / granularity_for_bevel)
+				let gi = Math.floor((g_i_) / granularity_for_bevel)-1
 				let gl = g_i_ % granularity_for_bevel // gate local  // floor(floor) is only allowed for integer division
 
-				let g_volt = this.potential[0]  // I wished that a compiler would optimize away access to potential. But then away, it is my (this) potential. Access should be safe
-				if (gi >= 0) g_volt = gi < gate.length ? gate[gi] : this.potential[this.potential.length - 1]
+				let g_volt =  gate[gi]  // this.potential[0]  // I wished that a compiler would optimize away access to potential. But then away, it is my (this) potential. Access should be safe
+				// if (gi >= 0) g_volt = gi < gate.length ? gate[gi] : this.potential[this.potential.length - 1]
 
 				// todo: print doping and gi  .. special test methods?
 				let f = g__f, doping = 0
@@ -298,7 +298,13 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 				if (gl == 0) doping = 1 - 0.5 * Math.pow(f, 2);
 				if (gl == 1) doping = 0.5 * Math.pow(1 - f, 2)
 
-				let capa = electron_charge * (1 - doping) // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
+				// let ec=(capa)/(2+capa);
+				// let ec*(2+capa)=(capa);
+				// let ec*2 =capa*(1-ec)
+				// let ec*2/(1-ec) =capa
+				let capa_max=electron_charge*2/(1-electron_charge)//;console.log(capa_max) 0.22
+
+				let capa =  capa_max*(1 - doping) // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
 				// As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
 				// Make divergence = charge 
 				// capa blends to zero
@@ -491,7 +497,7 @@ class MosFet {
 		for (let i = 0, k = 0; k < this.channel.len; k++) {
 			// bluescreen
 			let t = this.channel.carrier_density[k]
-			let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 30 : 0)))
+			let rb = Math.min(255, Math.max(0, t * 190 + (t > 0 ? 0 : 0)))
 			current_Row[i++] = rb
 			current_Row[i++] = Math.min(255, Math.max(0, (this.channel.potential[k] + 0.5) * 80))
 
@@ -522,7 +528,8 @@ class MosFet {
 
 	solve() { // self consisten  /  fine time-steps		
 		// Types suggest that I should not send raw numbers .. Maybe in the end the channel comes back into the MosFET
-		this.channel.propagate_carrier_to_field_blend(this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage))
+		this.channel.propagate_carrier_n_doping_to_field (this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage))
+		//this.channel.propagate_carrier_to_field_blend(this.electrode.map(e => e.Voltage), this.gate.map(g => g.Voltage))
 		//this.channel.propagate_carrier_to_field(this.electrode.map(e=>e.Voltage),this.gate.map(g=>g.Voltage))  // I need the real V_G as in the 2d simulation. There may be some mathematical shot cuts, but it probably has no educational worth and does not help debugging. And is there really? V_G globally pulls in carriers. In the end (haha pun) this is V_GS. The main parameter in any textbook (channel potential is pinned to V_S on the source site. While solving, this (information) propagates through the whole channel) . This an the next call replace the 2d poisson solution of the grid based simulation.
 		let voltages: field_along_carriers
 
