@@ -396,40 +396,92 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 	}
 
 
-	// Todo: Here seem to be two products . Maybe this can be formulated as MatrixMul  selfMul MatrixMul . Weird. Or distribute the sums.
+	// Todo: encapsulate in its own class because the electric field is not to concerned with this
 	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
-	propagete_field_to_carriers_diffuse() :number[]{
-		// semiconductor in channel
-		// source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
-		for (let i = 0; i < 2; i++) {
-			this.carrier_density[this.carrier_density.length - 1 - i] = this.carrier_density[i] = 1  // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
+	public propagete_field_to_carriers_diffuse() {
+		let electrode=new Electrode()
+		let extended_carriers=electrode.setUp(this.carrier_density,[1])
+		let extended_field=electrode.setUp(this.carrier_density,this.gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
+		let Msm=new Propagete_field_to_carriers()
+		let sta=Msm.stagger_n_diffuse__pull(extended_carriers,extended_field)
+		// todo: try more functional style ?
+		Msm.coulombs_law(sta)	
+		let depletor=new Depletor()
+		depletor.deplete(Msm.next_step)	
+		this.carrier_density=electrode.capture(Msm.next_step)
+	}	
+}
+
+// The channel has actions in two directions. I am a little confused as why physics seems to break symmetry, but have to stick with a naive approach here
+// This means I get ugly long names if I split this up into functions. I need to split it up because the array names also became unwieldingly long.
+// Does TypeScript have internal classes? When I sorted all the parenthees, I could try 
+ class Electrode{
+	double_check_len:number
+	guardband: number;
+	 electrodes: number[];
+	constructor(){
+		this.guardband=3
+		this.electrodes=[0,0]
+	}
+	setUp(semi_only:number[],fill:number[]):number[]{
+		this.double_check_len=semi_only.length
+		let f=new Array<number>(this.guardband).fill(fill[0])   // the metal electrodes and the heavy doping region is filled to the brim. We will record any delta at the end.
+		let c=new Array<number>(semi_only.length +2*this.guardband)
+		c.splice(0,this.guardband,...f)
+		if (fill.length>0) f=new Array<number>(this.guardband).fill(fill[1])
+		c.splice(c.length-this.guardband-1,this.guardband,...f)
+		c.splice(this.guardband,...semi_only)
+		return c
+	}
+
+	capture(c:number[]):number[]{
+		let channel=c.slice(this.guardband,this.guardband+this.double_check_len) // channel length change due to a bug would be very nasty
+
+		
+		for(let side=0;side<2;side++){
+			let s=(c.length-this.guardband)*side
+			this.electrodes[side]=c.slice(s,s+this.guardband).map(v=>v-1).reduce((p,c)=>p+c,0)
 		}
 
-		let guardband=0 //3
-		let f=new Array<number>(guardband).fill(1)
-		let c=new Array<number>(this.carrier_density.length +2*guardband)
-		c.splice(0,guardband,...f)
-		c.splice(c.length-guardband-1,guardband,...f)
-		c.splice(guardband,...this.carrier_density)
-
-		// diffuse carriers part
-		let diffused2 = new Array<number>(c.length - 1+2*guardband)
-		for (let i = 0; i < diffused2.length; i++) {
-			diffused2[i] = (c[i] + c[i + 1]) / 2
+		return channel 
+	}	
+}
+class Interaction{
+	carriers:number
+	field:number
+}
+class Propagete_field_to_carriers{
+	next_step: number[];
+	 stagger_n_diffuse__pull(carriers:number[],electric_potential:number[]):Interaction[]{
+		// diffuse carriers part . to align on electric field from electric potential
+		let staggerd = new Array<Interaction>(carriers.length - 1)
+		for (let i = 0; i < staggerd.length; i++) {
+			staggerd[i].carriers = (carriers[i] + carriers[i + 1]) / 2 // diffuse accidentally. Bad for depletion
+			staggerd[i].field=electric_potential[i + 1] - electric_potential[i]
 		}
 
-		let diffused3 = diffused2.slice()  // Code as different as possible to other version  to  have complementary test
-		diffused3.fill(0)
-		for (let i = 0; i < diffused2.length; i++) {
-			let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i]) * this.conductivity))	// pull field
-			let current = diffused2[i] * field
-			let target = Math.sign(current) + i
-			let c = Math.abs(current)
-			diffused3[i] -= c
-			diffused3[target] += c
-		}
+		return staggerd
+	}
 
-		//diffuse field
+	coulombs_law(I:Interaction[]){
+		this.next_step = new Array<number>(I.length+3 ).fill(0)
+		I.forEach(this.coulombs_law__push_to_ensure_carrier_conversation)
+	}
+
+	coulombs_law__push_to_ensure_carrier_conversation(a:Interaction,i:number){
+		let ac=a.carriers,field=Math.min(1, Math.max(-1,a.field))/16
+
+		// push kernels with some smoothing to avoid 101010 pattern which I did observe . Current -> hot ?
+		// pull would allow simpler borders, but would infect the diffusion step above. I am undecided. State is your enemy, but mutation also.
+		this.next_step[i+0]+=ac*(2-3*field)  // to deplete carriers, field must be able to overpower diffusion. Maybe even spread this kernel to achive this
+		this.next_step[i+0]+=ac*(6-5*field)
+		this.next_step[i+2]+=ac*(6+5*field)
+		this.next_step[i+3]+=ac*(2+3*field)  // this actually also fights the 101010 pattern. I pick this battle because 001100 spots should explode in my simulation
+	}
+
+		/*
+		//diffuse field a second time to avoid the otherwise observerd 0101010 pattern before it taints field calculation
+		// ah, don't 
 		let carriers = new Array<number>(c.length).fill(0)
 		for (let i = 1; i < this.len - 1; i++) {
 			let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i - 1]) * this.conductivity))	// pull field
@@ -441,68 +493,95 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 			carriers[target] += current
 			//next_channel_carrier[i] = c[i+1]+Math.abs(this.field[i])*this.conductivity*c[i+Math.sign(this.field[i])]
 		}
-
-		// Blend
+		*/
+		/*
+		// Blend  is a dumb idea. All parts need to go through diffuse. Otherwise unstable parts just dominate
 		for (let i = 1; i < this.len - 1; i++) {
-			c[i] = (0.5 * c[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((diffused3[i - 1] + diffused3[i]) / 2) + 0.3 * carriers[i]) //+0.5*((diffused3[i-1]+diffused3[i])/2)
+			c[i] = (0.5 * c[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((next_step[i - 1] + next_step[i]) / 2) + 0.3 * carriers[i]) //+0.5*((diffused3[i-1]+diffused3[i])/2)
 			//c[i] =  (c[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
 		}
+		*/
 
-		// Bleed : Only place to prevent carriers going below zero
-		// Landing at exactly at zero is very important as is known from the theory of a Diode
 
-		// no interleave of this iteration with the linear one until I understand stability
 
-		// Should be local. This is not a list of accounts of one customer.
-		// Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
-		let signCount = [0, 0, 0], last_positive = 0 // certainly the electrode has carriers
-		let len = c.length, m = 0
-		let shore = new Array<number>(len).fill(0, 0, len / 2 - 1).fill(len - 1, len / 2, len - 1) // point to nearest electrode
-		for (let i = 1; i < this.len - 1; i++) {
-			if (c[i] > 0) last_positive = i
-			else {
-				if (c[i] < 0) {
-					m = -1
-					let d = Math.abs(i - last_positive) - Math.abs(i - shore[i])
-					if (d == 0) { // same distance which happens often because I want a rough grid per gate
-						//let c = c  // tie break for 99% or all cases. No glitch for the rest
-						d = c[shore[i]] - c[last_positive]  // opposite order
-					}
-					if (d < 0) shore[i] = last_positive
-				}
-			}
-		}
-
-		for (var safety = 0; safety < this.len && m != 0; safety++) {
-			var lm = m; m = 0
-			// land on shore. I don't interleave this for symmetry and easy debugging
-			for (let i = 1; i < this.len - 1; i++) {
-				let c = this.carrier_density
-				if (c[i] < 0) {
-					let s = shore[i]
-					let d = c[s]
-					d += c[i]; c[i] = 0; if (s > 0 && s < len - 1) m = Math.min(m, d)  // the electrode density shown is merely the thermic current. The reservoir is deep.
-					c[s] = d  // Still need to track carriers for the elecric field and current through the wires!
-				}
-			}
-			// shores "roll up" , which may make islands vanish
-		}
-		//if (safety) console.log(safety,lm)  // shows 0 or 10
-
-		this.carrier_density=c.slice(guardband,guardband+this.carrier_density.length)
-		let electrodes=[0,0]
-		for(let side=0;side<2;side++){
-			let s=(c.length-guardband)*side
-			electrodes[side]=c.slice(s,s+guardband).map(v=>v-1).reduce((p,c)=>p+c,0)
-		}
-
-		return electrodes
-	}
 
 	//figure_of_merit
 	private fm(me: number, them: number): boolean {
 		Math.abs(me - them)
 		return false
+	}
+}
+
+class Depletor{
+	m: number;
+	last_positive: number;
+
+	deplete(c:number[]){ 
+		this.findShores(c)
+	}
+		// : Only place to prevent carriers going below zero when depleting
+		// Landing at exactly at zero is very important as is known from the theory of a Diode
+
+		// no interleave of this iteration with the linear one until I understand stability
+
+		// Should be local. This is not a list of accounts of one customer.
+
+	findShores(c:number[]){
+		// Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
+		let signCount = [0, 0, 0]; this.last_positive = 0 // certainly the electrode has carriers
+		let len = c.length;this.m = 0
+		let shore = new Array<number>(len).fill(0, 0, len / 2 - 1).fill(len - 1, len / 2, len - 1) // point to nearest electrode
+		for (let i = 1; i < c.length - 1; i++) {
+			this.decideShore(c, i,  shore)
+		}
+		for (let i = c.length - 2; i >0 ; i--) {
+			this.decideShore(c, i,  shore)
+		}
+	}
+
+	private decideShore(c: number[], i: number,  shore: number[]) {
+		if (c[i] > 0) this.last_positive = i;
+		else {
+			if (c[i] < 0) {
+				this.m = -1;
+				let d = Math.abs(i - this.last_positive) - Math.abs(i - shore[i]);
+				if (d == 0) { // same distance which happens often because I want a rough grid per gate
+					//let c = c  // tie break for 99% or all cases. No glitch for the rest
+					d = c[shore[i]] - c[this.last_positive]; // opposite order
+				}
+				if (d < 0) shore[i] = this.last_positive;
+			}
+		}
+	}
+
+	washup_onto_shore(c: number[], i: number,  shore: number[]){
+		// I cannot imagine what negative carrier density does to the rest of the calculation. Remove before next step
+		//for (var safety = 0; safety < c.length && m != 0; safety++) {
+			var lm = this.m; this.m = 0
+			// land on shore. I don't interleave this for symmetry and easy debugging
+			for (let i = 1; i < c.length - 1; i++) {				
+				if (c[i] < 0) {
+					let s = shore[i]
+					let d = c[s]
+					d += c[i]; c[i] = 0; if (s > 0 && s < c.length - 1) this.m = Math.min(this.m, d)  // the electrode density shown is merely the thermic current. The reservoir is deep.
+					c[s] = d  // Still need to track carriers for the elecric field and current through the wires!
+
+					let debt=c[i]
+					if (d<0) {
+						let direction=Math.sign(shore[i]-i)
+						for(let wash_up=i;wash_up<c.length && wash_up>=0;wash_up+=direction){
+							if (c[wash_up]>debt) {
+								c[wash_up]+=debt;break
+							}else{
+								debt+=c[wash_up];c[wash_up]=0
+							}
+						}	
+					}
+				}
+			}
+			// shores "roll up" , which may make islands vanish
+		//}
+		//if (safety) console.log(safety,lm)  // shows 0 or 10
 	}
 }
 
@@ -554,6 +633,8 @@ class MosFet {
 		// On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
 		//this.channel.propagate_carrier_to_field(gates:gate[])
 
+		// 2d context for max horizontal resolution
+		let electrode=document.getElementById("current_left")
 		let electrodes=this.channel.propagete_field_to_carriers_diffuse()
 		for(let i=0;i<2;i++)
 			this.electrode[i].charge=electrodes[i];
