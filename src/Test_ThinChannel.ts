@@ -55,12 +55,13 @@ function animate() {
   var mosfet = new MosFet(channel_len, 0, [GND, Vcc, ...gates], [], conductivity) // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
 
   // Create an ArrayBuffer with a size in bytes
-  const buffer = new ArrayBuffer(channel_len * (sweep_resolution+overflow) * 4); // sweepParameters
+  if ( mosfet.channel.guardband != 3 ) console.log("Guardband: "+ mosfet.channel.guardband)
+  const buffer = new ArrayBuffer((channel_len+mosfet.channel.guardband) * (sweep_resolution+overflow) * 4); // sweepParameters
 
 
   for (let sweep = 0; sweep < sweep_resolution+overflow; sweep++) {
 
-    
+    // start conditions should make it clear where metal and semiconductor are
 
     //let vgs = 1.2 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1))
 

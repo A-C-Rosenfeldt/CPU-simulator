@@ -14,6 +14,7 @@ class Stub extends End {
 	Voltage: number
 	charge: number
 	capacity: number
+	distrubution: number[];
 	//current(voltage:number):number
 }
 
@@ -216,6 +217,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	carrier_density: number[];
 	shore: number[];
+	guardband=3;
 
 	constructor(channel_len: number, c?: number) {
 		this.len = channel_len
@@ -398,8 +400,8 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	// Todo: encapsulate in its own class because the electric field is not to concerned with this
 	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
-	public propagete_field_to_carriers_diffuse() {
-		let electrode=new Electrode()
+	public propagete_field_to_carriers_diffuse():number[][] {
+		let electrode=new Electrode(this.guardband)
 		let extended_carriers=electrode.setUp(this.carrier_density,[1])
 		let extended_field=electrode.setUp(this.carrier_density,this.gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
 		let Msm=new Propagete_field_to_carriers()
@@ -409,6 +411,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		let depletor=new Depletor()
 		depletor.deplete(Msm.next_step)	
 		this.carrier_density=electrode.capture(Msm.next_step)
+		return electrode.electrodes
 	}	
 }
 
@@ -418,29 +421,32 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
  class Electrode{
 	double_check_len:number
 	guardband: number;
-	 electrodes: number[];
-	constructor(){
-		this.guardband=3
-		this.electrodes=[0,0]
+	 electrodes: number[][];
+	constructor(guardband:number){
+		this.guardband=guardband
+		this.electrodes=[[0],[0]]
 	}
-	setUp(semi_only:number[],fill:number[]):number[]{
-		this.double_check_len=semi_only.length
-		let f=new Array<number>(this.guardband).fill(fill[0])   // the metal electrodes and the heavy doping region is filled to the brim. We will record any delta at the end.
-		let c=new Array<number>(semi_only.length +2*this.guardband)
-		c.splice(0,this.guardband,...f)
-		if (fill.length>0) f=new Array<number>(this.guardband).fill(fill[1])
-		c.splice(c.length-this.guardband-1,this.guardband,...f)
-		c.splice(this.guardband,...semi_only)
+	setUp(semiconductor_only:number[],fill:number[]):number[]{
+		this.double_check_len=semiconductor_only.length
+		let dgl=this.guardband-1  // Electric potential is evaluated in-place. That is the cool thing about that algorithm. Don't kill it. Rather leak guard width. Also: Need to keep polarisation on metal surface. I think that the averaging algorithm works well with metalic boundary condition. Carrier saturation is for the semiconductor, not the metal. It would destabilize the simulation. Those carriers are not free to be emitted!
+		let f=new Array<number>(dgl).fill(fill[0])   // the metal electrodes and the heavy doping region is filled to the brim. We will record any delta at the end.
+		let c=new Array<number>(semiconductor_only.length +2*dgl)
+		c.splice(0,f.length,...f)
+		if (fill.length>0) f=new Array<number>(dgl).fill(fill[1])
+		c.splice(-f.length,f.length,...f)
+		c.splice(dgl,semiconductor_only.length,...semiconductor_only)
 		return c
 	}
 
 	capture(c:number[]):number[]{
-		let channel=c.slice(this.guardband,this.guardband+this.double_check_len) // channel length change due to a bug would be very nasty
+		let dgl=this.guardband-1
+		let channel=c.slice(dgl,dgl+this.double_check_len) // channel length change due to a bug would be very nasty
+		// the first and last element is ignored by carrier -> field due to the averaging algorithm
 
-		
+		// print needs to skip the duplicated state, but I need to capture the carriers on the surface
 		for(let side=0;side<2;side++){
 			let s=(c.length-this.guardband)*side
-			this.electrodes[side]=c.slice(s,s+this.guardband).map(v=>v-1).reduce((p,c)=>p+c,0)
+			this.electrodes[side]=c.slice(s,s+this.guardband)   // I think there is some garbage on the boundary (not the surface) .map(v=>v-1).reduce((p,c)=>p+c,0)
 		}
 
 		return channel 
@@ -517,7 +523,8 @@ class Depletor{
 	last_positive: number;
 
 	deplete(c:number[]){ 
-		this.findShores(c)
+		let shore=this.findShores(c)
+		this.washup_onto_shore(c,shore)
 	}
 		// : Only place to prevent carriers going below zero when depleting
 		// Landing at exactly at zero is very important as is known from the theory of a Diode
@@ -526,7 +533,7 @@ class Depletor{
 
 		// Should be local. This is not a list of accounts of one customer.
 
-	findShores(c:number[]){
+	findShores(c:number[]):number[]{
 		// Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
 		let signCount = [0, 0, 0]; this.last_positive = 0 // certainly the electrode has carriers
 		let len = c.length;this.m = 0
@@ -537,6 +544,7 @@ class Depletor{
 		for (let i = c.length - 2; i >0 ; i--) {
 			this.decideShore(c, i,  shore)
 		}
+		return shore
 	}
 
 	private decideShore(c: number[], i: number,  shore: number[]) {
@@ -554,7 +562,7 @@ class Depletor{
 		}
 	}
 
-	washup_onto_shore(c: number[], i: number,  shore: number[]){
+	washup_onto_shore(c: number[], shore: number[]){
 		// I cannot imagine what negative carrier density does to the rest of the calculation. Remove before next step
 		//for (var safety = 0; safety < c.length && m != 0; safety++) {
 			var lm = this.m; this.m = 0
@@ -589,7 +597,10 @@ class MosFet {
 	V_drain: number;
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 	channel2bitmapRow(current_Row: Uint8Array) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
-		for (let i = 0, k = 0; k < this.channel.len; k++) {
+
+		let debug=this.electrode[0].distrubution.length // 0
+
+		for (let i = 4*debug, k = 0; k < this.channel.len; k++) {
 			// bluescreen
 			let t = this.channel.carrier_density[k]
 			let rb = Math.min(255, Math.max(0, t * 190 + (t > 0 ? 0 : 0)))
@@ -598,6 +609,24 @@ class MosFet {
 
 			current_Row[i++] = rb
 			current_Row[i++] = 255
+		}
+
+		// this print is only for debug and is allowed to look complicated
+		// also: the surface is duplicated. May also want to insert a black line?
+		// perhaps still unify with the loop above
+		for(let e=0;e<2;e++){
+			// metal bulk to determine current on the electrodes
+			let d=this.electrode[e].distrubution
+			for (let i = e*4*(this.channel.len+d.length), k = 0; k < d.length; k++) {
+				// bluescreen
+				let t = d[k]
+				let rb = Math.min(255, Math.max(0, t * 190 + (t > 0 ? 0 : 0)))
+				current_Row[i++] = rb
+				current_Row[i++] = Math.min(255, Math.max(0, (this.electrode[e].Voltage + 0.5) * 80))
+
+				current_Row[i++] = rb // I want to see the effect of the sim step, which thinks in hot electrons
+				current_Row[i++] = 255
+			}		
 		}
 	}
 
@@ -637,7 +666,7 @@ class MosFet {
 		let electrode=document.getElementById("current_left")
 		let electrodes=this.channel.propagete_field_to_carriers_diffuse()
 		for(let i=0;i<2;i++)
-			this.electrode[i].charge=electrodes[i];
+			this.electrode[i].distrubution=electrodes[i];
 
 		//this.channel.propagete_field_to_carriers()
 
