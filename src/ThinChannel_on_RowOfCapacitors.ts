@@ -63,7 +63,7 @@ class Route {
 
 			let gate
 
-			let ch: Channel = gate.channel, len = ch.potential.length - 2, gate_count = ch.gate.length
+			let ch: Channel = gate.channel, len = ch.potential.length - 2, gate_count = 2 // todo   ch.gate.length
 			let gate_width = len * gate.index / gate_count
 			let start = gate.index * gate_width
 			gate.channel_voltage = 0
@@ -203,7 +203,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 
-	gate: Gate[] // nMOSFET with single gates was used by Commodore for high frequency circuits, but generally, MOSFETs strive on multiple gates
+	//gate: Gate[] // nMOSFET with single gates was used by Commodore for high frequency circuits, but generally, MOSFETs strive on multiple gates
 
 	current_Gate: number
 	/*
@@ -218,6 +218,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 	carrier_density: number[];
 	shore: number[];
 	guardband=3;
+	metal=1
 
 	constructor(channel_len: number, c?: number) {
 		this.len = channel_len
@@ -400,10 +401,12 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	// Todo: encapsulate in its own class because the electric field is not to concerned with this
 	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
-	public propagete_field_to_carriers_diffuse():number[][] {
+	public propagete_field_to_carriers_diffuse(electrode_transistor: number[]):number[][] {
 		let electrode=new Electrode(this.guardband)
-		let extended_carriers=electrode.setUp(this.carrier_density,[1])
-		let extended_field=electrode.setUp(this.carrier_density,this.gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
+		let extended_carriers=electrode.setUp(this.carrier_density,[this.metal ])
+		//todo this.gate is undefined
+		
+		let extended_field=electrode.setUp(this.carrier_density,electrode_transistor) //gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
 		let Msm=new Propagete_field_to_carriers()
 		let sta=Msm.stagger_n_diffuse__pull(extended_carriers,extended_field)
 		// todo: try more functional style ?
@@ -462,6 +465,7 @@ class Propagete_field_to_carriers{
 		// diffuse carriers part . to align on electric field from electric potential
 		let staggerd = new Array<Interaction>(carriers.length - 1)
 		for (let i = 0; i < staggerd.length; i++) {
+			staggerd[i]=new Interaction()
 			staggerd[i].carriers = (carriers[i] + carriers[i + 1]) / 2 // diffuse accidentally. Bad for depletion
 			staggerd[i].field=electric_potential[i + 1] - electric_potential[i]
 		}
@@ -471,7 +475,7 @@ class Propagete_field_to_carriers{
 
 	coulombs_law(I:Interaction[]){
 		this.next_step = new Array<number>(I.length+3 ).fill(0)
-		I.forEach(this.coulombs_law__push_to_ensure_carrier_conversation)
+		I.forEach(this.coulombs_law__push_to_ensure_carrier_conversation.bind(this))
 	}
 
 	coulombs_law__push_to_ensure_carrier_conversation(a:Interaction,i:number){
@@ -598,7 +602,7 @@ class MosFet {
 	// The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
 	channel2bitmapRow(current_Row: Uint8Array) { // V gate is in the gate array. For the first test, gate is at 0. Threshold is confusing
 
-		let debug=this.electrode[0].distrubution.length // 0
+		let debug=this.electrode[0].distrubution.length       // 0  
 
 		for (let i = 4*debug, k = 0; k < this.channel.len; k++) {
 			// bluescreen
@@ -646,6 +650,14 @@ class MosFet {
 		}
 
 		this.channel = new Channel(channel_len, conductivity)
+
+		// for row2bitmap: fill the Metal with electrons like at the begin of each simulation cycle.
+
+		let f=new Array<number>(this.channel.guardband).fill(this.channel.metal) // 1 is from simulation loop. Todo: code the dependency!  
+		for(let i=0;i<this.electrode.length;i++)
+		{
+			this.electrode[i].distrubution=f
+		}
 	}
 
 	channel: Channel
@@ -664,7 +676,7 @@ class MosFet {
 
 		// 2d context for max horizontal resolution
 		let electrode=document.getElementById("current_left")
-		let electrodes=this.channel.propagete_field_to_carriers_diffuse()
+		let electrodes=this.channel.propagete_field_to_carriers_diffuse(this.electrode.map(e => e.Voltage))
 		for(let i=0;i<2;i++)
 			this.electrode[i].distrubution=electrodes[i];
 
