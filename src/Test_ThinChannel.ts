@@ -56,7 +56,8 @@ function animate() {
 
   // Create an ArrayBuffer with a size in bytes
   if ( mosfet.channel.guardband != 3 ) console.log("Guardband: "+ mosfet.channel.guardband)
-  const buffer = new ArrayBuffer((channel_len+mosfet.channel.guardband) * (sweep_resolution+overflow) * 4); // sweepParameters
+    const cm=(channel_len+2*mosfet.channel.guardband)
+  const buffer = new ArrayBuffer( cm* (sweep_resolution+overflow) * 4); // sweepParameters
 
 
   for (let sweep = 0; sweep < sweep_resolution+overflow; sweep++) {
@@ -65,7 +66,7 @@ function animate() {
 
     //let vgs = 1.2 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1))
 
-    let current_Row = new Uint8Array(buffer, sweep * channel_len * 4, channel_len * 4)
+    let current_Row = new Uint8Array(buffer, sweep * cm * 4, cm * 4)
     mosfet.channel2bitmapRow(current_Row) //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
     mosfet.solve()  // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
 
@@ -89,7 +90,7 @@ function animate() {
   }
 
   let pixel2: Uint8Array = new Uint8Array(buffer)
-  let si: SimpleImage = { pixel: pixel2, width: channel_len, height: sweep_resolution+overflow }
+  let si: SimpleImage = { pixel: pixel2, width: cm, height: sweep_resolution+overflow }
 
   //console.log("conductivity ", conductivity)
   field2Gl("FieldGl0", si)

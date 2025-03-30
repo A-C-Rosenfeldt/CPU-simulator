@@ -412,8 +412,10 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		// todo: try more functional style ?
 		Msm.coulombs_law(sta)	
 		let depletor=new Depletor()
-		depletor.deplete(Msm.next_step)	
-		this.carrier_density=electrode.capture(Msm.next_step)
+		//depletor.deplete(Msm.next_step)	
+		this.carrier_density=electrode.capture(Msm.next_step) // buggy
+		//this.carrier_density=electrode.capture(Msm) // buggy
+		this.carrier_density=electrode.capture(extended_carriers)  // looks okay 2025-03-30 test step by step. Now the other side is missing
 		return electrode.electrodes
 	}	
 }
@@ -435,7 +437,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		let f=new Array<number>(dgl).fill(fill[0])   // the metal electrodes and the heavy doping region is filled to the brim. We will record any delta at the end.
 		let c=new Array<number>(semiconductor_only.length +2*dgl)
 		c.splice(0,f.length,...f)
-		if (fill.length>0) f=new Array<number>(dgl).fill(fill[1])
+		if (fill.length>1) f=new Array<number>(dgl).fill(fill[1])
 		c.splice(-f.length,f.length,...f)
 		c.splice(dgl,semiconductor_only.length,...semiconductor_only)
 		return c
@@ -675,7 +677,7 @@ class MosFet {
 		//this.channel.propagate_carrier_to_field(gates:gate[])
 
 		// 2d context for max horizontal resolution
-		let electrode=document.getElementById("current_left")
+		// let electrode=document.getElementById("current_left")
 		let electrodes=this.channel.propagete_field_to_carriers_diffuse(this.electrode.map(e => e.Voltage))
 		for(let i=0;i<2;i++)
 			this.electrode[i].distrubution=electrodes[i];
