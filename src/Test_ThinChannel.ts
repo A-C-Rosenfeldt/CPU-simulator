@@ -44,7 +44,7 @@ let doping = function () {
 }();
 
 //for(let conductivity=0;conductivity<10;conductivity+=0.5)
-var conductivity: number = 0.4, id: number
+var conductivity: number = 0.0, id: number
 function animate() {
   let channel_len = 60
   let sweep_resolution = 1512, overflow=0
@@ -79,12 +79,13 @@ function animate() {
 
 
     let step=sweep*(20)/sweep_resolution   // plateaus with blends (-1)
-    let si=Math.floor(step)+3,f=step % 1
+    let si=Math.floor(step)+2,f=step % 1
     let si1=si+1
-    si=si+(si>9 ? 2:0)
-    si1=si1+(si1>9 ? 2:0)
+    //si=si+(si>9 ? 2:0)
+    //si1=si1+(si1>9 ? 2:0)
     for(let i=0;i<2;i++){
       let voltages=[ si>>(1+i) & 1,si1>>(1+i) & 1]   // I think that in C this is actually undefined behaviour :-(
+      if (i==1)   voltages=[ (si % 7 < 3 ? 1:0 ),(si1 % 7 < 3 ? 1:0 )] // >>(1+i) & 1,si1>>(1+i) & 1]   // I think that in C this is actually undefined behaviour :-(
       gates[1-i].Voltage=  1.1*  (voltages[0]*(1-f)+f*voltages[1])
     }
 
@@ -98,11 +99,11 @@ function animate() {
   field2Gl("FieldGl0", si)
   //console.log("conductivity ", conductivity)
 
-  if ((conductivity += 0.3) > 10) { window.clearInterval(id); id = 0 }
+  if ((conductivity += 0.2) > 10) { window.clearInterval(id); id = 0 }
 
 }
 animate()  // for instant feedback after Ctrl-R in browser
-id = window.setInterval(animate, 100)
+id = window.setInterval(animate, 200)
 
 //var me=new MouseEvent()
 

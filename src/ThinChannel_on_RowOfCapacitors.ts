@@ -218,7 +218,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 	carrier_density: number[];
 	shore: number[];
 	electrode_thicknes=6;
-	metal=0.5
+	metal=0.8
 
 	constructor(channel_len: number, c?: number) {
 		this.len = channel_len
@@ -226,6 +226,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		this.potential = new Array<number>(channel_len).fill(0)
 
 		this.conductivity = c // || 1
+		if (c==0.0) this.metal=0 // to check raw potential
 	}
 
 	V_GS: number; // at the start of the channel: The first gate. Where to store? I need to store state! Absolute potential actually. V_GS is only for functions!
@@ -296,25 +297,30 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 				// if (gi >= 0) g_volt = gi < gate.length ? gate[gi] : this.potential[this.potential.length - 1]
 
 				// todo: print doping and gi  .. special test methods?
-				let f = g__f, doping = 0
+				let f = g__f, doping1 = 0
 				if (gl >= half_bevel) gl = 7 - gl, f = 1 - f
-				if (gl == 0) doping = 1 - 0.5 * Math.pow(f, 2);
-				if (gl == 1) doping = 0.5 * Math.pow(1 - f, 2)
+				if (gl == 0) doping1 = 1 - 0.5 * Math.pow(f, 2);
+				if (gl == 1) doping1 = 0.5 * Math.pow(1 - f, 2)
 
+					let gi_05 = Math.floor((g_i_) / granularity_for_bevel-0.5)
+
+					let don_need_as_much=gi_05 >0 ? 0.2 : 0.4
+					
+				let doping=doping1*don_need_as_much
 				// let ec=(capa)/(2+capa);
 				// let ec*(2+capa)=(capa);
 				// let ec*2 =capa*(1-ec)
 				// let ec*2/(1-ec) =capa
-				let capa_max=electron_charge*2/(1-electron_charge)//;console.log(capa_max) 0.22
+				let capa_max=0.3*electron_charge*2/(1-electron_charge)//;console.log(capa_max) 0.22
 
-				let capa =  capa_max*(1 - doping) // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
+				let capa = 0.7*Math.max(0, capa_max*(1 - Math.abs(doping)) )// At VGS=1 the doping should give a constant electron density (of 1) in the channel.
 				// As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
 				// Make divergence = charge 
 				// capa blends to zero
 				// carrier density should cover [0,1], but also match capacity. Divergence along the channel needs to be enhanced for pinch-off. Instead we reduce the capacity and the charge of a carrier
 				// Doping is expressed in terms of dopants, but not their charge
 				// blending is relative
-				this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - 0.8*doping) * electron_charge
+				this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - doping) * electron_charge
 
 				if (lines!==undefined && j == 0){
 					lines[0][k]= g_if /10
@@ -451,7 +457,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 		// print needs to skip the duplicated state, but I need to capture the carriers on the surface
 		for(let side=0;side<2;side++){
-			let s=(c.length-this.guardband)*side
+			let s=(c.length-this.guardband-1)*side
 			this.electrodes[side]=c.slice(s+1,s+1+this.guardband-1)   // I think there is some garbage on the boundary (not the surface) .map(v=>v-1).reduce((p,c)=>p+c,0)
 		}
 
@@ -486,19 +492,41 @@ class Propagete_field_to_carriers{
 	}
 
 	coulombs_law__push_to_ensure_carrier_conservation(a:Interaction,i:number){
+
+		let f=a.field*Math.abs(this.conductivity)+1.5
+		if (f<=0) {this.next_step[i+0]+=a.carriers;return}
+		if (f>=3) {this.next_step[i+3]+=a.carriers;return}
+
+		let spread= ( Math.max(0,0.5-Math.abs(Math.abs(f-1.5 )-0.5) ))
+
+		for(let s=-1;s<=2;s+=2){
+			let	g=f+s*spread*0.5
+			let I=Math.floor(g)
+			let F=g%1,ac=a.carriers
+
+			this.next_step[i+0+I]+=ac*(1-F)  /2
+			this.next_step[i+1+I]+=ac*F /2
+		}
+
 		/*
 		this.next_step[i]+=a.carriers/2
 		this.next_step[i+1]+=a.carriers/2
 		return
 		*/ 
-		let ac=a.carriers/16,field=Math.min(1, Math.max(-1,a.field))*Math.abs(this.conductivity)/4
+
+		/*
+		let ac=a.carriers/16,field=Math.min(1, Math.max(-1,a.field*Math.abs(this.conductivity)))
 
 		// push kernels with some smoothing to avoid 101010 pattern which I did observe . Current -> hot ?
 		// pull would allow simpler borders, but would infect the diffusion step above. I am undecided. State is your enemy, but mutation also.
-		this.next_step[i+0]+=ac*(2-3*field)  // to deplete carriers, field must be able to overpower diffusion. Maybe even spread this kernel to achive this
+		// to deplete carriers, field must be able to overpower diffusion. Maybe even spread this kernel to achive this
+
+
+		this.next_step[i+0]+=ac*(2-3*field)  
 		this.next_step[i+1]+=ac*(6-5*field)
 		this.next_step[i+2]+=ac*(6+5*field)
 		this.next_step[i+3]+=ac*(2+3*field)  // this actually also fights the 101010 pattern. I pick this battle because 001100 spots should explode in my simulation
+		*/
 	}
 
 		/*
@@ -540,9 +568,9 @@ class Depletor{
 
 	deplete(c:number[]){ 
 
-		c.forEach((j,i)=> { c[i]=Math.max(0,Math.min(1,j))} )
+		//c.forEach((j,i)=> { c[i]=Math.max(0,Math.min(1,j))} )
 
-		return
+		//return
 		let shore=this.findShores(c)
 		this.washup_onto_shore(c,shore)
 	}
@@ -623,7 +651,7 @@ class MosFet {
 		for (let i = 4*debug, k = 0; k < this.channel.len; k++) {
 			// bluescreen
 			let t = this.channel.carrier_density[k]
-			let rb = Math.min(255, Math.max(0, t * 190 + (t > 0 ? 0 : 0)))
+			let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 20 : 0)))
 			current_Row[i++] = rb
 			current_Row[i++] = Math.min(255, Math.max(0, (this.channel.potential[k] + 0.5) * 80))
 
@@ -640,7 +668,7 @@ class MosFet {
 			for (let i = e*4*(this.channel.len+d.length), k = 0; k < d.length; k++) {
 				// bluescreen
 				let t = d[k]
-				let rb = Math.min(255, Math.max(0, t * 190 + (t > 0 ? 0 : 0)))
+				let rb = Math.min(255, Math.max(0, (t-0.65)*2.7 * 420 + (t > 0 ? 20 : 0)))
 				current_Row[i++] = rb
 				current_Row[i++] = Math.min(255, Math.max(0, (this.electrode[e].Voltage + 0.5) * 80))
 

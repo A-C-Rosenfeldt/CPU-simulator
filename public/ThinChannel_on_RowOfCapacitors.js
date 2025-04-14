@@ -51,7 +51,7 @@ class Route {
             if (pinned_voltage != null)
                 return; // gates will be overpowered
             let gate;
-            let ch = gate.channel, len = ch.potential.length - 2, gate_count = ch.gate.length;
+            let ch = gate.channel, len = ch.potential.length - 2, gate_count = 2; // todo   ch.gate.length
             let gate_width = len * gate.index / gate_count;
             let start = gate.index * gate_width;
             gate.channel_voltage = 0;
@@ -147,10 +147,14 @@ class field_along_carriers {
 }
 class Channel {
     constructor(channel_len, c) {
+        this.electrode_thicknes = 6;
+        this.metal = 0.8;
         this.len = channel_len;
         this.carrier_density = new Array(channel_len).fill(0); // The solver fights the clean consept of:   Cell{ potential, charge }
         this.potential = new Array(channel_len).fill(0);
         this.conductivity = c; // || 1
+        if (c == 0.0)
+            this.metal = 0; // to check raw potential
     }
     propagate_carrier_to_field(electrode, gate) {
         let field = 0, potential = this.V_GS, carrier_on_gate = 0, sum_p = 0;
@@ -204,26 +208,29 @@ class Channel {
                 let g_volt = gate[gi]; // this.potential[0]  // I wished that a compiler would optimize away access to potential. But then away, it is my (this) potential. Access should be safe
                 // if (gi >= 0) g_volt = gi < gate.length ? gate[gi] : this.potential[this.potential.length - 1]
                 // todo: print doping and gi  .. special test methods?
-                let f = g__f, doping = 0;
+                let f = g__f, doping1 = 0;
                 if (gl >= half_bevel)
                     gl = 7 - gl, f = 1 - f;
                 if (gl == 0)
-                    doping = 1 - 0.5 * Math.pow(f, 2);
+                    doping1 = 1 - 0.5 * Math.pow(f, 2);
                 if (gl == 1)
-                    doping = 0.5 * Math.pow(1 - f, 2);
+                    doping1 = 0.5 * Math.pow(1 - f, 2);
+                let gi_05 = Math.floor((g_i_) / granularity_for_bevel - 0.5);
+                let don_need_as_much = gi_05 > 0 ? 0.2 : 0.4;
+                let doping = doping1 * don_need_as_much;
                 // let ec=(capa)/(2+capa);
                 // let ec*(2+capa)=(capa);
                 // let ec*2 =capa*(1-ec)
                 // let ec*2/(1-ec) =capa
-                let capa_max = electron_charge * 2 / (1 - electron_charge); //;console.log(capa_max) 0.22
-                let capa = capa_max * (1 - doping); // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
+                let capa_max = 0.3 * electron_charge * 2 / (1 - electron_charge); //;console.log(capa_max) 0.22
+                let capa = 0.7 * Math.max(0, capa_max * (1 - Math.abs(doping))); // At VGS=1 the doping should give a constant electron density (of 1) in the channel.
                 // As long as gates all have the same size, I don't need to match this capacisty with the route.capacity .
                 // Make divergence = charge 
                 // capa blends to zero
                 // carrier density should cover [0,1], but also match capacity. Divergence along the channel needs to be enhanced for pinch-off. Instead we reduce the capacity and the charge of a carrier
                 // Doping is expressed in terms of dopants, but not their charge
                 // blending is relative
-                this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - 0.8 * doping) * electron_charge;
+                this.potential[k] = ((this.potential[k - 1] + this.potential[k + 1]) + g_volt * capa) / (2 + capa) - (this.carrier_density[k] - doping) * electron_charge;
                 if (lines !== undefined && j == 0) {
                     lines[0][k] = g_if / 10;
                     lines[1][k] = f;
@@ -291,94 +298,218 @@ class Channel {
             //next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
         }
     }
-    // Todo: Here seem to be two products . Maybe this can be formulated as MatrixMul  selfMul MatrixMul . Weird. Or distribute the sums.
+    // Todo: encapsulate in its own class because the electric field is not to concerned with this
     // So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
-    propagete_field_to_carriers_diffuse() {
-        // semiconductor in channel
-        // source . Drain gets the same population. Should have no effect usually. For a transfer gate it is exactly what we want
-        for (let i = 0; i < 2; i++) {
-            this.carrier_density[this.carrier_density.length - 1 - i] = this.carrier_density[i] = 1; // What is this? Temperature at source? Doping. I don't know why I ( my process in the fab ) vary this. All population is relative to this "this.source.population"
-        }
-        // diffuse carriers part
-        let diffused2 = new Array(this.carrier_density.length - 1);
-        for (let i = 0; i < diffused2.length; i++) {
-            diffused2[i] = (this.carrier_density[i] + this.carrier_density[i + 1]) / 2;
-        }
-        let diffused3 = diffused2.slice(); // Code as different as possible to other version  to  have complementary test
-        diffused3.fill(0);
-        for (let i = 0; i < diffused2.length; i++) {
-            let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i]) * this.conductivity)); // pull field
-            let current = diffused2[i] * field;
-            let target = Math.sign(current) + i;
-            let c = Math.abs(current);
-            diffused3[i] -= c;
-            diffused3[target] += c;
-        }
-        //diffuse field
-        let carriers = new Array(this.carrier_density.length).fill(0);
-        for (let i = 1; i < this.len - 1; i++) {
-            let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i - 1]) * this.conductivity)); // pull field
-            // push carriers 	(KISS)
-            var current = field * this.carrier_density[i];
-            let target = Math.sign(current) + i;
-            //let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=this.carrier_density[i+1]
-            carriers[i] -= current;
-            carriers[target] += current;
-            //next_channel_carrier[i] = this.carrier_density[i+1]+Math.abs(this.field[i])*this.conductivity*this.carrier_density[i+Math.sign(this.field[i])]
-        }
-        // Blend
-        for (let i = 1; i < this.len - 1; i++) {
-            this.carrier_density[i] = (0.5 * this.carrier_density[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((diffused3[i - 1] + diffused3[i]) / 2) + 0.3 * carriers[i]); //+0.5*((diffused3[i-1]+diffused3[i])/2)
-            //this.carrier_density[i] =  (this.carrier_density[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
-        }
-        // Bleed : Only place to prevent carriers going below zero
-        // Landing at exactly at zero is very important as is known from the theory of a Diode
-        // no interleave of this iteration with the linear one until I understand stability
-        // Should be local. This is not a list of accounts of one customer.
-        // Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
-        let signCount = [0, 0, 0], last_positive = 0; // certainly the electrode has carriers
-        let len = this.carrier_density.length, m = 0;
-        let shore = new Array(len).fill(0, 0, len / 2 - 1).fill(len - 1, len / 2, len - 1); // point to nearest electrode
-        for (let i = 1; i < this.len - 1; i++) {
-            if (this.carrier_density[i] > 0)
-                last_positive = i;
-            else {
-                if (this.carrier_density[i] < 0) {
-                    m = -1;
-                    let d = Math.abs(i - last_positive) - Math.abs(i - shore[i]);
-                    if (d == 0) { // same distance which happens often because I want a rough grid per gate
-                        let c = this.carrier_density; // tie break for 99% or all cases. No glitch for the rest
-                        d = c[shore[i]] - c[last_positive]; // opposite order
-                    }
-                    if (d < 0)
-                        shore[i] = last_positive;
-                }
-            }
-        }
-        for (var safety = 0; safety < this.len && m != 0; safety++) {
-            var lm = m;
-            m = 0;
-            // land on shore. I don't interleave this for symmetry and easy debugging
-            for (let i = 1; i < this.len - 1; i++) {
-                let c = this.carrier_density;
-                if (c[i] < 0) {
-                    let s = shore[i];
-                    let d = c[s];
-                    d += c[i];
-                    c[i] = 0;
-                    if (s > 0 && s < len - 1)
-                        m = Math.min(m, d); // the electrode density shown is merely the thermic current. The reservoir is deep.
-                    c[s] = d; // Still need to track carriers for the elecric field and current through the wires!
-                }
-            }
-            // shores "roll up" , which may make islands vanish
-        }
-        //if (safety) console.log(safety,lm)  // shows 0 or 10
+    propagete_field_to_carriers_diffuse(electrode_transistor) {
+        let electrode = new Electrode(this.electrode_thicknes);
+        let extended_carriers = electrode.setUp(this.carrier_density, [this.metal]);
+        //todo this.gate is undefined
+        let extended_field = electrode.setUp(this.potential, electrode_transistor); //gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
+        let Msm = new Propagete_field_to_carriers(this.conductivity);
+        let sta = Msm.stagger_n_diffuse__pull(extended_carriers, extended_field);
+        // todo: try more functional style ?
+        Msm.coulombs_law(sta);
+        let depletor = new Depletor();
+        depletor.deplete(Msm.next_step);
+        this.carrier_density = electrode.capture(Msm.next_step); // buggy
+        //this.carrier_density=electrode.capture(Msm) // buggy
+        //this.carrier_density=electrode.capture(extended_carriers) // looks okay 2025-03-30 test step by step. Now the other side is missing
+        return electrode.electrodes;
     }
+}
+// The channel has actions in two directions. I am a little confused as why physics seems to break symmetry, but have to stick with a naive approach here
+// This means I get ugly long names if I split this up into functions. I need to split it up because the array names also became unwieldingly long.
+// Does TypeScript have internal classes? When I sorted all the parenthees, I could try 
+class Electrode {
+    constructor(guardband) {
+        this.guardband = guardband;
+        this.electrodes = [[0], [0]];
+    }
+    setUp(semiconductor_only, fill) {
+        this.double_check_len = semiconductor_only.length;
+        let dgl = this.guardband - 1; // Electric potential is evaluated in-place. That is the cool thing about that algorithm. Don't kill it. Rather leak guard width. Also: Need to keep polarisation on metal surface. I think that the averaging algorithm works well with metalic boundary condition. Carrier saturation is for the semiconductor, not the metal. It would destabilize the simulation. Those carriers are not free to be emitted!
+        let f = new Array(dgl).fill(fill[0]); // the metal electrodes and the heavy doping region is filled to the brim. We will record any delta at the end.
+        let c = new Array(semiconductor_only.length + 2 * dgl);
+        c.splice(0, f.length, ...f);
+        if (fill.length > 1)
+            f = new Array(dgl).fill(fill[1]);
+        c.splice(-f.length, f.length, ...f);
+        c.splice(dgl, semiconductor_only.length, ...semiconductor_only);
+        return c;
+    }
+    capture(c) {
+        let dgl = this.guardband - 1;
+        let channel = c.slice(dgl + 1, dgl + this.double_check_len + 1); //.map(n=>n+0.01) // channel length change due to a bug would be very nasty
+        // the first and last element is ignored by carrier -> field due to the averaging algorithm
+        // print needs to skip the duplicated state, but I need to capture the carriers on the surface
+        for (let side = 0; side < 2; side++) {
+            let s = (c.length - this.guardband - 1) * side;
+            this.electrodes[side] = c.slice(s + 1, s + 1 + this.guardband - 1); // I think there is some garbage on the boundary (not the surface) .map(v=>v-1).reduce((p,c)=>p+c,0)
+        }
+        return channel;
+    }
+}
+class Interaction {
+}
+class Propagete_field_to_carriers {
+    constructor(conductivity) {
+        this.conductivity = conductivity;
+    }
+    stagger_n_diffuse__pull(carriers, electric_potential) {
+        // diffuse carriers part . to align on electric field from electric potential
+        let staggerd = new Array(carriers.length - 1);
+        for (let i = 0; i < staggerd.length; i++) {
+            staggerd[i] = new Interaction();
+            staggerd[i].carriers = (carriers[i] + carriers[i + 1]) / 2; // diffuse accidentally. Bad for depletion
+            staggerd[i].field = electric_potential[i + 1] - electric_potential[i];
+        }
+        return staggerd;
+    }
+    coulombs_law(I) {
+        this.next_step = new Array(I.length + 3).fill(0);
+        I.forEach(this.coulombs_law__push_to_ensure_carrier_conservation.bind(this));
+    }
+    coulombs_law__push_to_ensure_carrier_conservation(a, i) {
+        let f = a.field * Math.abs(this.conductivity) + 1.5;
+        if (f <= 0) {
+            this.next_step[i + 0] += a.carriers;
+            return;
+        }
+        if (f >= 3) {
+            this.next_step[i + 3] += a.carriers;
+            return;
+        }
+        let spread = (Math.max(0, 0.5 - Math.abs(Math.abs(f - 1.5) - 0.5)));
+        for (let s = -1; s <= 2; s += 2) {
+            let g = f + s * spread * 0.5;
+            let I = Math.floor(g);
+            let F = g % 1, ac = a.carriers;
+            this.next_step[i + 0 + I] += ac * (1 - F) / 2;
+            this.next_step[i + 1 + I] += ac * F / 2;
+        }
+        /*
+        this.next_step[i]+=a.carriers/2
+        this.next_step[i+1]+=a.carriers/2
+        return
+        */
+        /*
+        let ac=a.carriers/16,field=Math.min(1, Math.max(-1,a.field*Math.abs(this.conductivity)))
+
+        // push kernels with some smoothing to avoid 101010 pattern which I did observe . Current -> hot ?
+        // pull would allow simpler borders, but would infect the diffusion step above. I am undecided. State is your enemy, but mutation also.
+        // to deplete carriers, field must be able to overpower diffusion. Maybe even spread this kernel to achive this
+
+
+        this.next_step[i+0]+=ac*(2-3*field)
+        this.next_step[i+1]+=ac*(6-5*field)
+        this.next_step[i+2]+=ac*(6+5*field)
+        this.next_step[i+3]+=ac*(2+3*field)  // this actually also fights the 101010 pattern. I pick this battle because 001100 spots should explode in my simulation
+        */
+    }
+    /*
+    //diffuse field a second time to avoid the otherwise observerd 0101010 pattern before it taints field calculation
+    // ah, don't
+    let carriers = new Array<number>(c.length).fill(0)
+    for (let i = 1; i < this.len - 1; i++) {
+        let field = Math.min(1, Math.max(-1, (this.potential[i + 1] - this.potential[i - 1]) * this.conductivity))	// pull field
+        // push carriers 	(KISS)
+        var current = field * c[i]
+        let target = Math.sign(current) + i
+        //let carrier_count=Math.min(Math.abs(current),this_carrier_density_i_);this_carrier_density_i_=c[i+1]
+        carriers[i] -= current
+        carriers[target] += current
+        //next_channel_carrier[i] = c[i+1]+Math.abs(this.field[i])*this.conductivity*c[i+Math.sign(this.field[i])]
+    }
+    */
+    /*
+    // Blend  is a dumb idea. All parts need to go through diffuse. Otherwise unstable parts just dominate
+    for (let i = 1; i < this.len - 1; i++) {
+        c[i] = (0.5 * c[i] + 0.5 * (diffused2[i - 1] + diffused2[i]) / 2) + (0.7 * ((next_step[i - 1] + next_step[i]) / 2) + 0.3 * carriers[i]) //+0.5*((diffused3[i-1]+diffused3[i])/2)
+        //c[i] =  (c[i]*0.8+(diffused2[i-1]+diffused2[i])/2*0.2)+(diffused3[i-1]+diffused3[i])/2
+    }
+    */
     //figure_of_merit
     fm(me, them) {
         Math.abs(me - them);
         return false;
+    }
+}
+class Depletor {
+    deplete(c) {
+        //c.forEach((j,i)=> { c[i]=Math.max(0,Math.min(1,j))} )
+        //return
+        let shore = this.findShores(c);
+        this.washup_onto_shore(c, shore);
+    }
+    // : Only place to prevent carriers going below zero when depleting
+    // Landing at exactly at zero is very important as is known from the theory of a Diode
+    // no interleave of this iteration with the linear one until I understand stability
+    // Should be local. This is not a list of accounts of one customer.
+    findShores(c) {
+        // Thing of islands peaking out of water. For humans, point to the nearest shore. Should be stable on iteration, which I need to resolve all sub-zeros.
+        let signCount = [0, 0, 0];
+        this.last_positive = 0; // certainly the electrode has carriers
+        let len = c.length;
+        this.m = 0;
+        let shore = new Array(len).fill(0, 0, len / 2 - 1).fill(len - 1, len / 2, len - 1); // point to nearest electrode
+        for (let i = 1; i < c.length - 1; i++) {
+            this.decideShore(c, i, shore);
+        }
+        for (let i = c.length - 2; i > 0; i--) {
+            this.decideShore(c, i, shore);
+        }
+        return shore;
+    }
+    decideShore(c, i, shore) {
+        if (c[i] > 0)
+            this.last_positive = i;
+        else {
+            if (c[i] < 0) {
+                this.m = -1;
+                let d = Math.abs(i - this.last_positive) - Math.abs(i - shore[i]);
+                if (d == 0) { // same distance which happens often because I want a rough grid per gate
+                    //let c = c  // tie break for 99% or all cases. No glitch for the rest
+                    d = c[shore[i]] - c[this.last_positive]; // opposite order
+                }
+                if (d < 0)
+                    shore[i] = this.last_positive;
+            }
+        }
+    }
+    washup_onto_shore(c, shore) {
+        // I cannot imagine what negative carrier density does to the rest of the calculation. Remove before next step
+        //for (var safety = 0; safety < c.length && m != 0; safety++) {
+        var lm = this.m;
+        this.m = 0;
+        // land on shore. I don't interleave this for symmetry and easy debugging
+        for (let i = 1; i < c.length - 1; i++) {
+            if (c[i] < 0) {
+                let s = shore[i];
+                let d = c[s];
+                d += c[i];
+                c[i] = 0;
+                if (s > 0 && s < c.length - 1)
+                    this.m = Math.min(this.m, d); // the electrode density shown is merely the thermic current. The reservoir is deep.
+                c[s] = d; // Still need to track carriers for the elecric field and current through the wires!
+                let debt = c[i];
+                if (d < 0) {
+                    let direction = Math.sign(shore[i] - i);
+                    for (let wash_up = i; wash_up < c.length && wash_up >= 0; wash_up += direction) {
+                        if (c[wash_up] > debt) {
+                            c[wash_up] += debt;
+                            break;
+                        }
+                        else {
+                            debt += c[wash_up];
+                            c[wash_up] = 0;
+                        }
+                    }
+                }
+            }
+        }
+        // shores "roll up" , which may make islands vanish
+        //}
+        //if (safety) console.log(safety,lm)  // shows 0 or 10
     }
 }
 class MosFet {
@@ -393,17 +524,39 @@ class MosFet {
             this.gate = electrode.slice(2).concat(this.gate);
         }
         this.channel = new Channel(channel_len, conductivity);
+        // for row2bitmap: fill the Metal with electrons like at the begin of each simulation cycle.
+        let f = new Array(this.channel.electrode_thicknes - 1).fill(this.channel.metal); // 1 is from simulation loop. Todo: Check convolution! 
+        for (let i = 0; i < this.electrode.length; i++) {
+            this.electrode[i].distrubution = f;
+        }
     }
     // The characteristic graph emerges, when I animate VGS. Testing goes from wide open (see above) to closed (minimal leakage)
     channel2bitmapRow(current_Row) {
-        for (let i = 0, k = 0; k < this.channel.len; k++) {
+        let debug = this.electrode[0].distrubution.length; // 0  
+        for (let i = 4 * debug, k = 0; k < this.channel.len; k++) {
             // bluescreen
             let t = this.channel.carrier_density[k];
-            let rb = Math.min(255, Math.max(0, t * 190 + (t > 0 ? 0 : 0)));
+            let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 20 : 0)));
             current_Row[i++] = rb;
             current_Row[i++] = Math.min(255, Math.max(0, (this.channel.potential[k] + 0.5) * 80));
             current_Row[i++] = rb;
             current_Row[i++] = 255;
+        }
+        // this print is only for debug and is allowed to look complicated
+        // also: the surface is duplicated. May also want to insert a black line?
+        // perhaps still unify with the loop above
+        for (let e = 0; e < 2; e++) {
+            // metal bulk to determine current on the electrodes
+            let d = this.electrode[e].distrubution;
+            for (let i = e * 4 * (this.channel.len + d.length), k = 0; k < d.length; k++) {
+                // bluescreen
+                let t = d[k];
+                let rb = Math.min(255, Math.max(0, (t - 0.65) * 2.7 * 420 + (t > 0 ? 20 : 0)));
+                current_Row[i++] = rb;
+                current_Row[i++] = Math.min(255, Math.max(0, (this.electrode[e].Voltage + 0.5) * 80));
+                current_Row[i++] = rb; // I want to see the effect of the sim step, which thinks in hot electrons
+                current_Row[i++] = 255;
+            }
         }
     }
     solve() {
@@ -415,7 +568,11 @@ class MosFet {
         // On the one hand the gate provides the voltage .. like a function to pull from
         // On the other hand the simulation in the channel should just run through the gaps between the gates. I rather not specify any function parameters and return values.
         //this.channel.propagate_carrier_to_field(gates:gate[])
-        this.channel.propagete_field_to_carriers_diffuse();
+        // 2d context for max horizontal resolution
+        // let electrode=document.getElementById("current_left")
+        let electrodes = this.channel.propagete_field_to_carriers_diffuse(this.electrode.map(e => e.Voltage));
+        for (let i = 0; i < 2; i++)
+            this.electrode[i].distrubution = electrodes[i];
         //this.channel.propagete_field_to_carriers()
         /*
         this.channel.get_drained()
