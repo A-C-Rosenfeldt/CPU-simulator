@@ -55,8 +55,8 @@ function animate() {
   var mosfet = new MosFet(channel_len, 0, [GND, Vcc, ...gates], [], conductivity) // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
 
   // Create an ArrayBuffer with a size in bytes
-  if ( mosfet.channel.guardband != 3 ) console.log("Guardband: "+ mosfet.channel.guardband)
-    const cm=(channel_len+2*mosfet.channel.guardband)
+  if ( mosfet.channel.electrode_thicknes != 3 ) console.log("Guardband: "+ mosfet.channel.electrode_thicknes)
+    const cm=(channel_len+2*mosfet.channel.electrode_thicknes)
   const buffer = new ArrayBuffer( cm* (sweep_resolution+overflow) * 4); // sweepParameters
 
 
@@ -87,6 +87,8 @@ function animate() {
       let voltages=[ si>>(1+i) & 1,si1>>(1+i) & 1]   // I think that in C this is actually undefined behaviour :-(
       gates[1-i].Voltage=  1.1*  (voltages[0]*(1-f)+f*voltages[1])
     }
+
+
   }
 
   let pixel2: Uint8Array = new Uint8Array(buffer)

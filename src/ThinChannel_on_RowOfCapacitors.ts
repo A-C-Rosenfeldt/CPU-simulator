@@ -217,7 +217,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	carrier_density: number[];
 	shore: number[];
-	guardband=3;
+	electrode_thicknes=6;
 	metal=1
 
 	constructor(channel_len: number, c?: number) {
@@ -402,12 +402,12 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 	// Todo: encapsulate in its own class because the electric field is not to concerned with this
 	// So all products of 3 potentials and 3 carrierDensities ( 9 in total )  =>  delta . But for diffusion without any, I need an additional "1 potential"
 	public propagete_field_to_carriers_diffuse(electrode_transistor: number[]):number[][] {
-		let electrode=new Electrode(this.guardband)
+		let electrode=new Electrode(this.electrode_thicknes)
 		let extended_carriers=electrode.setUp(this.carrier_density,[this.metal ])
 		//todo this.gate is undefined
 		
 		let extended_field=electrode.setUp(this.carrier_density,electrode_transistor) //gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
-		let Msm=new Propagete_field_to_carriers()
+		let Msm=new Propagete_field_to_carriers(this.conductivity)
 		let sta=Msm.stagger_n_diffuse__pull(extended_carriers,extended_field)
 		// todo: try more functional style ?
 		Msm.coulombs_law(sta)	
@@ -415,7 +415,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		//depletor.deplete(Msm.next_step)	
 		this.carrier_density=electrode.capture(Msm.next_step) // buggy
 		//this.carrier_density=electrode.capture(Msm) // buggy
-		this.carrier_density=electrode.capture(extended_carriers)  // looks okay 2025-03-30 test step by step. Now the other side is missing
+		//this.carrier_density=electrode.capture(extended_carriers) // looks okay 2025-03-30 test step by step. Now the other side is missing
 		return electrode.electrodes
 	}	
 }
@@ -445,13 +445,13 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 
 	capture(c:number[]):number[]{
 		let dgl=this.guardband-1
-		let channel=c.slice(dgl,dgl+this.double_check_len) // channel length change due to a bug would be very nasty
+		let channel=c.slice(dgl+1,dgl+this.double_check_len+1) //.map(n=>n+0.01) // channel length change due to a bug would be very nasty
 		// the first and last element is ignored by carrier -> field due to the averaging algorithm
 
 		// print needs to skip the duplicated state, but I need to capture the carriers on the surface
 		for(let side=0;side<2;side++){
 			let s=(c.length-this.guardband)*side
-			this.electrodes[side]=c.slice(s,s+this.guardband)   // I think there is some garbage on the boundary (not the surface) .map(v=>v-1).reduce((p,c)=>p+c,0)
+			this.electrodes[side]=c.slice(s+1,s+1+this.guardband-1)   // I think there is some garbage on the boundary (not the surface) .map(v=>v-1).reduce((p,c)=>p+c,0)
 		}
 
 		return channel 
@@ -462,6 +462,10 @@ class Interaction{
 	field:number
 }
 class Propagete_field_to_carriers{
+	conductivity: number;
+	constructor (conductivity:number){
+		this.conductivity=conductivity
+	}
 	next_step: number[];
 	 stagger_n_diffuse__pull(carriers:number[],electric_potential:number[]):Interaction[]{
 		// diffuse carriers part . to align on electric field from electric potential
@@ -477,16 +481,21 @@ class Propagete_field_to_carriers{
 
 	coulombs_law(I:Interaction[]){
 		this.next_step = new Array<number>(I.length+3 ).fill(0)
-		I.forEach(this.coulombs_law__push_to_ensure_carrier_conversation.bind(this))
+		I.forEach(this.coulombs_law__push_to_ensure_carrier_conservation.bind(this))
 	}
 
-	coulombs_law__push_to_ensure_carrier_conversation(a:Interaction,i:number){
-		let ac=a.carriers,field=Math.min(1, Math.max(-1,a.field))/16
+	coulombs_law__push_to_ensure_carrier_conservation(a:Interaction,i:number){
+		/*
+		this.next_step[i]+=a.carriers/2
+		this.next_step[i+1]+=a.carriers/2
+		return
+		*/ 
+		let ac=a.carriers/16,field=Math.min(1, Math.max(-1,a.field))*this.conductivity/10
 
 		// push kernels with some smoothing to avoid 101010 pattern which I did observe . Current -> hot ?
 		// pull would allow simpler borders, but would infect the diffusion step above. I am undecided. State is your enemy, but mutation also.
 		this.next_step[i+0]+=ac*(2-3*field)  // to deplete carriers, field must be able to overpower diffusion. Maybe even spread this kernel to achive this
-		this.next_step[i+0]+=ac*(6-5*field)
+		this.next_step[i+1]+=ac*(6-5*field)
 		this.next_step[i+2]+=ac*(6+5*field)
 		this.next_step[i+3]+=ac*(2+3*field)  // this actually also fights the 101010 pattern. I pick this battle because 001100 spots should explode in my simulation
 	}
@@ -630,7 +639,7 @@ class MosFet {
 				current_Row[i++] = rb
 				current_Row[i++] = Math.min(255, Math.max(0, (this.electrode[e].Voltage + 0.5) * 80))
 
-				current_Row[i++] = rb // I want to see the effect of the sim step, which thinks in hot electrons
+				current_Row[i++] = 0 //rb // I want to see the effect of the sim step, which thinks in hot electrons
 				current_Row[i++] = 255
 			}		
 		}
@@ -655,7 +664,7 @@ class MosFet {
 
 		// for row2bitmap: fill the Metal with electrons like at the begin of each simulation cycle.
 
-		let f=new Array<number>(this.channel.guardband).fill(this.channel.metal) // 1 is from simulation loop. Todo: code the dependency!  
+		let f=new Array<number>(this.channel.electrode_thicknes-1).fill(this.channel.metal) // 1 is from simulation loop. Todo: Check convolution! 
 		for(let i=0;i<this.electrode.length;i++)
 		{
 			this.electrode[i].distrubution=f
