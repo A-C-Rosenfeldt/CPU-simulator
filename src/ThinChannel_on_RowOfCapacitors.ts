@@ -218,7 +218,7 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 	carrier_density: number[];
 	shore: number[];
 	electrode_thicknes=6;
-	metal=1
+	metal=0.5
 
 	constructor(channel_len: number, c?: number) {
 		this.len = channel_len
@@ -406,13 +406,14 @@ class Channel {   // kinda inner part of Mosfet. Needs access to a lot of elemen
 		let extended_carriers=electrode.setUp(this.carrier_density,[this.metal ])
 		//todo this.gate is undefined
 		
-		let extended_field=electrode.setUp(this.carrier_density,electrode_transistor) //gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
+		let extended_field=electrode.setUp(this.potential,electrode_transistor) //gate.slice(0,1).map(g=>g.Voltage)) // gates vs electrodes
 		let Msm=new Propagete_field_to_carriers(this.conductivity)
 		let sta=Msm.stagger_n_diffuse__pull(extended_carriers,extended_field)
 		// todo: try more functional style ?
 		Msm.coulombs_law(sta)	
 		let depletor=new Depletor()
-		//depletor.deplete(Msm.next_step)	
+		depletor.deplete(Msm.next_step)	
+
 		this.carrier_density=electrode.capture(Msm.next_step) // buggy
 		//this.carrier_density=electrode.capture(Msm) // buggy
 		//this.carrier_density=electrode.capture(extended_carriers) // looks okay 2025-03-30 test step by step. Now the other side is missing
@@ -490,7 +491,7 @@ class Propagete_field_to_carriers{
 		this.next_step[i+1]+=a.carriers/2
 		return
 		*/ 
-		let ac=a.carriers/16,field=Math.min(1, Math.max(-1,a.field))*this.conductivity/10
+		let ac=a.carriers/16,field=Math.min(1, Math.max(-1,a.field))*Math.abs(this.conductivity)/4
 
 		// push kernels with some smoothing to avoid 101010 pattern which I did observe . Current -> hot ?
 		// pull would allow simpler borders, but would infect the diffusion step above. I am undecided. State is your enemy, but mutation also.
@@ -538,6 +539,10 @@ class Depletor{
 	last_positive: number;
 
 	deplete(c:number[]){ 
+
+		c.forEach((j,i)=> { c[i]=Math.max(0,Math.min(1,j))} )
+
+		return
 		let shore=this.findShores(c)
 		this.washup_onto_shore(c,shore)
 	}
@@ -639,7 +644,7 @@ class MosFet {
 				current_Row[i++] = rb
 				current_Row[i++] = Math.min(255, Math.max(0, (this.electrode[e].Voltage + 0.5) * 80))
 
-				current_Row[i++] = 0 //rb // I want to see the effect of the sim step, which thinks in hot electrons
+				current_Row[i++] = rb // I want to see the effect of the sim step, which thinks in hot electrons
 				current_Row[i++] = 255
 			}		
 		}

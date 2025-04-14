@@ -43,7 +43,7 @@
         {
             "name": "Launch Edge",
             "request": "launch",
-            "type": "pwa-msedge",
+            "type": "msedge",
             "url": "http://localhost:3000/index.htm",
             "webRoot": "${workspaceFolder}/public"
         },

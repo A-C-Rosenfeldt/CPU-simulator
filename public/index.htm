@@ -12,6 +12,18 @@
             background-color: rgb(20, 52, 56);
             color: white;
         }
+        div{
+            display: flex;
+            flex-direction: row;
+        }        
+        article:nth-of-type(2) {
+        flex: 3;
+        }
+
+        canvas.msm{
+          height:"1512" ;
+          flex:1;
+        }
     </style>
     <h2>Motivation</h2>
     <p>
@@ -33,11 +45,17 @@
         I know two ways to tune a static design. For one, active pull ups (pre-charge) can speed up the design. But I always want to also keep the static pull-ups.
         With equal path length through the combinatorial circuits, at the clock limit, the phases can be made to overlap, to achieve a little high clock rates.
     </p>
+    <p>
     <canvas id="doping" width="540" height="512" style="border:1px solid #d3d3d3;">
         Your browser does not support the HTML canvas tag.</canvas>
+    </p>
 <p>Click image to restart animation where conductivity is increased. Green is electric potential. Violet is carrier density. Vgs increases top to middle, then decreases again to bottom.</p>
-    <canvas id="FieldGl0" width="540" height="1512" style="border:1px solid #000000;" class=""></canvas>
-
+<div>    
+    
+    <!-- canvas id="current_left" width="40" height="1512" style="border:1px solid #000000;" class="msm"></canvas -->
+<canvas id="FieldGl0" width="540" height="1512" style="border:1px solid #000000;" ></canvas>
+<!-- canvas id="current_right" width="40" height="1512" style="border:1px solid #000000;" class="msm"></canvas-->
+</div>
     <h2>Transistor Technology</h2>
     <p>Electrons live on a wire, think of carbon nanotube. Or a thin film of silicon on silicon Oxide. Vacuum on the other side? I dunno about surface states.
         I feel like a finFET is actually most easy to simulate. Molecular film of silicon between two sliced of SiO2. I still only display on electrode for clarity.
