@@ -536,7 +536,7 @@ class MosFet {
         for (let i = 4 * debug, k = 0; k < this.channel.len; k++) {
             // bluescreen
             let t = this.channel.carrier_density[k];
-            let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 20 : 0)));
+            let rb = Math.min(255, Math.max(0, t * 220 + (t > 0 ? 10 : 0)));
             current_Row[i++] = rb;
             current_Row[i++] = Math.min(255, Math.max(0, (this.channel.potential[k] + 0.5) * 80));
             current_Row[i++] = rb;
@@ -551,7 +551,7 @@ class MosFet {
             for (let i = e * 4 * (this.channel.len + d.length), k = 0; k < d.length; k++) {
                 // bluescreen
                 let t = d[k];
-                let rb = Math.min(255, Math.max(0, (t - 0.65) * 2.7 * 420 + (t > 0 ? 20 : 0)));
+                let rb = Math.min(255, Math.max(0, (t - 0.7) * 1600 + (t > 0 ? 0 : 0)));
                 current_Row[i++] = rb;
                 current_Row[i++] = Math.min(255, Math.max(0, (this.electrode[e].Voltage + 0.5) * 80));
                 current_Row[i++] = rb; // I want to see the effect of the sim step, which thinks in hot electrons

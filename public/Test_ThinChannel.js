@@ -39,13 +39,14 @@ let doping = function () {
 //for(let conductivity=0;conductivity<10;conductivity+=0.5)
 var conductivity = 0.0, id;
 function animate() {
+    document.getElementById("conductivity").value = String(conductivity);
     let channel_len = 60;
-    let sweep_resolution = 1512, overflow = 0;
+    let sweep_resolution = 912, overflow = 0;
     let v_range = 2;
     let GND = new Button("GND", 0);
     let Vcc = new Button("Vcc", 1);
     let gates = [new Button("sweep", 0), new Button("sweep", 0)];
-    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, ...gates], [], conductivity); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
+    var mosfet = new MosFet(channel_len, 0, [GND, Vcc, ...gates], [], Math.min(8, conductivity)); // One object with memory to sweep through. Start at natural capacitor state. Threshold voltage goes beyond a simple capacitor. Comes later
     // Create an ArrayBuffer with a size in bytes
     if (mosfet.channel.electrode_thicknes != 3)
         console.log("Guardband: " + mosfet.channel.electrode_thicknes);
@@ -56,9 +57,21 @@ function animate() {
         //let vgs = 1.2 * (1 - Math.abs((sweep * 2 / (sweep_resolution - 1)) - 1))
         let current_Row = new Uint8Array(buffer, sweep * cm * 4, cm * 4);
         mosfet.channel2bitmapRow(current_Row); //,vgs*v_range/sweep_resolution,-vgs*v_range/sweep_resolution)
-        mosfet.solve(); // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
-        for (let i = 0; i < 2; i++) { // console.log(mosfet.electrode[i].charge)    extra canvas?
+        mosfet.solve();
+        for (let dil = 8; dil < conductivity; dil++)
+            mosfet.solve(); // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
+        for (let dil = 11; dil < conductivity; dil++)
+            mosfet.solve(); // solve only means one iteration . Iterate has a different meaning in C++  so, hmm Enumartor for an array sounds weird.
+        if (conductivity == 20) {
+            for (let dil = 15; dil < conductivity; dil++) //final
+                mosfet.solve();
+            mosfet.channel2bitmapRow(current_Row);
         }
+        /*
+            for(let i=0;i<2;i++)
+              { // console.log(mosfet.electrode[i].charge)    extra canvas?
+              }
+        */
         //gate2.Voltage =gate.Voltage = vgs  // I put it here to check for steady state on first iteration
         let step = sweep * (20) / sweep_resolution; // plateaus with blends (-1)
         let si = Math.floor(step) + 2, f = step % 1;
@@ -77,7 +90,7 @@ function animate() {
     //console.log("conductivity ", conductivity)
     field2Gl("FieldGl0", si);
     //console.log("conductivity ", conductivity)
-    if ((conductivity += 0.2) > 10) {
+    if ((conductivity += 1) > 20) {
         window.clearInterval(id);
         id = 0;
     }
@@ -85,5 +98,5 @@ function animate() {
 animate(); // for instant feedback after Ctrl-R in browser
 id = window.setInterval(animate, 200);
 //var me=new MouseEvent()
-document.getElementById("FieldGl0").onclick = me => { conductivity = 0.4; if (id == 0)
-    id = window.setInterval(animate, 200); };
+document.getElementById("FieldGl0").onclick = me => { conductivity = 0.0; if (id == 0)
+    id = window.setInterval(animate, 300); };
