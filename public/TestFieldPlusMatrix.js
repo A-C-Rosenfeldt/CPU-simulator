@@ -91,3 +91,4 @@ catch (err) {
 }
 field2Gl('FM__example', images);
 field2Gl('FM__example_processed', imagesProcessed);
+//# sourceMappingURL=TestFieldPlusMatrix.js.map

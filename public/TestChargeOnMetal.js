@@ -106,3 +106,4 @@ const imageM = [];
     }
     field2Gl('metal_charge_matrix', imageM);
 }
+//# sourceMappingURL=TestChargeOnMetal.js.map

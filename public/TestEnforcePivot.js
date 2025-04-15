@@ -82,3 +82,4 @@ images.push(dupe);
 //     console.warn("not all fields could be created")
 // }
 field2Gl('MatrixCanvasGlSwapMiddle', images);
+//# sourceMappingURL=TestenforcePivot.js.map

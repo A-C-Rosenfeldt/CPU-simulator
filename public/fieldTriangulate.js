@@ -25,3 +25,4 @@ Polynom, pq equation, check for collision along the path of const velocity
 function parabola() {
 }
 export {};
+//# sourceMappingURL=fieldTriangulate.js.map

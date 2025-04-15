@@ -34,3 +34,4 @@ var swap = new Field(contacts2d);
     const extent = swap.extend();
     particle("EmissionFromMetal", strokes, extent); // share transformation matrix for border (make texels size=1)?
 }
+//# sourceMappingURL=EmissionFromMetal_Demo.js.map

@@ -668,3 +668,4 @@ class LongWire implements Wire{
         return back_voltage+forth_voltage
     }
 }*/ 
+//# sourceMappingURL=ThinChannel_on_RowOfCapacitors.js.map

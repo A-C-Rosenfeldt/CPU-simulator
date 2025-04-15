@@ -100,3 +100,4 @@ id = window.setInterval(animate, 200);
 //var me=new MouseEvent()
 document.getElementById("FieldGl0").onclick = me => { conductivity = 0.0; if (id == 0)
     id = window.setInterval(animate, 300); };
+//# sourceMappingURL=Test_ThinChannel.js.map

@@ -61,3 +61,4 @@ class Simulation {
         });
     }
 }
+//# sourceMappingURL=simulationLoop.js.map

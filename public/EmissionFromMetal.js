@@ -65,3 +65,4 @@ export function iterateOverAllEdges(swap, perEdge) {
 const signatu = sucks;
 // Swap.fieldInVarFloats.map( row=> row.reduce( (previous,cell) => {
 // },null) )
+//# sourceMappingURL=EmissionFromMetal.js.map

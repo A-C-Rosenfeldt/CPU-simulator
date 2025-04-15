@@ -153,3 +153,4 @@ export function particle(canvasId, strokes, extent) {
         }
     }
 }
+//# sourceMappingURL=electronsAsGLPoints.js.map

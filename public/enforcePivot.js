@@ -1463,3 +1463,4 @@ class ResultMul {
         this.resultValue[0] += (resultSpan);
     }
 }
+//# sourceMappingURL=enforcePivot.js.map

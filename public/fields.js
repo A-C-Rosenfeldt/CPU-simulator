@@ -761,3 +761,4 @@ var html = `
 // Some gates are connected to the silicon slab => current flowing
 // Not prosecuted any further:   const gate = new Field(['ex'], []); // So "m" is the inhomogenous part
 const instance = 'CGCFC'; // the ends are implicit
+//# sourceMappingURL=fields.js.map
