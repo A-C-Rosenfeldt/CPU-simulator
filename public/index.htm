@@ -58,6 +58,16 @@
 <!-- canvas id="current_right" width="40" height="1512" style="border:1px solid #000000;" class="msm"></canvas-->
 </div>
     <h2>Transistor Technology</h2>
+    <p>I learned that this is called 1 dimensional device Technology Computer-Aided Design. Bipolar transistors were simulated in one dimension because they are homogenous in the other.
+        Due to temperature and the particle nature (?) real FETs have a channel width. But I use classic electron density in a channel ( like hetero-junction laser diode or finfet ).
+        I simulate the field along the channel to (in turn) simulate pinch-off. Still unsure about this. It is just a parameter. I don't show channel depth on screen ( or carrier profile).
+        I don't show the elctric field in the depletion zone of the body diode .. or do I ? At least I don't plan to use it for simulation. I will just interpolate linearly from channel to body.
+        The body diode may be interesting because I found that the simulation really likes to simulate CCD and charge pumps. So the body diode may begin to conduct.
+        But this serves no purpose in my design. And I could always fall back to the design without said diode. Increase bandwidth. FinFet all around.
+        Fnterestingly, for CMOS, I need to set the body voltage into the middle of the rails. So, the bandgap is kinda important?
+        Ah this is what they say that in modern cores with rail voltage &lt; the bandgap, there is not parasitic thyristor anymore. They can just connect the body to the middle voltag.
+        For the shell, the N and P body ( strips? ) are connected to the rails opposed to the source rail.
+    </p>
     <p>Electrons live on a wire, think of carbon nanotube. Or a thin film of silicon on silicon Oxide. Vacuum on the other side? I dunno about surface states.
         I feel like a finFET is actually most easy to simulate. Molecular film of silicon between two sliced of SiO2. I still only display on electrode for clarity.
     </p>
