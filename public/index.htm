@@ -46,6 +46,16 @@
         With equal path length through the combinatorial circuits, at the clock limit, the phases can be made to overlap, to achieve a little high clock rates.
     </p>
     <p>
+        My physics simulation was supposed to include the Miller effect, but this does look weird at the frequency limit.
+        NAND: first gate closed. Second changes: acts as a high pass filter: not inverting. How to hide? Go to steady state and inherit edge slope from clock? Add artificial gate delay?
+        charge density in channel due to gate dielectric is a magnitude greater than near the cathodes: cannot be displayed.
+        Only show voltage? I want to show how the gates farther away from the drain have less influence. I want to show pinch off.
+    </p>
+    <p>I was fascinated by bit slicing in 6502, but humans think in parallel wires. Proximity of register file and ALU
+        was a pipedream of mine. Rather there are multiplexors. They can be compact. So there can be a huge matrix where I connect 8-bit parallel lines. CMOS: 4 metalization layers: Criss cross. Switch Vss, Vdd (ah no, those are cross and only need a 3rd layer) .
+        Then in the ALU the lines spread to give space to the full adders. In the file the 3 ports interleave. Perhaps I can put the write back port on the other side.
+    </p>
+    <p>
     <canvas id="doping" width="540" height="512" style="border:1px solid #d3d3d3;">
         Your browser does not support the HTML canvas tag.</canvas> 
     </p>
