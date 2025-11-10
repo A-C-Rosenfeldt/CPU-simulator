@@ -48,6 +48,45 @@
             Now we are in the outer loop and timing is not critical, but storage need chip area.
             Let's say that we store 8 points.
         </p>
+        <h3>Digital Differential Analysis</h3>
+        <p>This seems to be the term if you increment an akkumulator every step.
+            I was thinking about the cost (in CMOS) and it looks to me that serial processing like in the N64 is most efficient.
+            Jaguar can output 1280 resolution at the clock plus borders. Also memory has to read (I want translucency, so not always) and write pixel and z-buffer for one step.
+            Memory has alignment issues.
+            So this matches.
+            For texture (pull) coordinates, I need a delay. DDA -> delay ah, it is rather a queue, with a small fixed delay. How expensive is a queue?
+            Two address generators ( to minimize change, interlacing is of the table, also: RS flip flops ).
+            There is still fanout. So the default answer is "banks". So aktually, the top address generators feed through the lower bits.
+            This makes sense if the queue is longer than 32 entries. Okay, here it is not. Perhaps shifting is okay?
+            So DDA creates x,y tupels.
+            Readout needs memory addresss. So actually, I need two queues. The inner-phrase bit select is stored per pixel ( linear filtering?),
+            every wrap around is detected on read out and means to go to the next phrase (phrase = 64 bit read from Jaguar DRAM).
+            Wrap around fails on scale down ( grazing incidence ) and z check. So really need "clock bit".
+            In the address queue the addresses are replaced with their values ( line to line coherence may want some compares really end up in a full blown cache ).
+            values and x,y tupels are syncded. Perhaps, the value queue should be separate. It is difficult to lay out so many ports.
+            This has the benefit that perhaps in an idle move, new and exisiting addresses on end of line u turn can be compared.
+            Then the pick bits out of phrase circuit also runs at one pixel per clock pace. A z-buffer check could happen before, up to the software dev to tune and turn that on.
+            Strict pipeline would assemble an output phrase and then in one burst write z, write pixel, load next z. Ah, we always know the next z phrase.
+            Z and Gouraud are also DDA, but run next to the texel picker.
+            Z check needs memory access. Leaps seems to be justified here to match the pace of DDA to the memory bandwidth.
+            A 32 long buffer with 32 bit entries could store the result of 1024 z checks! ( needs lots of space, but runs cool)
+            Alignment of leaps to the phrases on Jaguar was a good idea. Bad was just the missing highHigh word for to launch the run.
+            Note down tha last succesful check to reliefe texture DDA.
+            My Jaguar rasterizer does perspective correction on the first visible pixel. So put the GPU in the loop?
+            Though I am not sure how this works with the checks buffer. I would be blocked. So neither new z-checks can be written, nor z-check can be used my the pixel shader.
+            Since we don't like a full blown cache ( since Jaguar does not like it ), TMEM might be an idea for very low res textures and the upper and lower corner.
+            I would want to squeeze a triangle into the queue. Or a sclice for shoter spans. Still keeping with line output.
+            Describing this is kinda complicated. So perhaps it is easier store addresses in matrix of xor gates?
+            The fraction pixel queue then not only needs a clock, but an index to the address-value pair.
+        </p>
+        <p>
+            CPU instruction queue works the same. A true 64 bit Jaguar could write aligned 64 bit in a single cycle, but the read side stays 16 bit
+            (immediates are easily pulled outide of loops. 3 or 4 banks seems quite expensive for this little advange.)
+            It would be great if jumps could happen within the queue.
+            The queue as valid from and to pointers and the instruction pointer. A jump outside the from to range sets from=to. A return will reload all values.
+            I love bus snooping so much. I would want to update the queue.
+            When reading from external memory, the queue would fill up completely, but every branch reduces this eagerness. Also data load store has priority.
+        </p>
         <h3>Division and multiplication</h3>
         <p> For small triangles which are not more wide than 16px or more heigh, the best bang for the buck is to linearly interpolate between the vertices like it was parallel projection (affine transformation).
             The triangle can even be larger if it is pointing towards the camera</p>
