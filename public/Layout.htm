@@ -1,6 +1,77 @@
 <html>
     <head>
-		<h2>Overall layout</h2>
+		<h2> bit slicer layout </h2>
+		<p>
+			16 bit-lines crossing the chip. Each bitline actually consists of 3 lines.
+			They shot throught the register file.
+			A larger register file would better be put out of the way, but transistor count of RCA CDP1802 should not be reached in my "SAP"<div class=""></div>
+			So register count is the one needed for MUL ( and no packing in 16 bit because we want RISCy style).
+			5 registers: IC, SP (for context), accumulator, (x,y)= factors , count register C (could be 4bit like in ARM, so some pressure to pack)
+			The address bus shots through the instruction counter.
+			This counter has a write back register. => 6
+			The ALU can collect 8:8 bit from memory and needs an input register,
+			but for reg,reg instruction I want flags as fast as possible: write back register.
+			So I guess that I have a general temp register with hi/lo word access -> data bus. -> 7 regs
+		</p>
+		<p>
+			Lot's of multiplexing. 8 bit code wants to use register indirect addressing.
+			But we also want displacement. So the address output pins need to be able to select: register out, vs ALU out.
+			Them temp / collector register needs to be able to write to ALU input and register input.
+			It needs to accept one regiser out (including PC).
+			So clearly there is one favourite register out and a secondary register out.
+			Secondary is used by the temp register ( many 6502 are reg + immediate ).
+			For my multiplication example I need accumulator + X.
+			So perhaps accumulator is the other user of that secondary port?
+			This would make bitlines thinner so that we can place more PC logic inbetween them.
+		</p>
+		<p>
+			If data and accumulator register form a special group, I get motivate to unify.
+			accu += immediate that there needs to be a third register!
+			Data register is the one with the hi-lo access. We could have a "accu" + b "write back".
+			They all have their dedicated connections to bitlines.
+			Accu connects to ALU in (primary). Data connect to ALU in (secondary) and out.
+			Write back connects to ALU out and register in.
+			Write Back sits between ALU and file. Data register does not care about this bitline.
+		</p>
+		<p>
+			I feel like I should base encoding on AC,XY =GPR aka GR. To fill half the encoding space:
+			0OGRGRGR  three register format. O = Arithmetic vs Logic.
+		</p>
+		<UL>
+			<li>Arithmetic could be sub. 4 duplicates to load a 0 into a register: Redefine as += .</li>
+			<li>Logic commutes. Order of soure registers selects between AND and OR.
+				same source register is redefined as ^= .
+			</li>
+		</UL>
+		<p>Some more GR, GR, which make no sense on itself</p>
+		<UL>
+			<li>Copy: 1000GRGR.</li>
+			<li>Comp: 1001GRGR.</li>
+			<li>Test: 1010GRGR.</li>
+			<li>Load: 1011GRGR. A is not an address register, but SP is.</li>
+		</UL>
+		<p> Looks like I don't have enough encoding space for 3 register format.
+			I can stick to having a special accumulator and save a read line for the register file.
+			ALU can invert either input or swap or this is really the same if I balance all inputs.
+		</p>
+		<p>
+			Some arithmetic unification. I could say, I never write to C so that C becomes the zero register for Test and Compare.
+			I could add signs to Add:  Sum +-Akku +- GR  = 5 bits
+			Sub is so useless in my code for some reason. SH2 loves sub.
+			Just stick to 6502 SUB? No need to leak micro-architecture here. 6502 also seems to have no problem to combine asymetric CMP (first reg is always A) with asymetric branch ( there is no &lt;=0 )
+		</p>
+		<p>
+			Since I have 16 bit register, I guess I have to replace that zero page two byte read stuff
+			with the 68k pre inc post inc generalisation. Otherwise there would be pressure to addq 2.
+		</p>
+		<p> So load store needs half the encoding space? 8/16 GRGR Load/Store. . post/pre . up/ down.
+			I think that some combinations make no sense.
+			We only need stack, memcopy (two directions for overlap), and mirror.
+			Only the stack needs pre. And here only the combination Load up. So 3 combinations are free:
+			register indirect, displacement 8/16
+			Also Store with GR=GR makes no sense.
+		</p>
+		<h2>Overall layout (older)</h2>
 		<p>
 			I decided to go with a kinda MIPS layout. It looks like registers and ALU are close to each other to give reg-reg instruction low latency.
 			With even less registers on my design (8?) pass through of other data is not so bad.
