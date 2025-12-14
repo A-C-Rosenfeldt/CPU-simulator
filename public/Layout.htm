@@ -71,6 +71,13 @@
 			register indirect, displacement 8/16
 			Also Store with GR=GR makes no sense.
 		</p>
+		<p>
+			Branch encoding should respect the same 8/16 flag so that it can be hard-wired to the data registers.
+			This would suggest 8 branches (imm8) and 8 others (imm16). Uh 8?? JMP, JSR . Seems like I better lump no imm into this: RTS, RTI,
+			where we load the 16 bit from the Stack. ( JSR keeps the 16 bit line up the whole instruction).
+			I like how Jaguar allows a last minute block of Jumps. I can understand Branch always. I kinda like the 8286 loop instruction.
+			Hmm, but encoding wants 16 bit. So best I can do .. ah this is ugly.
+		</p>
 		<h2>Overall layout (older)</h2>
 		<p>
 			I decided to go with a kinda MIPS layout. It looks like registers and ALU are close to each other to give reg-reg instruction low latency.
