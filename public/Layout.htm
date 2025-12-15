@@ -78,6 +78,24 @@
 			I like how Jaguar allows a last minute block of Jumps. I can understand Branch always. I kinda like the 8286 loop instruction.
 			Hmm, but encoding wants 16 bit. So best I can do .. ah this is ugly.
 		</p>
+		<h3>Animation</h3>
+		<p>The bitslice layout clearly favors bidirectional bit-lanes. These may be hard to follow for the eye. Especially: register indirect without displacement.
+			Most of the gates are multiplexers. I guess I would go Logsim. No simulation of transients. No low pass filtering.
+			To guide the process I want dynamic logic. Slices are powered up from register to ALU and back. The pull-up pulse runs ahead.
+			Control-logic -> clock running through inverter chain -> 16 bit logic .
+			So for logic instructions, the carry circuit is neither charged nor powered.
+			So for moves, logic is not powered.
+			Unpowered circuit cannot write onto the bus.
+			The PC better (holistic: register + actual counter) stays on during data access (but clock is blocked), but off on jumps because ALU replaces everything.
+			Regarding the binary address generators, accumulator based ISA(tight encoding space / MUL as main app) only needs two ports, but not on every cycle.
+			One can be on top and one below, though for single register instructions and the increment addressing mode, I might be fun to reuse the read line pattern?
+		</p>
+		<p>I feel like I need quite the microcode ROM for all the multi-cycle instructions. Microcode is horizontally aligned to the control lines,
+			and vertically called and executed almost like normal code. Do I need subroutines? I need a code length counter, initialized from the opcode.
+			I may need to execute two threads. One would be for the addressing mode ( immediate 8 16 (counter) vs loadStore), and one would be for uh, i dunno.
+			Branch just uses different registers and stops PC. Feels like this part needs no execution different to ALU instructions.
+			Load Store addressing modes need their own execution to interleave the data access. Increment modes are the worst. Post and Pre need different code.
+		</p>
 		<h2>Overall layout (older)</h2>
 		<p>
 			I decided to go with a kinda MIPS layout. It looks like registers and ALU are close to each other to give reg-reg instruction low latency.
