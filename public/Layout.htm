@@ -197,6 +197,14 @@
 			In an inverter chain every stage the edge switches between falling an raising. So it is easy to set different speeds to two inverter chains. Just how do I display channel width on screen (it is the z-direction).
 			I could mark the area in my clock module : Here all pull ups have lower current. How do I interface with the bus? There would be a delay! I guess that some delay is expected. 
 		</p><p>
+			The 6502 uses pre-charge, even the 65C02. With many phases from an inverter chain, this pre-charge runs through.
+			I think, I would not only use it for busses, but pipeline registers and registers in the file.
+			I guess I really want my transisents with the Miller effect (I guess that I want to also see input capacitity for realistic fan-out).
+			Slow down light. Nice pattarn to run through the tapeout.
+			The thing for registers is that I need an additional line to block any pull down and let the weak pull up do its work.
+			This might be intersting with register renaming because I have more time to pre-charge.
+			But also it works well with many phase / pipeline register - alu - write back (short cut). Kinda justifies the delay in 2 operand operations. 
+		</p><p>
 			Manchester carry look ahead uses PLAs: The balanced signal from both operands enters this PLA. NANDs gates select eithr polarity.
 			So if I don't care for power, I could have a 4 bit carry detection in a Matrix shape -- which is nice. Sadly the whole upper triangle in a 4x4 square generates a carry.
 			Ah, not so many transistors: 3+2+1 .. so 6. Still a bit weird that I would have the carry ready befor the sign flag. So how to I multiplex in the next higher nibble?
