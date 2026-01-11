@@ -421,6 +421,18 @@
 			When data needs to access RAM, for immediates the instruction register is idle, and for load store the programm counter is idle, too.
 		</p>
 		<p>
+			The cells in the register file have 6 transistors like SRAM. Two transmission gate. The trick lies in the power lines.
+			So the whole register file is supplied with high voltage to store a strong signal. In CMOS, this eats no power. N-mos needs a different approach.
+			Well, in true CMOS on read the value from the cell needs to overwhelm the old value on the bit line. Dynamic CMOS could pull the bitlines to a middle point.
+			The process ( physical simulation ) could ensure that inverters can be tipped of from there : push pull overlap. Threshold voltage.
+			This allows cells to recover and sense amps to work. I kinda feel like this still is more suited to n-MOS.
+			In n-MOS we clearly need a separate dual gate transistor to read out the cell in order not to sink all the weak ( to save energy ) current.
+			An n-MOS latch is like a differential pair. It will pull away from the middle point ( can be tipped off).
+			With the balanced word lines, the sense amplfier better is a differential pair going through a shared pull down resistor.
+			The resistor could be a clock gate. Then use a delayed gate to latch at full signal level.
+			So reading = writing; just the register at the end of the file has a backdoor.
+		</p>
+		<p>
 			The data flows along the bit lines of the SRAM register file. I don't plan a symbol to collect data lines anymore.
 			I fully expose a Matrix structure and the viewer can decide on the number of bits for ALU=address and for memory ( sign extend like branch in 6502 and load in SH2 or MIPS).
 			On the edge there is the carry look ahead tree or any other structure which pushes data cross the lanes. Information goes to the tree root and back to the leafs. Carry goes around ( copies to both sides).
