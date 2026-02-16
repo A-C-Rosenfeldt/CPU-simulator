@@ -14,7 +14,46 @@
 			So I guess that I have a general temp register with hi/lo word access -> data bus. -> 7 regs
 		</p>
 		<p>
-			Lot's of multiplexing. 8 bit code wants to use register indirect addressing.
+			Lot's of multiplexing. At first I had the idea that register selection is the only "multiplexing" between ALU and register file.
+			But then it occured to me that the ALU in CMOS will start with logic functions and have U-turn multiplexers before the carry logic.
+			The XOR logic function also looks very much like a multiplexer. So anyway, in a balance desgin it is okay to have more multiplexers.
+			This should be enough. I'd rather waste real estate with my desing than adding multiplexers to tunnel.
+			So what are the cases?			
+		</p>
+		<ul>
+			<li>
+				Branch: reg-> Alu . Immediate gets inserted . ALU -> reg : result goes to InstructionPointer.
+				6502 does it this way. A carry look ahead (Instruction)counter is small. Upgrading the low 8 bit to an adder costs multiplexers.
+				Sign extension complicates the top 8 bits.
+				I alread need external access 16 bit to the instuctionCounter. I would like a single 4 way multiplexer. Immediates would not go directly here.
+				Does this affect the ISA? I do not like immedediate8 absolute addresses that much anyways? Imm8 could go to a special port for adding.
+				Everything else goes through a general purpose register?
+				Ah stupip. Loading the pointer can come only from two sources. I mean, reading the pointer needs to go to address and reg.
+				So, a three way multiplexer it is for read and write. This nicely fits with a large square crossing in the center of my design.
+				So, I don't know why I was thinking of busses ( or multiple of them).
+				Seems to me that with 3 ports on the ALU, 2 on the InstructionCounter, 3 on the register, 2 on memory, there can be lots of parallel traffic point2point.
+				And with a large square in the center, criss cross routing is straight forward.
+				ALU and REG ports are aligned. If InstrucitonCounter has its own adder, I algin memory ports to this.
+				I seems possible to avoid "left turn". This could happen if 3 sides want to communicate. I mean, I plan to save on traces: there is only one wire between ALU and reg.
+				Load with addresing mode dictates that memory address lines are close to the ALU, while data lines are close to the register.
+				Jump and link does not use the ALU. The PC - memory lane goes through.
+				So perhaps for my MVP, I should not stress out about flicker in the ALU too much? Jaguar does not branch in the ALU.
+				When I go the full mile, the top 8 bits would store two consecutive addresses.
+				Absolute jump would calculate the other while fetching the first word.
+				This is not about multiplexing in the core.
+			</li>
+			<li>
+				Load: ALU -> reg . Insert from memory
+			</li>
+			<li>
+				Load with Addressing mode: Alu-reg : deflect to address lines. Insert from memory. Deflect is "sensing". It only adds to fan out, but not gate dealy
+			</li>
+			<li>
+				Jump and Link: IP -> regA. regB -> IP . IP consists of 2 or 3 physical latches , so the locigal register can be source and target in the same cycle.
+			</li>
+		</ul>
+		<p>			
+			8 bit code wants to use register indirect addressing.
 			But we also want displacement. So the address output pins need to be able to select: register out, vs ALU out.
 			Them temp / collector register needs to be able to write to ALU input and register input.
 			It needs to accept one regiser out (including PC).
